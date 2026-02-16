@@ -1,0 +1,226 @@
+You are Claude 4.5 Sonnet acting as a senior full-stack engineer + tech lead.
+
+Build an MVP web app named **“MueJam Library”**: a clean, minimal digital library for serial stories (Wattpad vibe) plus a micro-posting system called **Whispers** (Threads vibe), including passage highlights → whisper that highlight.
+
+GOALS (non-negotiable)
+- UX: Cleaner / Clear / Minimal / Comfortable. Typography-first. No clutter.
+- MVP must support: Discover → Read → Save → Whisper → Write/Publish.
+- Start with a simple Search + Suggest + “For You” personalization algorithm.
+
+STACK (must use)
+- Frontend: Next.js (App Router) + Tailwind
+- Backend: Django + Django REST Framework (DRF)
+- Database: PostgreSQL + Prisma (use Prisma schema/migrations; use Prisma Client Python for DB access in Django)
+- Cache: Valkey (Redis-compatible)
+- Auth: Clerk (use `clerk-backend-api` on Django to verify requests)
+- Emails: Resend (transactional)
+- Uploads: AWS S3 (presigned uploads)
+
+DELIVERABLES (what you must output)
+1) A complete monorepo codebase with file-by-file output (each file with its path and contents).
+2) `docker-compose.yml` for local dev: Postgres + Valkey + (optional MinIO for S3 local) + api + web.
+3) `README.md` with setup steps, environment variables, and run commands.
+4) Prisma schema + migrations + seed script.
+5) Django project with DRF endpoints + auth middleware + rate limiting + caching layer.
+6) Next.js app with pages + minimal components + API client.
+7) Basic background worker setup (Celery recommended) for:
+   - sending Resend emails
+   - recomputing trending lists
+8) Minimal tests: at least a few API tests for auth + creating story/chapter + whisper + search.
+
+PRODUCT REQUIREMENTS (MVP FEATURES)
+
+A) Reading & Stories
+- Discover feed: Trending, New, For You
+- Story page: cover, title, blurb, tags, author, chapters list
+- Reader page: distraction-free, max width text, reader settings:
+  - font size, theme (light/dark), line width
+- Progress tracking per chapter
+- Bookmark chapter position
+- Save story to shelf (Library)
+
+B) Writing
+- Author dashboard
+- Create story (draft) + edit
+- Create chapters (draft) + edit
+- Publish story + publish chapter
+
+C) Whispers (micro posts)
+- Create whisper:
+  - GLOBAL whisper
+  - STORY-linked whisper
+  - HIGHLIGHT-linked whisper (from passage highlight)
+- Feed:
+  - Global whispers
+  - Story whispers
+- Reply to whisper (threaded replies)
+- Like/unlike whisper
+- Soft delete whisper
+- In-app notifications for:
+  - reply to your whisper
+  - follow (optional)
+- Email notification (Resend) for replies (MVP) using idempotency keys
+
+D) Highlights → Whisper passage
+- In reader, user can highlight a passage (start/end offset) and save highlight
+- From a highlight, user can create a HIGHLIGHT whisper
+
+E) Search + Suggest + Personalization (must be included from day 1)
+1) Search
+- Endpoint: `GET /v1/search?q=...&type=all|stories|users|tags&cursor=...`
+- Use PostgreSQL full-text search for stories (title+blurb) + trigram indexes for suggestions
+- Return ranked results with small, clean JSON structures
+
+2) Suggest (autocomplete)
+- Endpoint: `GET /v1/search/suggest?q=...&limit=8`
+- Return 3 groups: Stories (max 4), Tags (max 2), Authors (max 2)
+- Cache suggestions in Valkey: `suggest:{prefix}` TTL 10–30 min
+
+3) “For You” personalization (simple, explainable)
+- Maintain `UserInterest(user_id, tag_id, score, updated_at)`
+- Update scores on events:
+  - save story +3
+  - read chapter >60s +1
+  - like story +2
+  - follow author +2 (to author’s tags)
+- Daily decay: score *= 0.98
+- Candidate pool:
+  - recent published stories (last 30 days)
+  - trending
+  - stories from followed authors
+- Score story:
+  score = tag_match*3 + author_match*2 + trending*1.5 + freshness*1.0
+- Cache For You list in Valkey: `foryou:{user_id}` TTL 1–6 hours
+- Cold start fallback: Trending/New
+
+NON-FUNCTIONAL REQUIREMENTS (must implement)
+- Security:
+  - Sanitize rendered markdown (prevent XSS)
+  - Use soft deletes for stories/chapters/whispers
+  - Block system: user can block another user; blocked content disappears from feeds/search
+  - Report endpoint for stories/chapters/whispers/users
+- Rate limits using Valkey:
+  - whisper create: 10/min/user
+  - reply create: 20/min/user
+  - publish: 5/hour/user
+- Caching:
+  - Discover: `discover:new:*` TTL 1–5 min
+  - Trending: `zset:trending:stories` recomputed job every 10–30 min
+  - Whispers feed: `whispers:*` TTL 30–120 sec
+  - Story metadata: `story:{id}` TTL 5–15 min, invalidate on update/publish
+- Observability:
+  - structured logs with request id, clerk user id, route, latency
+  - basic error handler returning clean API errors
+
+DATA MODEL (must implement in Prisma)
+- UserProfile (clerk_user_id unique, handle unique)
+- Story, Chapter, Tag, StoryTag
+- Shelf, ShelfItem
+- ReadingProgress, Bookmark
+- Highlight
+- Whisper (scope: GLOBAL|STORY|HIGHLIGHT), WhisperLike
+- Follow
+- Notification
+- Report
+- Block
+- UserInterest
+(Optional for trending): StoryStatsDaily or event table
+
+API SPEC (DRF; base `/v1`)
+Public:
+- GET /health
+- GET /stories?sort=trending|new|foryou&tag=&q=&cursor=
+- GET /stories/{slug}
+- GET /stories/{id}/chapters
+- GET /chapters/{id}
+- GET /whispers?scope=global|story|highlight&story_id=&cursor=
+- GET /search
+- GET /search/suggest
+
+Authenticated:
+- GET /me
+- Library:
+  - GET/POST /me/shelves
+  - PUT/DELETE /me/shelves/{id}
+  - POST /me/shelves/{id}/items  {story_id}
+  - DELETE /me/shelves/{id}/items/{story_id}
+- Writing:
+  - POST /stories
+  - PUT /stories/{id}
+  - POST /stories/{id}/publish
+  - POST /stories/{id}/chapters
+  - PUT /chapters/{id}
+  - POST /chapters/{id}/publish
+  - DELETE /stories/{id}  (soft delete)
+- Whispers:
+  - POST /whispers
+  - POST /whispers/{id}/reply
+  - POST /whispers/{id}/like
+  - DELETE /whispers/{id}/like
+  - DELETE /whispers/{id} (soft delete)
+- Highlights:
+  - POST /highlights
+  - DELETE /highlights/{id}
+- Social:
+  - POST/DELETE /users/{handle}/follow
+  - POST/DELETE /users/{handle}/block
+- Notifications:
+  - GET /me/notifications?cursor=
+  - POST /me/notifications/{id}/read
+- Upload:
+  - POST /uploads/presign  (type, content_type, size_bytes) -> presigned S3 info + object_key
+- Reports:
+  - POST /reports
+
+FRONTEND REQUIREMENTS (Next.js)
+- Pages:
+  /discover, /story/[slug], /read/[chapterId], /whispers, /library, /write, /write/story/[id], /u/[handle]
+- UI must be minimal:
+  - calm cards, soft dividers, lots of whitespace
+  - only 1 accent color
+  - reader has no sidebars by default
+- Implement highlight selection in reader and attach whisper
+- Implement search bar with suggestions dropdown
+- Implement For You tab that calls `sort=foryou` (falls back if unauth)
+
+AUTH (Clerk)
+- Next.js uses Clerk for sessions
+- Django verifies every protected request using `clerk-backend-api`
+- UserProfile auto-created on first authenticated API call (upsert by clerk_user_id)
+
+EMAIL (Resend)
+- On new reply: create Notification + enqueue email job
+- Use idempotency key: `notif:{notification_id}`
+
+UPLOAD (S3)
+- Direct-to-S3 uploads using presigned POST or PUT
+- Store only `object_key` in DB
+- Support avatar, cover, whisper media
+
+CODING STANDARDS
+- Type hints in Python where reasonable
+- Clean API error format:
+  { "error": { "code": "...", "message": "...", "details": {...} } }
+- Cursor pagination everywhere feeds/search
+- Avoid overengineering; prioritize shippable MVP
+
+OUTPUT FORMAT (IMPORTANT)
+- Start with an overview + architecture diagram (ASCII ok)
+- Then print the repo tree
+- Then for each file: show a header like:
+  ===== FILE: apps/api/README.md =====
+  <content>
+- Provide exact commands to run locally
+
+ACCEPTANCE TESTS (must pass)
+1) Sign in (Clerk) → call protected endpoint successfully
+2) Create story + chapter → publish → appears in New
+3) Read chapter 60s → progress saved + UserInterest updated
+4) Search stories → results returned + suggestions work
+5) For You returns personalized ranking (or fallback)
+6) Highlight passage → create highlight whisper → appears in story whispers
+7) Upload cover/avatar via presign → visible in UI
+8) Reply to whisper → notification created + email job queued
+
+Now build “MueJam Library” according to all requirements above.
+Do not ask me questions; make sensible defaults and implement the MVP end-to-end.
