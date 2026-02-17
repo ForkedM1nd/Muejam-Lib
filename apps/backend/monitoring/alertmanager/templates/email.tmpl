@@ -1,0 +1,102 @@
+{{ define "email.default.html" }}
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .alert-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .alert-header {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 3px;
+        }
+        .alert-critical {
+            background-color: #f44336;
+            color: white;
+        }
+        .alert-warning {
+            background-color: #ff9800;
+            color: white;
+        }
+        .alert-info {
+            background-color: #2196F3;
+            color: white;
+        }
+        .alert-details {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-left: 4px solid #2196F3;
+        }
+        .alert-label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .footer {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="alert-container">
+        <div class="alert-header alert-{{ .Status }}">
+            <h2>{{ .Status | toUpper }}: {{ .GroupLabels.alertname }}</h2>
+        </div>
+        
+        {{ if gt (len .Alerts.Firing) 0 }}
+        <h3>Firing Alerts ({{ len .Alerts.Firing }})</h3>
+        {{ range .Alerts.Firing }}
+        <div class="alert-details">
+            <p><span class="alert-label">Summary:</span>{{ .Annotations.summary }}</p>
+            <p><span class="alert-label">Description:</span>{{ .Annotations.description }}</p>
+            <p><span class="alert-label">Severity:</span>{{ .Labels.severity }}</p>
+            <p><span class="alert-label">Component:</span>{{ .Labels.component }}</p>
+            <p><span class="alert-label">Started:</span>{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}</p>
+            {{ if .Labels.instance }}
+            <p><span class="alert-label">Instance:</span>{{ .Labels.instance }}</p>
+            {{ end }}
+        </div>
+        {{ end }}
+        {{ end }}
+        
+        {{ if gt (len .Alerts.Resolved) 0 }}
+        <h3>Resolved Alerts ({{ len .Alerts.Resolved }})</h3>
+        {{ range .Alerts.Resolved }}
+        <div class="alert-details">
+            <p><span class="alert-label">Summary:</span>{{ .Annotations.summary }}</p>
+            <p><span class="alert-label">Resolved:</span>{{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}</p>
+        </div>
+        {{ end }}
+        {{ end }}
+        
+        <div class="footer">
+            <p>This is an automated alert from MueJam Library Monitoring System</p>
+            <p>Cluster: {{ .GroupLabels.cluster }} | Environment: {{ .ExternalURL }}</p>
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}
+
+{{ define "pagerduty.default.instances" }}
+{{ range . }}
+- Alert: {{ .Labels.alertname }}
+  Severity: {{ .Labels.severity }}
+  Description: {{ .Annotations.description }}
+  Instance: {{ .Labels.instance }}
+{{ end }}
+{{ end }}

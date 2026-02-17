@@ -1,0 +1,2274 @@
+openapi: 3.0.3
+info:
+  title: MueJam Library API
+  version: 1.0.0
+  description: "\n    MueJam Library is a digital library platform for serial stories\
+    \ with an integrated micro-posting system.\n    \n    ## Features\n    - **Story\
+    \ Discovery**: Browse trending, new, and personalized story recommendations\n\
+    \    - **Reading Experience**: Distraction-free reader with customizable settings\n\
+    \    - **Library Management**: Organize stories into personal shelves\n    - **Whispers**:\
+    \ Micro-posting system for global, story-linked, and highlight-linked posts\n\
+    \    - **Social Features**: Follow authors, block users, and engage with the community\n\
+    \    - **Notifications**: Stay informed about replies and follows\n    \n    ##\
+    \ Authentication\n    All authenticated endpoints require a Bearer token in the\
+    \ Authorization header.\n    Tokens are issued by Clerk authentication service.\n\
+    \    \n    Example: `Authorization: Bearer <your_token>`\n    "
+  contact:
+    name: MueJam Library Support
+    email: support@muejam.com
+  license:
+    name: Proprietary
+paths:
+  /v1/bookmarks/{bookmark_id}:
+    delete:
+      operationId: bookmarks_destroy
+      description: |-
+        Delete a bookmark.
+
+        DELETE /v1/bookmarks/{id}
+
+        Returns:
+            - 204: Bookmark deleted successfully
+            - 401: Not authenticated
+            - 403: Not authorized (not the bookmark owner)
+            - 404: Bookmark not found
+
+        Requirements:
+            - 3.6: Delete bookmark
+      parameters:
+      - in: path
+        name: bookmark_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - bookmarks
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /v1/chapters/{chapter_id}:
+    get:
+      operationId: chapters_retrieve
+      description: |-
+        Get a chapter by ID.
+
+        GET /v1/chapters/{id}
+
+        Returns:
+            - 200: Chapter details with content
+            - 404: Chapter not found or deleted
+
+        Requirements:
+            - 5.2: Get chapter content
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/chapters/{chapter_id}/bookmarks:
+    get:
+      operationId: chapters_bookmarks_retrieve
+      description: |-
+        List bookmarks or create a new bookmark for a chapter.
+
+        GET /v1/chapters/{id}/bookmarks - List bookmarks
+        POST /v1/chapters/{id}/bookmarks - Create bookmark
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: chapters_bookmarks_create
+      description: |-
+        List bookmarks or create a new bookmark for a chapter.
+
+        GET /v1/chapters/{id}/bookmarks - List bookmarks
+        POST /v1/chapters/{id}/bookmarks - Create bookmark
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/chapters/{chapter_id}/delete:
+    delete:
+      operationId: chapters_delete_destroy
+      description: |-
+        Soft delete a chapter.
+
+        DELETE /v1/chapters/{id}
+
+        Returns:
+            - 204: Chapter deleted successfully
+            - 401: Not authenticated
+            - 403: Not authorized (not the story author)
+            - 404: Chapter not found
+
+        Requirements:
+            - 5.7: Soft delete by setting deleted_at timestamp
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /v1/chapters/{chapter_id}/highlights:
+    get:
+      operationId: chapters_highlights_retrieve
+      description: |-
+        List highlights or create a new highlight for a chapter.
+
+        GET /v1/chapters/{id}/highlights - List highlights
+        POST /v1/chapters/{id}/highlights - Create highlight
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: chapters_highlights_create
+      description: |-
+        List highlights or create a new highlight for a chapter.
+
+        GET /v1/chapters/{id}/highlights - List highlights
+        POST /v1/chapters/{id}/highlights - Create highlight
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/chapters/{chapter_id}/progress:
+    get:
+      operationId: chapters_progress_retrieve
+      description: |-
+        Get or update reading progress for a chapter.
+
+        GET /v1/chapters/{id}/progress - Get reading progress
+        POST /v1/chapters/{id}/progress - Update reading progress
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: chapters_progress_create
+      description: |-
+        Get or update reading progress for a chapter.
+
+        GET /v1/chapters/{id}/progress - Get reading progress
+        POST /v1/chapters/{id}/progress - Update reading progress
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/chapters/{chapter_id}/publish:
+    post:
+      operationId: chapters_publish_create
+      description: |-
+        Publish a chapter.
+
+        POST /v1/chapters/{id}/publish
+
+        Returns:
+            - 200: Chapter published successfully
+            - 401: Not authenticated
+            - 403: Not authorized (not the story author)
+            - 404: Chapter not found
+            - 429: Rate limit exceeded
+
+        Requirements:
+            - 5.4: Set published=true and record publication timestamp
+            - 5.8: Enforce rate limit of 5 publish operations per hour
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/chapters/{chapter_id}/update:
+    put:
+      operationId: chapters_update_update
+      description: |-
+        Update a chapter draft.
+
+        PUT /v1/chapters/{id}
+
+        Request body:
+            - title: Chapter title (optional)
+            - content: Chapter content in markdown (optional)
+
+        Returns:
+            - 200: Chapter updated successfully
+            - 400: Invalid input
+            - 401: Not authenticated
+            - 403: Not authorized (not the story author)
+            - 404: Chapter not found
+
+        Requirements:
+            - 5.4: Update draft without affecting publication status
+      parameters:
+      - in: path
+        name: chapter_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - chapters
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/discover/discover:
+    get:
+      operationId: discover_discover_retrieve
+      description: "\n    Retrieve stories from one of three discovery feeds:\n  \
+        \  \n    - **Trending**: Stories with high recent engagement (saves, reads,\
+        \ likes, whispers)\n    - **New**: Recently published stories ordered by publication\
+        \ date\n    - **For You**: Personalized recommendations based on user interests\
+        \ (requires authentication)\n    \n    All feeds support filtering by tag\
+        \ and search query. Results are cached for performance.\n    "
+      summary: Get discovery feed
+      parameters:
+      - in: query
+        name: cursor
+        schema:
+          type: string
+        description: Pagination cursor for next page
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Number of items per page (max 100, default 20)
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Search query for title, blurb, or author
+      - in: query
+        name: tab
+        schema:
+          type: string
+          enum:
+          - for-you
+          - new
+          - trending
+        description: 'Feed type: trending, new, or for-you'
+      - in: query
+        name: tag
+        schema:
+          type: string
+        description: Filter by tag slug
+      tags:
+      - Discovery
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                DiscoveryFeedResponse:
+                  value:
+                    data:
+                    - id: 123e4567-e89b-12d3-a456-426614174000
+                      slug: the-chronicles-of-aether
+                      title: The Chronicles of Aether
+                      blurb: A fantasy epic about magic and destiny
+                      cover_key: covers/uuid-here.jpg
+                      author:
+                        id: 456e7890-e89b-12d3-a456-426614174000
+                        handle: fantasy_writer
+                        display_name: Fantasy Writer
+                      tags:
+                      - fantasy
+                      - magic
+                      - adventure
+                      published_at: '2024-01-15T10:00:00Z'
+                    next_cursor: eyJpZCI6IjEyM2U0NTY3LWU4OWItMTJkMy1hNDU2LTQyNjYxNDE3NDAwMCJ9
+                  summary: Discovery Feed Response
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /v1/health/:
+    get:
+      operationId: health_retrieve
+      description: "\n    Check the health status of the MueJam Library API and its\
+        \ dependencies.\n    \n    This endpoint verifies:\n    - Database connectivity\
+        \ (PostgreSQL)\n    - Cache connectivity (Valkey/Redis)\n    \n    Returns\
+        \ HTTP 200 if all systems are operational, HTTP 503 if any dependency is down.\n\
+        \    \n    **Note**: This endpoint does not require authentication.\n    "
+      summary: System health check
+      tags:
+      - Health
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                HealthyResponse:
+                  value:
+                    status: healthy
+                    timestamp: '2024-01-20T15:30:00.000000'
+                    checks:
+                      database: healthy
+                      cache: healthy
+                  summary: Healthy Response
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+              examples:
+                UnhealthyResponse:
+                  value:
+                    status: unhealthy
+                    timestamp: '2024-01-20T15:30:00.000000'
+                    checks:
+                      database: healthy
+                      cache: 'unhealthy: Connection refused'
+                  summary: Unhealthy Response
+          description: ''
+  /v1/highlights/{highlight_id}:
+    delete:
+      operationId: highlights_destroy
+      description: |-
+        Delete a highlight.
+
+        DELETE /v1/highlights/{id}
+
+        Returns:
+            - 204: Highlight deleted successfully
+            - 401: Not authenticated
+            - 403: Not authorized (not the highlight owner)
+            - 404: Highlight not found
+
+        Requirements:
+            - 8.5: Delete highlight
+      parameters:
+      - in: path
+        name: highlight_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - highlights
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /v1/library/:
+    get:
+      operationId: library_retrieve
+      description: |-
+        Get all shelves with their stories.
+
+        GET /v1/library
+
+        Returns:
+            - 200: List of shelves with stories
+            - 401: Not authenticated
+
+        Requirements:
+            - 4.4: Get all shelves with stories
+      tags:
+      - library
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/library/shelves:
+    get:
+      operationId: library_shelves_retrieve
+      description: |-
+        List user's shelves or create a new shelf.
+
+        GET /v1/library/shelves - List user's shelves
+        POST /v1/library/shelves - Create new shelf
+      tags:
+      - library
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: library_shelves_create
+      description: |-
+        List user's shelves or create a new shelf.
+
+        GET /v1/library/shelves - List user's shelves
+        POST /v1/library/shelves - Create new shelf
+      tags:
+      - library
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/library/shelves/{shelf_id}:
+    put:
+      operationId: library_shelves_update
+      description: |-
+        Update a shelf (rename).
+
+        PUT /v1/library/shelves/{id}
+
+        Request body:
+            - name: New shelf name (required)
+
+        Returns:
+            - 200: Shelf updated successfully
+            - 400: Invalid input
+            - 401: Not authenticated
+            - 403: Not authorized (not the shelf owner)
+            - 404: Shelf not found
+
+        Requirements:
+            - 4.7: Rename shelf
+      parameters:
+      - in: path
+        name: shelf_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - library
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/library/shelves/{shelf_id}/delete:
+    delete:
+      operationId: library_shelves_delete_destroy
+      description: |-
+        Delete a shelf and all its items.
+
+        DELETE /v1/library/shelves/{id}
+
+        Returns:
+            - 204: Shelf deleted successfully
+            - 401: Not authenticated
+            - 403: Not authorized (not the shelf owner)
+            - 404: Shelf not found
+
+        Requirements:
+            - 4.5: Delete shelf removes ShelfItems
+      parameters:
+      - in: path
+        name: shelf_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - library
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /v1/library/shelves/{shelf_id}/items:
+    post:
+      operationId: library_shelves_items_create
+      description: |-
+        Add a story to a shelf.
+
+        POST /v1/library/shelves/{id}/items
+
+        Request body:
+            - story_id: ID of the story to add (required)
+
+        Returns:
+            - 201: Story added to shelf successfully
+            - 400: Invalid input
+            - 401: Not authenticated
+            - 403: Not authorized (not the shelf owner)
+            - 404: Shelf or story not found
+            - 409: Story already in shelf
+
+        Requirements:
+            - 4.2: Add story to shelf
+      parameters:
+      - in: path
+        name: shelf_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - library
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/library/shelves/{shelf_id}/items/{story_id}:
+    delete:
+      operationId: library_shelves_items_destroy
+      description: |-
+        Remove a story from a shelf.
+
+        DELETE /v1/library/shelves/{id}/items/{story_id}
+
+        Returns:
+            - 204: Story removed from shelf successfully
+            - 401: Not authenticated
+            - 403: Not authorized (not the shelf owner)
+            - 404: Shelf or story not found in shelf
+
+        Requirements:
+            - 4.3: Remove story from shelf
+      parameters:
+      - in: path
+        name: shelf_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: story_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - library
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /v1/notifications/:
+    get:
+      operationId: notifications_retrieve
+      description: |-
+        GET /v1/notifications - List notifications for current user
+
+        Query parameters:
+            - cursor: Pagination cursor
+            - page_size: Number of results (default 20, max 100)
+
+        Returns:
+            - 200: List of notifications
+            - 401: Not authenticated
+
+        Requirements:
+            - 12.3: List notifications ordered by creation time descending
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/notifications/{id}/read:
+    post:
+      operationId: notifications_read_create
+      description: |-
+        POST /v1/notifications/{id}/read - Mark notification as read
+
+        Returns:
+            - 200: Notification marked as read
+            - 401: Not authenticated
+            - 404: Notification not found
+
+        Requirements:
+            - 12.4: Mark notification as read
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/notifications/read-all:
+    post:
+      operationId: notifications_read_all_create
+      description: |-
+        POST /v1/notifications/read-all - Mark all notifications as read
+
+        Returns:
+            - 200: All notifications marked as read
+            - 401: Not authenticated
+
+        Requirements:
+            - 12.4: Mark all notifications as read
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/reports/:
+    post:
+      operationId: reports_create
+      description: |-
+        Submit a report for content moderation.
+
+        Request Body:
+            - content_type: Type of content ('story', 'chapter', 'whisper', 'user')
+            - content_id: ID of the content being reported
+            - reason: Reason for reporting (max 500 characters)
+
+        Returns:
+            Created report data
+
+        Requirements:
+            - 13.1: Report stories
+            - 13.2: Report chapters
+            - 13.3: Report whispers
+            - 13.4: Report users
+            - 13.5: Store report with reason and status
+            - 13.6: Prevent duplicate reports
+            - 13.7: Validate reason text (max 500 characters)
+      tags:
+      - reports
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/search/:
+    get:
+      operationId: search_retrieve
+      description: |-
+        Full-text search across stories, authors, and tags.
+
+        Query Parameters:
+            - q: Search query (required)
+            - cursor: Pagination cursor (optional)
+            - page_size: Number of results per page (default: 20, max: 100)
+
+        Returns:
+            Paginated list of stories matching the search query
+
+        Requirements:
+            - 9.1: Search across story title, blurb, author name, tags
+            - 9.5: Rank results by relevance and trending score
+            - 9.6: Exclude soft-deleted and blocked content
+            - 9.7: Use PostgreSQL full-text search
+      tags:
+      - search
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/search/suggest:
+    get:
+      operationId: search_suggest_retrieve
+      description: |-
+        Autocomplete suggestions for search.
+
+        Query Parameters:
+            - q: Search query (required)
+            - limit: Number of suggestions (default: 10, max: 20)
+
+        Returns:
+            Suggestions for stories, tags, and authors
+
+        Requirements:
+            - 9.2: Return suggestions for stories, tags, authors
+            - 9.3: Cache suggestions with TTL
+            - 9.4: Navigate to corresponding content
+            - 21.5: Cache with TTL 10-30 minutes
+      tags:
+      - search
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/stories/:
+    get:
+      operationId: stories_list
+      description: "\n    **GET**: List published stories with optional filters (tag,\
+        \ author, search query).\n    Supports cursor-based pagination for infinite\
+        \ scroll.\n    \n    **POST**: Create a new story draft. Requires authentication.\n\
+        \    Story will be created in draft state (published=false).\n    "
+      summary: List stories or create new story
+      parameters:
+      - in: query
+        name: author_id
+        schema:
+          type: string
+          format: uuid
+        description: Filter stories by author ID
+      - in: query
+        name: cursor
+        schema:
+          type: string
+        description: Pagination cursor for next page
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Number of items per page (max 100, default 20)
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search stories by title, blurb, or author name
+      - in: query
+        name: tag
+        schema:
+          type: string
+        description: Filter stories by tag slug
+      tags:
+      - Stories
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StoryList'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryDetail'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: stories_create
+      description: "\n    **GET**: List published stories with optional filters (tag,\
+        \ author, search query).\n    Supports cursor-based pagination for infinite\
+        \ scroll.\n    \n    **POST**: Create a new story draft. Requires authentication.\n\
+        \    Story will be created in draft state (published=false).\n    "
+      summary: List stories or create new story
+      parameters:
+      - in: query
+        name: author_id
+        schema:
+          type: string
+          format: uuid
+        description: Filter stories by author ID
+      - in: query
+        name: cursor
+        schema:
+          type: string
+        description: Pagination cursor for next page
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Number of items per page (max 100, default 20)
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search stories by title, blurb, or author name
+      - in: query
+        name: tag
+        schema:
+          type: string
+        description: Filter stories by tag slug
+      tags:
+      - Stories
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryCreateRequest'
+            examples:
+              CreateStoryRequest:
+                value:
+                  title: The Chronicles of Aether
+                  blurb: A fantasy epic about magic and destiny
+                  cover_key: covers/uuid-here.jpg
+                summary: Create Story Request
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StoryList'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryDetail'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /v1/stories/{slug}:
+    get:
+      operationId: stories_retrieve
+      description: |-
+        Get a story by its slug.
+
+        GET /v1/stories/{slug}
+
+        Returns:
+            - 200: Story details
+            - 404: Story not found or deleted
+            - 403: Access denied (blocked author)
+
+        Requirements:
+            - 5.1: Get story by slug
+            - 3.9: Hide content from blocked authors
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - stories
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/stories/{story_id}/chapters:
+    get:
+      operationId: stories_chapters_retrieve
+      description: |-
+        List chapters for a story.
+
+        GET /v1/stories/{id}/chapters
+
+        Query parameters:
+            - cursor: Pagination cursor (optional)
+            - page_size: Number of results (default 20, max 100)
+
+        Returns:
+            - 200: List of chapters
+            - 404: Story not found
+
+        Requirements:
+            - 5.2: List chapters for a story
+      parameters:
+      - in: path
+        name: story_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - stories
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/stories/{story_id}/chapters/create:
+    post:
+      operationId: stories_chapters_create_create
+      description: |-
+        Create a new chapter draft.
+
+        POST /v1/stories/{id}/chapters
+
+        Request body:
+            - title: Chapter title (required)
+            - content: Chapter content in markdown (required)
+            - chapter_number: Chapter number (required)
+
+        Returns:
+            - 201: Chapter created successfully
+            - 400: Invalid input
+            - 401: Not authenticated
+            - 403: Not authorized (not the story author)
+            - 404: Story not found
+            - 409: Chapter number already exists
+
+        Requirements:
+            - 5.2: Create chapter draft with published=false
+      parameters:
+      - in: path
+        name: story_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - stories
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/stories/{story_id}/delete:
+    delete:
+      operationId: stories_delete_destroy
+      description: |-
+        Soft delete a story.
+
+        DELETE /v1/stories/{id}
+
+        Returns:
+            - 204: Story deleted successfully
+            - 401: Not authenticated
+            - 403: Not authorized (not the author)
+            - 404: Story not found
+
+        Requirements:
+            - 5.6: Soft delete by setting deleted_at timestamp
+      parameters:
+      - in: path
+        name: story_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - stories
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /v1/stories/{story_id}/publish:
+    post:
+      operationId: stories_publish_create
+      description: |-
+        Publish a story.
+
+        POST /v1/stories/{id}/publish
+
+        Returns:
+            - 200: Story published successfully
+            - 401: Not authenticated
+            - 403: Not authorized (not the author)
+            - 404: Story not found
+            - 429: Rate limit exceeded
+
+        Requirements:
+            - 5.3: Set published=true and record publication timestamp
+            - 5.8: Enforce rate limit of 5 publish operations per hour
+      parameters:
+      - in: path
+        name: story_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - stories
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/stories/{story_id}/update:
+    put:
+      operationId: stories_update_update
+      description: |-
+        Update a story draft.
+
+        PUT /v1/stories/{id}
+
+        Request body:
+            - title: Story title (optional)
+            - blurb: Story description (optional)
+            - cover_key: S3 object key for cover image (optional)
+
+        Returns:
+            - 200: Story updated successfully
+            - 400: Invalid input
+            - 401: Not authenticated
+            - 403: Not authorized (not the author)
+            - 404: Story not found
+
+        Requirements:
+            - 5.5: Update draft without affecting publication status
+      parameters:
+      - in: path
+        name: story_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - stories
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/uploads/presign:
+    post:
+      operationId: uploads_presign_create
+      description: |-
+        Generate presigned URL for file upload.
+
+        Request Body:
+            - type: Upload type ('avatar', 'cover', 'whisper_media')
+            - content_type: MIME type ('image/jpeg', 'image/png', 'image/webp', 'image/gif')
+
+        Returns:
+            Presigned URL, fields, object key, and max size
+
+        Requirements:
+            - 14.1: Generate presigned S3 URL with 15-minute expiration
+            - 14.2: Enforce 2MB max for avatar uploads
+            - 14.3: Enforce 5MB max for story cover uploads
+            - 14.4: Enforce 10MB max for whisper media uploads
+            - 14.5: Validate file type (JPEG, PNG, WebP, GIF)
+            - 14.7: Generate unique object keys using UUID
+      tags:
+      - uploads
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/users/{handle}/:
+    get:
+      operationId: users_retrieve
+      description: Retrieve a user's public profile information using their unique
+        handle.
+      summary: Get public user profile by handle
+      parameters:
+      - in: path
+        name: handle
+        schema:
+          type: string
+        description: Unique user handle (3-30 alphanumeric characters and underscores)
+        required: true
+      tags:
+      - Authentication
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserProfile'
+              examples:
+                PublicProfileResponse:
+                  value:
+                    id: 123e4567-e89b-12d3-a456-426614174000
+                    handle: jane_writer
+                    display_name: Jane Writer
+                    bio: Fantasy and sci-fi author
+                    avatar_key: avatars/uuid-here.jpg
+                    created_at: '2024-01-10T08:00:00Z'
+                  summary: Public Profile Response
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /v1/users/{id}/block:
+    post:
+      operationId: users_block_create
+      description: |-
+        POST /v1/users/{id}/block - Block a user
+        DELETE /v1/users/{id}/block - Unblock a user
+
+        Requirements:
+            - 11.3: Block user creates Block record
+            - 11.4: Unblock user deletes Block record
+            - 11.7: Prevent following blocked users
+            - 11.9: Remove follow relationship on block
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    delete:
+      operationId: users_block_destroy
+      description: |-
+        POST /v1/users/{id}/block - Block a user
+        DELETE /v1/users/{id}/block - Unblock a user
+
+        Requirements:
+            - 11.3: Block user creates Block record
+            - 11.4: Unblock user deletes Block record
+            - 11.7: Prevent following blocked users
+            - 11.9: Remove follow relationship on block
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /v1/users/{id}/follow:
+    post:
+      operationId: users_follow_create
+      description: |-
+        POST /v1/users/{id}/follow - Follow a user
+        DELETE /v1/users/{id}/follow - Unfollow a user
+
+        Requirements:
+            - 11.1: Follow user creates Follow record
+            - 11.2: Unfollow user deletes Follow record
+            - 11.8: Prevent duplicate follow relationships
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    delete:
+      operationId: users_follow_destroy
+      description: |-
+        POST /v1/users/{id}/follow - Follow a user
+        DELETE /v1/users/{id}/follow - Unfollow a user
+
+        Requirements:
+            - 11.1: Follow user creates Follow record
+            - 11.2: Unfollow user deletes Follow record
+            - 11.8: Prevent duplicate follow relationships
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /v1/users/{id}/followers:
+    get:
+      operationId: users_followers_retrieve
+      description: |-
+        GET /v1/users/{id}/followers - List followers for a user
+
+        Requirements:
+            - 11.1: List followers with pagination
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/users/{id}/following:
+    get:
+      operationId: users_following_retrieve
+      description: |-
+        GET /v1/users/{id}/following - List users that a user is following
+
+        Requirements:
+            - 11.1: List following with pagination
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/users/me/:
+    get:
+      operationId: users_me_retrieve
+      description: "\n    Retrieve or update the authenticated user's profile information.\n\
+        \    \n    **GET**: Returns the current user's profile with all fields.\n\
+        \    \n    **PUT**: Updates the current user's profile. Handle must be unique\
+        \ and follow format rules:\n    - Alphanumeric characters and underscores\
+        \ only\n    - 3-30 characters in length\n    "
+      summary: Get or update current user profile
+      tags:
+      - Authentication
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileRead'
+              examples:
+                ProfileResponse:
+                  value:
+                    id: 123e4567-e89b-12d3-a456-426614174000
+                    clerk_user_id: user_2abc123def456
+                    handle: john_doe
+                    display_name: John Doe
+                    bio: Writer and reader of serial fiction
+                    avatar_key: avatars/uuid-here.jpg
+                    created_at: '2024-01-15T10:30:00Z'
+                    updated_at: '2024-01-20T14:45:00Z'
+                  summary: Profile Response
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    put:
+      operationId: users_me_update
+      description: "\n    Retrieve or update the authenticated user's profile information.\n\
+        \    \n    **GET**: Returns the current user's profile with all fields.\n\
+        \    \n    **PUT**: Updates the current user's profile. Handle must be unique\
+        \ and follow format rules:\n    - Alphanumeric characters and underscores\
+        \ only\n    - 3-30 characters in length\n    "
+      summary: Get or update current user profile
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileWriteRequest'
+            examples:
+              UpdateProfileExample:
+                value:
+                  handle: john_doe
+                  display_name: John Doe
+                  bio: Writer and reader of serial fiction
+                  avatar_key: avatars/uuid-here.jpg
+                summary: Update Profile Example
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileRead'
+              examples:
+                ProfileResponse:
+                  value:
+                    id: 123e4567-e89b-12d3-a456-426614174000
+                    clerk_user_id: user_2abc123def456
+                    handle: john_doe
+                    display_name: John Doe
+                    bio: Writer and reader of serial fiction
+                    avatar_key: avatars/uuid-here.jpg
+                    created_at: '2024-01-15T10:30:00Z'
+                    updated_at: '2024-01-20T14:45:00Z'
+                  summary: Profile Response
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /v1/users/test-auth/:
+    get:
+      operationId: users_test_auth_retrieve
+      description: |-
+        Test endpoint to verify Clerk authentication middleware.
+
+        Returns the clerk_user_id and user_profile information if authenticated.
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/whispers/:
+    get:
+      operationId: whispers_list
+      description: "\n    **GET**: List whispers with optional scope filtering (global,\
+        \ story-specific, or highlight-specific).\n    Supports cursor-based pagination.\n\
+        \    \n    **POST**: Create a new whisper. Rate limited to 10 whispers per\
+        \ minute.\n    Whispers can be global, linked to a story, or linked to a highlight.\n\
+        \    "
+      summary: List whispers or create new whisper
+      parameters:
+      - in: query
+        name: cursor
+        schema:
+          type: string
+        description: Pagination cursor for next page
+      - in: query
+        name: highlight_id
+        schema:
+          type: string
+          format: uuid
+        description: Filter whispers by highlight ID (when scope=HIGHLIGHT)
+      - in: query
+        name: scope
+        schema:
+          type: string
+          enum:
+          - GLOBAL
+          - HIGHLIGHT
+          - STORY
+        description: 'Filter by scope: GLOBAL, STORY, or HIGHLIGHT'
+      - in: query
+        name: story_id
+        schema:
+          type: string
+          format: uuid
+        description: Filter whispers by story ID (when scope=STORY)
+      tags:
+      - Whispers
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Whisper'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Whisper'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: whispers_create
+      description: "\n    **GET**: List whispers with optional scope filtering (global,\
+        \ story-specific, or highlight-specific).\n    Supports cursor-based pagination.\n\
+        \    \n    **POST**: Create a new whisper. Rate limited to 10 whispers per\
+        \ minute.\n    Whispers can be global, linked to a story, or linked to a highlight.\n\
+        \    "
+      summary: List whispers or create new whisper
+      parameters:
+      - in: query
+        name: cursor
+        schema:
+          type: string
+        description: Pagination cursor for next page
+      - in: query
+        name: highlight_id
+        schema:
+          type: string
+          format: uuid
+        description: Filter whispers by highlight ID (when scope=HIGHLIGHT)
+      - in: query
+        name: scope
+        schema:
+          type: string
+          enum:
+          - GLOBAL
+          - HIGHLIGHT
+          - STORY
+        description: 'Filter by scope: GLOBAL, STORY, or HIGHLIGHT'
+      - in: query
+        name: story_id
+        schema:
+          type: string
+          format: uuid
+        description: Filter whispers by story ID (when scope=STORY)
+      tags:
+      - Whispers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WhisperCreateRequest'
+            examples:
+              CreateGlobalWhisper:
+                value:
+                  content: Just finished reading an amazing chapter!
+                  scope: GLOBAL
+                summary: Create Global Whisper
+              CreateStoryWhisper:
+                value:
+                  content: This story keeps getting better!
+                  scope: STORY
+                  story_id: 123e4567-e89b-12d3-a456-426614174000
+                summary: Create Story Whisper
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Whisper'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Whisper'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /v1/whispers/{whisper_id}:
+    delete:
+      operationId: whispers_destroy
+      description: |-
+        Soft delete a whisper.
+
+        DELETE /v1/whispers/{id}
+
+        Returns:
+            - 204: Whisper deleted successfully
+            - 401: Not authenticated
+            - 403: Not authorized (not the whisper author)
+            - 404: Whisper not found
+
+        Requirements:
+            - 6.5: Soft delete whisper
+      parameters:
+      - in: path
+        name: whisper_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - whispers
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /v1/whispers/{whisper_id}/like:
+    post:
+      operationId: whispers_like_create
+      description: |-
+        Like a whisper.
+
+        POST /v1/whispers/{id}/like
+
+        Returns:
+            - 201: Whisper liked successfully
+            - 401: Not authenticated
+            - 404: Whisper not found
+            - 409: Already liked
+
+        Requirements:
+            - 7.3: Like whisper
+            - 7.7: Prevent duplicate likes
+      parameters:
+      - in: path
+        name: whisper_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - whispers
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/whispers/{whisper_id}/replies:
+    get:
+      operationId: whispers_replies_retrieve
+      description: |-
+        List replies or create a reply to a whisper.
+
+        GET /v1/whispers/{id}/replies - List replies
+        POST /v1/whispers/{id}/replies - Create reply
+      parameters:
+      - in: path
+        name: whisper_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - whispers
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: whispers_replies_create
+      description: |-
+        List replies or create a reply to a whisper.
+
+        GET /v1/whispers/{id}/replies - List replies
+        POST /v1/whispers/{id}/replies - Create reply
+      parameters:
+      - in: path
+        name: whisper_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - whispers
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/whispers/{whisper_id}/unlike:
+    delete:
+      operationId: whispers_unlike_destroy
+      description: |-
+        Unlike a whisper.
+
+        DELETE /v1/whispers/{id}/like
+
+        Returns:
+            - 204: Whisper unliked successfully
+            - 401: Not authenticated
+            - 404: Whisper or like not found
+
+        Requirements:
+            - 7.4: Unlike whisper
+      parameters:
+      - in: path
+        name: whisper_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - whispers
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    PublicUserProfile:
+      type: object
+      description: |-
+        Serializer for public user profile data (accessed via handle).
+
+        Returns public profile fields only (excludes clerk_user_id).
+
+        Requirements:
+            - 1.4: Return public profile when accessed by handle
+      properties:
+        id:
+          type: string
+          readOnly: true
+        handle:
+          type: string
+          readOnly: true
+        display_name:
+          type: string
+          readOnly: true
+        bio:
+          type: string
+          readOnly: true
+          nullable: true
+        avatar_key:
+          type: string
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - avatar_key
+      - bio
+      - created_at
+      - display_name
+      - handle
+      - id
+    ScopeEnum:
+      enum:
+      - GLOBAL
+      - STORY
+      - HIGHLIGHT
+      type: string
+      description: |-
+        * `GLOBAL` - GLOBAL
+        * `STORY` - STORY
+        * `HIGHLIGHT` - HIGHLIGHT
+    StoryCreateRequest:
+      type: object
+      description: |-
+        Serializer for creating a story draft.
+
+        Accepts: title, blurb, cover_key (optional)
+
+        Requirements:
+            - 5.1: Create story draft with title, blurb, cover_key
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Story title (max 200 characters)
+          maxLength: 200
+        blurb:
+          type: string
+          minLength: 1
+          description: Story description/blurb (max 1000 characters)
+          maxLength: 1000
+        cover_key:
+          type: string
+          nullable: true
+          description: S3 object key for cover image
+          maxLength: 255
+      required:
+      - blurb
+      - title
+    StoryDetail:
+      type: object
+      description: |-
+        Serializer for story detail view (all fields including relations).
+
+        Returns: All story fields plus author info, tags, chapter count
+
+        Requirements:
+            - 5.1: Get story by slug with full details
+      properties:
+        id:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        blurb:
+          type: string
+          readOnly: true
+        cover_key:
+          type: string
+          readOnly: true
+          nullable: true
+        author_id:
+          type: string
+          readOnly: true
+        published:
+          type: boolean
+          readOnly: true
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author_id
+      - blurb
+      - cover_key
+      - created_at
+      - deleted_at
+      - id
+      - published
+      - published_at
+      - slug
+      - title
+      - updated_at
+    StoryList:
+      type: object
+      description: |-
+        Serializer for listing stories (minimal fields).
+
+        Returns: id, slug, title, blurb, cover_key, author info, published status, timestamps
+
+        Requirements:
+            - 5.1: List stories with basic information
+      properties:
+        id:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        blurb:
+          type: string
+          readOnly: true
+        cover_key:
+          type: string
+          readOnly: true
+          nullable: true
+        author_id:
+          type: string
+          readOnly: true
+        published:
+          type: boolean
+          readOnly: true
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author_id
+      - blurb
+      - cover_key
+      - created_at
+      - id
+      - published
+      - published_at
+      - slug
+      - title
+      - updated_at
+    UserProfileRead:
+      type: object
+      description: |-
+        Serializer for reading UserProfile data.
+
+        Returns all public profile fields including:
+        - id, clerk_user_id, handle, display_name, bio, avatar_key, created_at
+
+        Requirements:
+            - 1.4: Return profile fields when user requests their profile
+      properties:
+        id:
+          type: string
+          readOnly: true
+        clerk_user_id:
+          type: string
+          readOnly: true
+        handle:
+          type: string
+          readOnly: true
+        display_name:
+          type: string
+          readOnly: true
+        bio:
+          type: string
+          readOnly: true
+          nullable: true
+        avatar_key:
+          type: string
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - avatar_key
+      - bio
+      - clerk_user_id
+      - created_at
+      - display_name
+      - handle
+      - id
+    UserProfileWriteRequest:
+      type: object
+      description: |-
+        Serializer for updating UserProfile data.
+
+        Allows updating: handle, display_name, bio, avatar_key
+
+        Requirements:
+            - 1.3: Validate handle uniqueness and update profile fields
+            - 1.5: Enforce handle format (alphanumeric + underscore, 3-30 chars)
+      properties:
+        handle:
+          type: string
+          minLength: 3
+          description: Alphanumeric characters and underscores only, 3-30 characters
+          maxLength: 30
+        display_name:
+          type: string
+          minLength: 1
+          description: Display name for the user
+          maxLength: 100
+        bio:
+          type: string
+          nullable: true
+          description: User bio (max 500 characters)
+          maxLength: 500
+        avatar_key:
+          type: string
+          nullable: true
+          description: S3 object key for avatar image
+          maxLength: 255
+    Whisper:
+      type: object
+      description: |-
+        Serializer for Whisper data.
+
+        Returns: id, user_id, content, media_key, scope, story_id, highlight_id,
+                 parent_id, deleted_at, created_at, reply_count, like_count
+
+        Requirements:
+            - 6.1: Create whisper with content and scope
+            - 7.5: Include reply count and like count
+      properties:
+        id:
+          type: string
+          readOnly: true
+        user_id:
+          type: string
+          readOnly: true
+        content:
+          type: string
+          readOnly: true
+        media_key:
+          type: string
+          readOnly: true
+          nullable: true
+        scope:
+          type: string
+          readOnly: true
+        story_id:
+          type: string
+          readOnly: true
+          nullable: true
+        highlight_id:
+          type: string
+          readOnly: true
+          nullable: true
+        parent_id:
+          type: string
+          readOnly: true
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        reply_count:
+          type: integer
+          readOnly: true
+        like_count:
+          type: integer
+          readOnly: true
+      required:
+      - content
+      - created_at
+      - deleted_at
+      - highlight_id
+      - id
+      - like_count
+      - media_key
+      - parent_id
+      - reply_count
+      - scope
+      - story_id
+      - user_id
+    WhisperCreateRequest:
+      type: object
+      description: |-
+        Serializer for creating a whisper.
+
+        Accepts: content, media_key (optional), scope, story_id (optional), highlight_id (optional)
+
+        Requirements:
+            - 6.1: Create global whisper
+            - 6.2: Create story-linked whisper
+            - 6.3: Create highlight-linked whisper
+      properties:
+        content:
+          type: string
+          minLength: 1
+          description: Whisper content (max 280 characters)
+          maxLength: 280
+        media_key:
+          type: string
+          nullable: true
+          description: S3 object key for media attachment
+          maxLength: 255
+        scope:
+          allOf:
+          - $ref: '#/components/schemas/ScopeEnum'
+          description: |-
+            Whisper scope (GLOBAL, STORY, or HIGHLIGHT)
+
+            * `GLOBAL` - GLOBAL
+            * `STORY` - STORY
+            * `HIGHLIGHT` - HIGHLIGHT
+        story_id:
+          type: string
+          nullable: true
+          minLength: 1
+          description: Story ID (required if scope is STORY)
+        highlight_id:
+          type: string
+          nullable: true
+          minLength: 1
+          description: Highlight ID (required if scope is HIGHLIGHT)
+      required:
+      - content
+      - scope
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+servers:
+- url: http://localhost:8000
+  description: Development server
+- url: https://api.muejam.com
+  description: Production server
+tags:
+- name: Authentication
+  description: User authentication and profile management
+- name: Stories
+  description: Story and chapter management
+- name: Library
+  description: Personal library and shelf management
+- name: Reading
+  description: Reading progress, bookmarks, and highlights
+- name: Whispers
+  description: Micro-posting system
+- name: Social
+  description: Follow and block operations
+- name: Notifications
+  description: Notification management
+- name: Discovery
+  description: Content discovery feeds
+- name: Search
+  description: Search and autocomplete
+- name: Uploads
+  description: Media upload management
+- name: Moderation
+  description: Content reporting
+- name: Health
+  description: System health monitoring

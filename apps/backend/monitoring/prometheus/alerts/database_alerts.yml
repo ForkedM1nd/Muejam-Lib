@@ -1,0 +1,124 @@
+groups:
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # High query latency alert
+      - alert: HighQueryLatency
+        expr: db_avg_latency_ms > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database query latency detected"
+          description: "Average query latency is {{ $value }}ms (threshold: 100ms)"
+
+      # Critical query latency alert
+      - alert: CriticalQueryLatency
+        expr: db_avg_latency_ms > 500
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Critical database query latency detected"
+          description: "Average query latency is {{ $value }}ms (threshold: 500ms)"
+
+      # High error rate alert
+      - alert: HighDatabaseErrorRate
+        expr: db_error_rate_percent > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database error rate detected"
+          description: "Database error rate is {{ $value }}% (threshold: 5%)"
+
+      # Critical error rate alert
+      - alert: CriticalDatabaseErrorRate
+        expr: db_error_rate_percent > 10
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Critical database error rate detected"
+          description: "Database error rate is {{ $value }}% (threshold: 10%)"
+
+      # High throughput alert
+      - alert: HighQueryThroughput
+        expr: rate(db_query_count[1m]) > 10000
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database query throughput detected"
+          description: "Query throughput is {{ $value }} QPS (threshold: 10,000 QPS)"
+
+      # Connection pool utilization alert
+      - alert: HighConnectionPoolUtilization
+        expr: connection_pool_utilization_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High connection pool utilization"
+          description: "Connection pool utilization is {{ $value }}% (threshold: 80%)"
+
+      # Critical connection pool utilization
+      - alert: CriticalConnectionPoolUtilization
+        expr: connection_pool_utilization_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Critical connection pool utilization"
+          description: "Connection pool utilization is {{ $value }}% (threshold: 95%)"
+
+      # Replication lag alert
+      - alert: HighReplicationLag
+        expr: replication_lag_seconds > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High replication lag detected"
+          description: "Replication lag is {{ $value }}s on {{ $labels.instance }} (threshold: 5s)"
+
+      # Critical replication lag
+      - alert: CriticalReplicationLag
+        expr: replication_lag_seconds > 30
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Critical replication lag detected"
+          description: "Replication lag is {{ $value }}s on {{ $labels.instance }} (threshold: 30s)"
+
+      # Database instance down
+      - alert: DatabaseInstanceDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database instance is down"
+          description: "Database instance {{ $labels.instance }} is not responding"
+
+      # Slow query count alert
+      - alert: HighSlowQueryCount
+        expr: rate(db_query_count{type="slow"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of slow queries detected"
+          description: "Slow query rate is {{ $value }} queries/sec (threshold: 10/sec)"
