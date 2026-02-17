@@ -8,7 +8,7 @@ The implementation will use Python scripts for automation, with manual verificat
 
 ## Tasks
 
-- [-] 1. Create restructure branch and preparation script
+- [x] 1. Create restructure branch and preparation script
   - Create git branch `restructure-monorepo` for all restructure work
   - Create Python script `tools/restructure/prepare.py` for Phase 1
   - Script should create new directory structure (apps/, packages/, tools/, docs/, tests/)
@@ -16,8 +16,8 @@ The implementation will use Python scripts for automation, with manual verificat
   - Script should update .gitignore to ensure build artifacts stay ignored
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 3.7_
 
-- [ ] 2. Implement directory structure creation
-  - [~] 2.1 Create DirectoryStructureManager class
+- [x] 2. Implement directory structure creation
+  - [x] 2.1 Create DirectoryStructureManager class
     - Implement create_apps_directory() to create apps/backend/ and apps/frontend/
     - Implement create_packages_directory() to create packages/ with README.md
     - Implement create_tools_directory() to create tools/ with README.md
@@ -32,8 +32,8 @@ The implementation will use Python scripts for automation, with manual verificat
     - Test error handling for permission issues
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 3. Implement .gitignore updates
-  - [~] 3.1 Create BuildArtifactCleaner class (partial)
+- [x] 3. Implement .gitignore updates
+  - [x] 3.1 Create BuildArtifactCleaner class (partial)
     - Implement update_gitignore() to add artifact patterns
     - Implement verify_artifacts_ignored() to check patterns present
     - Add patterns: .coverage, .hypothesis/, htmlcov/, venv/, node_modules/, dist/, build/
@@ -45,28 +45,28 @@ The implementation will use Python scripts for automation, with manual verificat
     - Test verification logic
     - _Requirements: 3.7, 3.8_
 
-- [~] 4. Run Phase 1 preparation script
+- [x] 4. Run Phase 1 preparation script
   - Execute `python tools/restructure/prepare.py`
   - Verify all directories created
   - Verify .gitignore updated
   - Commit changes: "Phase 1: Create monorepo directory structure"
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 3.7_
 
-- [~] 5. Checkpoint - Verify Phase 1 complete
+- [x] 5. Checkpoint - Verify Phase 1 complete
   - Ensure all directories exist (apps/, packages/, tools/, docs/, tests/)
   - Ensure .gitignore contains all artifact patterns
   - Ensure changes committed to restructure-monorepo branch
   - Ask user if questions arise
 
-- [~] 6. Create file move script
+- [x] 6. Create file move script
   - Create Python script `tools/restructure/move_files.py` for Phase 2
   - Script should use git mv for all file and directory moves
   - Script should verify git history preserved after each move
   - Script should handle move failures gracefully
   - _Requirements: 2.1, 2.2_
 
-- [ ] 7. Implement git history preservation
-  - [~] 7.1 Create GitHistoryPreserver class
+- [x] 7. Implement git history preservation
+  - [x] 7.1 Create GitHistoryPreserver class
     - Implement move_directory() using subprocess to run git mv
     - Implement move_file() using subprocess to run git mv
     - Implement verify_history_preserved() using git log --follow
@@ -80,8 +80,8 @@ The implementation will use Python scripts for automation, with manual verificat
     - Test that git log --follow works for moved files
     - Generate random file moves and verify history preserved
 
-- [ ] 8. Implement move plan generation
-  - [~] 8.1 Add move plan to GitHistoryPreserver
+- [x] 8. Implement move plan generation
+  - [x] 8.1 Add move plan to GitHistoryPreserver
     - Define moves for backend/ -> apps/backend/
     - Define moves for frontend/ -> apps/frontend/
     - Define moves for QUICKSTART.md -> docs/getting-started/quickstart.md
@@ -98,7 +98,7 @@ The implementation will use Python scripts for automation, with manual verificat
     - Test duplicate detection
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [~] 9. Run Phase 2 file move script
+- [-] 9. Run Phase 2 file move script
   - Execute `python tools/restructure/move_files.py`
   - Verify all files moved to correct locations
   - Verify git history preserved for moved files

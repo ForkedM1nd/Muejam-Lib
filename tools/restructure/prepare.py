@@ -193,8 +193,12 @@ pytest tests/test_auth_flow.py
         return all_exist
 
 
-class GitignoreUpdater:
-    """Updates .gitignore to ensure build artifacts stay ignored."""
+class BuildArtifactCleaner:
+    """Removes build artifacts and updates .gitignore.
+    
+    This is a partial implementation for Phase 1. The full implementation
+    with find_artifacts() and remove_artifacts() will be added in Task 17.1.
+    """
     
     def __init__(self, repo_root: Path):
         self.repo_root = repo_root
@@ -302,14 +306,14 @@ def main():
     # Update .gitignore
     print("Updating .gitignore...")
     print("-" * 60)
-    gitignore_updater = GitignoreUpdater(repo_root)
-    gitignore_updater.update_gitignore()
+    artifact_cleaner = BuildArtifactCleaner(repo_root)
+    artifact_cleaner.update_gitignore()
     print()
     
     # Verify .gitignore
     print("Verifying .gitignore...")
     print("-" * 60)
-    if not gitignore_updater.verify_artifacts_ignored():
+    if not artifact_cleaner.verify_artifacts_ignored():
         print("\n✗ .gitignore verification failed")
         return 1
     print()
