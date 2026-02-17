@@ -21,11 +21,11 @@ Visit http://localhost:5173
 ## 📚 Documentation
 
 ### Authentication
-- **[Complete Guide](AUTHENTICATION.md)** - Full authentication documentation
+- **[Complete Guide](../../docs/frontend/authentication.md)** - Full authentication documentation
 
 ### Other Documentation
-- **[API Client](API_CLIENT.md)** - API integration guide
-- **[Frontend Setup](FRONTEND_SETUP.md)** - Detailed setup instructions
+- **[API Client](../../docs/frontend/api-client.md)** - API integration guide
+- **[Frontend Setup](../../docs/frontend/setup.md)** - Detailed setup instructions
 - **[Components](components.json)** - UI component configuration
 
 ## ✨ Features
@@ -103,7 +103,7 @@ npm run dev
 
 Visit http://localhost:5173 and click "Sign Up"
 
-**For detailed instructions, see [AUTHENTICATION.md](AUTHENTICATION.md)**
+**For detailed instructions, see [Authentication Guide](../../docs/frontend/authentication.md)**
 
 ## 🧪 Testing
 
@@ -179,7 +179,7 @@ Customize Clerk components in:
 
 ### Authentication Issues
 
-See [AUTHENTICATION.md](AUTHENTICATION.md) → Troubleshooting section
+See [Authentication Guide](../../docs/frontend/authentication.md) → Troubleshooting section
 
 ### Common Issues
 

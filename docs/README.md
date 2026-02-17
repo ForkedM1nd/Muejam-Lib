@@ -11,6 +11,11 @@ Welcome to the MueJam Library documentation. This directory contains comprehensi
 ### Architecture
 - [API Documentation](architecture/api.md) - REST API endpoints and usage
 
+### Frontend
+- [Authentication Guide](frontend/authentication.md) - Complete authentication documentation
+- [API Client](frontend/api-client.md) - Frontend API integration guide
+- [Setup Guide](frontend/setup.md) - Detailed frontend setup instructions
+
 ### Deployment
 - [Secrets Management](deployment/secrets.md) - Managing secrets and environment variables
 
