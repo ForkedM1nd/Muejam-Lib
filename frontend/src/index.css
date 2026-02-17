@@ -1,0 +1,177 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 98%;
+    --foreground: 30 10% 12%;
+
+    --card: 40 20% 99%;
+    --card-foreground: 30 10% 12%;
+
+    --popover: 40 20% 99%;
+    --popover-foreground: 30 10% 12%;
+
+    --primary: 24 80% 50%;
+    --primary-foreground: 40 20% 99%;
+
+    --secondary: 35 20% 93%;
+    --secondary-foreground: 30 10% 20%;
+
+    --muted: 35 15% 94%;
+    --muted-foreground: 30 8% 50%;
+
+    --accent: 24 80% 50%;
+    --accent-foreground: 40 20% 99%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 40 20% 99%;
+
+    --border: 35 15% 90%;
+    --input: 35 15% 88%;
+    --ring: 24 80% 50%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 40 15% 96%;
+    --sidebar-foreground: 30 10% 25%;
+    --sidebar-primary: 24 80% 50%;
+    --sidebar-primary-foreground: 40 20% 99%;
+    --sidebar-accent: 35 15% 92%;
+    --sidebar-accent-foreground: 30 10% 20%;
+    --sidebar-border: 35 15% 90%;
+    --sidebar-ring: 24 80% 50%;
+
+    --font-display: 'Newsreader', 'Georgia', 'Times New Roman', serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .dark {
+    --background: 30 10% 8%;
+    --foreground: 35 15% 90%;
+
+    --card: 30 10% 10%;
+    --card-foreground: 35 15% 90%;
+
+    --popover: 30 10% 10%;
+    --popover-foreground: 35 15% 90%;
+
+    --primary: 24 80% 55%;
+    --primary-foreground: 30 10% 6%;
+
+    --secondary: 30 10% 16%;
+    --secondary-foreground: 35 15% 85%;
+
+    --muted: 30 10% 16%;
+    --muted-foreground: 35 10% 55%;
+
+    --accent: 24 80% 55%;
+    --accent-foreground: 30 10% 6%;
+
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 35 15% 90%;
+
+    --border: 30 10% 18%;
+    --input: 30 10% 18%;
+    --ring: 24 80% 55%;
+
+    --sidebar-background: 30 10% 6%;
+    --sidebar-foreground: 35 15% 88%;
+    --sidebar-primary: 24 80% 55%;
+    --sidebar-primary-foreground: 30 10% 6%;
+    --sidebar-accent: 30 10% 14%;
+    --sidebar-accent-foreground: 35 15% 85%;
+    --sidebar-border: 30 10% 18%;
+    --sidebar-ring: 24 80% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    /* Minimum 16px for mobile to prevent zoom */
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  h1 {
+    @apply text-3xl sm:text-4xl;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    @apply text-2xl sm:text-3xl;
+    margin-bottom: 0.875rem;
+  }
+
+  h3 {
+    @apply text-xl sm:text-2xl;
+    margin-bottom: 0.75rem;
+  }
+
+  h4 {
+    @apply text-lg sm:text-xl;
+    margin-bottom: 0.625rem;
+  }
+
+  p {
+    margin-bottom: 1rem;
+  }
+
+  /* Generous spacing for sections */
+  section {
+    @apply py-8 sm:py-12;
+  }
+}
+
+@layer components {
+
+  /* Ensure minimum touch target size for mobile (44x44px) */
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  [role="button"] {
+    @apply min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0;
+  }
+
+  /* Responsive padding for containers */
+  .container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Soft separators instead of heavy borders */
+  .soft-divider {
+    @apply border-t border-border/50;
+  }
+
+  /* Card with subtle elevation */
+  .card-subtle {
+    @apply bg-card border border-border/50 rounded-lg shadow-sm;
+  }
+
+  /* Generous whitespace utility */
+  .space-generous {
+    @apply space-y-8 sm:space-y-12;
+  }
+}

@@ -292,9 +292,39 @@ muejam-library/
 
 ## API Documentation
 
+The MueJam Library API is fully documented using OpenAPI 3.0 specification with interactive Swagger UI.
+
+### Accessing Documentation
+
 Once the backend is running, visit:
-- Swagger UI: http://localhost:8000/v1/docs
-- ReDoc: http://localhost:8000/v1/redoc
+- **Swagger UI** (Interactive): http://localhost:8000/v1/docs/
+- **OpenAPI Schema** (YAML): http://localhost:8000/v1/schema/
+
+### Features
+
+The API documentation includes:
+- Complete list of all endpoints with descriptions
+- Request/response schemas and examples
+- Authentication requirements
+- Interactive "Try it out" functionality
+- Rate limit information
+- Error response formats
+
+### Generating Static Schema
+
+To generate a static OpenAPI schema file:
+
+```bash
+# Using Docker
+docker-compose exec backend python manage.py spectacular --color --file schema.yml
+
+# Local development
+cd backend
+source venv/bin/activate  # Windows: venv\Scripts\activate
+python manage.py spectacular --color --file schema.yml
+```
+
+For detailed API documentation and usage examples, see [backend/API_DOCUMENTATION.md](backend/API_DOCUMENTATION.md).
 
 ## Environment Variables
 

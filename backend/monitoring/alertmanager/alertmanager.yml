@@ -1,0 +1,123 @@
+global:
+  resolve_timeout: 5m
+  # SMTP configuration for email notifications
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@muejam-library.com'
+  smtp_auth_username: 'alerts@muejam-library.com'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree for alert routing
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  
+  routes:
+    # Critical alerts go to PagerDuty and Slack
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+    
+    # Warning alerts go to Slack only
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      continue: true
+    
+    # Database-specific alerts
+    - match:
+        component: database
+      receiver: 'database-team'
+      continue: true
+    
+    # Cache-specific alerts
+    - match:
+        component: cache
+      receiver: 'cache-team'
+      continue: true
+
+# Inhibition rules to prevent alert spam
+inhibit_rules:
+  # Inhibit warning if critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+
+# Receiver configurations
+receivers:
+  # Default receiver (email)
+  - name: 'default'
+    email_configs:
+      - to: 'ops-team@muejam-library.com'
+        headers:
+          Subject: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+
+  # Critical alerts (PagerDuty + Slack + Email)
+  - name: 'critical-alerts'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        details:
+          firing: '{{ template "pagerduty.default.instances" .Alerts.Firing }}'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#critical-alerts'
+        title: ':fire: Critical Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        color: 'danger'
+    email_configs:
+      - to: 'oncall@muejam-library.com'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+
+  # Warning alerts (Slack + Email)
+  - name: 'warning-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts'
+        title: ':warning: Warning Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        color: 'warning'
+    email_configs:
+      - to: 'ops-team@muejam-library.com'
+        headers:
+          Subject: '[WARNING] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+
+  # Database team notifications
+  - name: 'database-team'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#database-alerts'
+        title: ':database: Database Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    email_configs:
+      - to: 'database-team@muejam-library.com'
+        headers:
+          Subject: '[DATABASE] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+
+  # Cache team notifications
+  - name: 'cache-team'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#cache-alerts'
+        title: ':redis: Cache Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    email_configs:
+      - to: 'cache-team@muejam-library.com'
+        headers:
+          Subject: '[CACHE] {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'

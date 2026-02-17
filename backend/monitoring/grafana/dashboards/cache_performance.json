@@ -1,0 +1,402 @@
+{
+    "dashboard": {
+        "title": "Cache Performance Metrics",
+        "tags": [
+            "cache",
+            "redis",
+            "performance"
+        ],
+        "timezone": "browser",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "10s",
+        "panels": [
+            {
+                "id": 1,
+                "title": "Cache Hit Rate",
+                "type": "graph",
+                "gridPos": {
+                    "x": 0,
+                    "y": 0,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "cache_hit_rate_percent",
+                        "legendFormat": "Hit Rate (%)",
+                        "refId": "A"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "format": "percent",
+                        "label": "Hit Rate",
+                        "max": 100,
+                        "min": 0
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "alert": {
+                    "name": "Low Cache Hit Rate",
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    70
+                                ],
+                                "type": "lt"
+                            },
+                            "operator": {
+                                "type": "and"
+                            },
+                            "query": {
+                                "params": [
+                                    "A",
+                                    "5m",
+                                    "now"
+                                ]
+                            },
+                            "reducer": {
+                                "params": [],
+                                "type": "avg"
+                            },
+                            "type": "query"
+                        }
+                    ],
+                    "executionErrorState": "alerting",
+                    "frequency": "60s",
+                    "handler": 1,
+                    "message": "Cache hit rate below 70%",
+                    "noDataState": "no_data",
+                    "notifications": []
+                }
+            },
+            {
+                "id": 2,
+                "title": "Cache Miss Rate",
+                "type": "graph",
+                "gridPos": {
+                    "x": 12,
+                    "y": 0,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "cache_miss_rate_percent",
+                        "legendFormat": "Miss Rate (%)",
+                        "refId": "A"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "format": "percent",
+                        "label": "Miss Rate",
+                        "max": 100,
+                        "min": 0
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "alert": {
+                    "name": "High Cache Miss Rate",
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    30
+                                ],
+                                "type": "gt"
+                            },
+                            "operator": {
+                                "type": "and"
+                            },
+                            "query": {
+                                "params": [
+                                    "A",
+                                    "5m",
+                                    "now"
+                                ]
+                            },
+                            "reducer": {
+                                "params": [],
+                                "type": "avg"
+                            },
+                            "type": "query"
+                        }
+                    ],
+                    "executionErrorState": "alerting",
+                    "frequency": "60s",
+                    "handler": 1,
+                    "message": "Cache miss rate exceeds 30%",
+                    "noDataState": "no_data",
+                    "notifications": []
+                }
+            },
+            {
+                "id": 3,
+                "title": "Cache Operations",
+                "type": "graph",
+                "gridPos": {
+                    "x": 0,
+                    "y": 8,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "rate(cache_hits[1m])",
+                        "legendFormat": "Hits/sec",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "rate(cache_misses[1m])",
+                        "legendFormat": "Misses/sec",
+                        "refId": "B"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "format": "ops",
+                        "label": "Operations/sec"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ]
+            },
+            {
+                "id": 4,
+                "title": "Cache Eviction Rate",
+                "type": "graph",
+                "gridPos": {
+                    "x": 12,
+                    "y": 8,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "cache_eviction_rate_percent",
+                        "legendFormat": "Eviction Rate (%)",
+                        "refId": "A"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "format": "percent",
+                        "label": "Eviction Rate"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "alert": {
+                    "name": "High Cache Eviction Rate",
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    20
+                                ],
+                                "type": "gt"
+                            },
+                            "operator": {
+                                "type": "and"
+                            },
+                            "query": {
+                                "params": [
+                                    "A",
+                                    "5m",
+                                    "now"
+                                ]
+                            },
+                            "reducer": {
+                                "params": [],
+                                "type": "avg"
+                            },
+                            "type": "query"
+                        }
+                    ],
+                    "executionErrorState": "alerting",
+                    "frequency": "60s",
+                    "handler": 1,
+                    "message": "Cache eviction rate exceeds 20%",
+                    "noDataState": "no_data",
+                    "notifications": []
+                }
+            },
+            {
+                "id": 5,
+                "title": "Total Cache Hits",
+                "type": "stat",
+                "gridPos": {
+                    "x": 0,
+                    "y": 16,
+                    "w": 6,
+                    "h": 4
+                },
+                "targets": [
+                    {
+                        "expr": "cache_hits",
+                        "refId": "A"
+                    }
+                ],
+                "options": {
+                    "colorMode": "value",
+                    "graphMode": "area",
+                    "justifyMode": "auto",
+                    "orientation": "auto",
+                    "reduceOptions": {
+                        "calcs": [
+                            "lastNotNull"
+                        ],
+                        "fields": "",
+                        "values": false
+                    }
+                },
+                "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                        {
+                            "color": "green",
+                            "value": null
+                        }
+                    ]
+                }
+            },
+            {
+                "id": 6,
+                "title": "Total Cache Misses",
+                "type": "stat",
+                "gridPos": {
+                    "x": 6,
+                    "y": 16,
+                    "w": 6,
+                    "h": 4
+                },
+                "targets": [
+                    {
+                        "expr": "cache_misses",
+                        "refId": "A"
+                    }
+                ],
+                "options": {
+                    "colorMode": "value",
+                    "graphMode": "area",
+                    "justifyMode": "auto",
+                    "orientation": "auto",
+                    "reduceOptions": {
+                        "calcs": [
+                            "lastNotNull"
+                        ],
+                        "fields": "",
+                        "values": false
+                    }
+                },
+                "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                        {
+                            "color": "green",
+                            "value": null
+                        },
+                        {
+                            "color": "yellow",
+                            "value": 1000
+                        },
+                        {
+                            "color": "red",
+                            "value": 5000
+                        }
+                    ]
+                }
+            },
+            {
+                "id": 7,
+                "title": "Total Cache Evictions",
+                "type": "stat",
+                "gridPos": {
+                    "x": 12,
+                    "y": 16,
+                    "w": 6,
+                    "h": 4
+                },
+                "targets": [
+                    {
+                        "expr": "cache_evictions",
+                        "refId": "A"
+                    }
+                ],
+                "options": {
+                    "colorMode": "value",
+                    "graphMode": "area",
+                    "justifyMode": "auto",
+                    "orientation": "auto",
+                    "reduceOptions": {
+                        "calcs": [
+                            "lastNotNull"
+                        ],
+                        "fields": "",
+                        "values": false
+                    }
+                },
+                "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                        {
+                            "color": "green",
+                            "value": null
+                        },
+                        {
+                            "color": "yellow",
+                            "value": 100
+                        },
+                        {
+                            "color": "red",
+                            "value": 500
+                        }
+                    ]
+                }
+            },
+            {
+                "id": 8,
+                "title": "L1 vs L2 Cache Performance",
+                "type": "graph",
+                "gridPos": {
+                    "x": 0,
+                    "y": 20,
+                    "w": 24,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "cache_l1_hit_rate_percent",
+                        "legendFormat": "L1 Hit Rate (%)",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "cache_l2_hit_rate_percent",
+                        "legendFormat": "L2 Hit Rate (%)",
+                        "refId": "B"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "format": "percent",
+                        "label": "Hit Rate",
+                        "max": 100,
+                        "min": 0
+                    },
+                    {
+                        "format": "short"
+                    }
+                ]
+            }
+        ]
+    }
+}

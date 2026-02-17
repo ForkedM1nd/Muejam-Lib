@@ -1,0 +1,91 @@
+groups:
+  - name: cache_alerts
+    interval: 30s
+    rules:
+      # Low cache hit rate alert
+      - alert: LowCacheHitRate
+        expr: cache_hit_rate_percent < 70
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit rate detected"
+          description: "Cache hit rate is {{ $value }}% (threshold: 70%)"
+
+      # Critical cache hit rate
+      - alert: CriticalCacheHitRate
+        expr: cache_hit_rate_percent < 50
+        for: 2m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Critical cache hit rate detected"
+          description: "Cache hit rate is {{ $value }}% (threshold: 50%)"
+
+      # High cache miss rate alert
+      - alert: HighCacheMissRate
+        expr: cache_miss_rate_percent > 30
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "High cache miss rate detected"
+          description: "Cache miss rate is {{ $value }}% (threshold: 30%)"
+
+      # High cache eviction rate
+      - alert: HighCacheEvictionRate
+        expr: cache_eviction_rate_percent > 20
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "High cache eviction rate detected"
+          description: "Cache eviction rate is {{ $value }}% (threshold: 20%)"
+
+      # Critical cache eviction rate
+      - alert: CriticalCacheEvictionRate
+        expr: cache_eviction_rate_percent > 50
+        for: 2m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Critical cache eviction rate detected"
+          description: "Cache eviction rate is {{ $value }}% (threshold: 50%)"
+
+      # Redis instance down
+      - alert: RedisInstanceDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Redis instance is down"
+          description: "Redis instance {{ $labels.instance }} is not responding"
+
+      # Redis memory usage high
+      - alert: HighRedisMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }} (threshold: 90%)"
+
+      # Redis connection count high
+      - alert: HighRedisConnectionCount
+        expr: redis_connected_clients > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "High Redis connection count"
+          description: "Redis has {{ $value }} connected clients (threshold: 1000)"
