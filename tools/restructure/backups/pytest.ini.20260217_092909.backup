@@ -1,0 +1,16 @@
+[pytest]
+DJANGO_SETTINGS_MODULE = config.settings
+python_files = tests.py test_*.py *_tests.py
+python_classes = Test*
+python_functions = test_*
+addopts = 
+    --verbose
+    --strict-markers
+    --tb=short
+    --reuse-db
+markers =
+    asyncio: mark test as an asyncio test
+    property: mark test as a property-based test
+    integration: mark test as an integration test
+    performance: mark test as a performance test
+testpaths = apps tests
