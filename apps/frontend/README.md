@@ -21,11 +21,7 @@ Visit http://localhost:5173
 ## 📚 Documentation
 
 ### Authentication
-- **[Quick Start Guide](AUTH_QUICK_START.md)** - Get auth working in 5 minutes
 - **[Complete Guide](AUTHENTICATION.md)** - Full authentication documentation
-- **[Implementation Summary](AUTH_IMPLEMENTATION_SUMMARY.md)** - Technical details
-- **[Test Checklist](AUTH_TEST_CHECKLIST.md)** - 150+ test cases
-- **[Status](AUTH_COMPLETE.md)** - Implementation status
 
 ### Other Documentation
 - **[API Client](API_CLIENT.md)** - API integration guide
@@ -107,7 +103,7 @@ npm run dev
 
 Visit http://localhost:5173 and click "Sign Up"
 
-**For detailed instructions, see [AUTH_QUICK_START.md](AUTH_QUICK_START.md)**
+**For detailed instructions, see [AUTHENTICATION.md](AUTHENTICATION.md)**
 
 ## 🧪 Testing
 
