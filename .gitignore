@@ -75,3 +75,6 @@ out/
 
 # Prisma
 prisma/migrations/
+
+# Build artifacts (updated by cleanup script)
+*.pyc
