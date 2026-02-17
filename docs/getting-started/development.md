@@ -19,8 +19,8 @@ chmod +x setup.sh
 
 1. **Copy environment files:**
 ```bash
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
+cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/.env.example apps/frontend/.env.local
 ```
 
 2. **Update credentials in `.env` files:**
@@ -259,7 +259,7 @@ docker-compose restart frontend
 
 ```
 muejam-library/
-├── backend/
+├── apps/backend/
 │   ├── apps/              # Django apps
 │   │   ├── users/         # User profiles
 │   │   ├── stories/       # Stories and chapters
@@ -277,7 +277,7 @@ muejam-library/
 │   ├── prisma/            # Prisma schema
 │   ├── requirements.txt   # Python dependencies
 │   └── Dockerfile
-├── frontend/
+├── apps/frontend/
 │   ├── app/               # Next.js App Router
 │   │   ├── (auth)/        # Auth pages
 │   │   ├── (main)/        # Main app pages
@@ -324,7 +324,7 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 python manage.py spectacular --color --file schema.yml
 ```
 
-For detailed API documentation and usage examples, see [backend/API_DOCUMENTATION.md](backend/API_DOCUMENTATION.md).
+For detailed API documentation and usage examples, see [API Documentation](../architecture/api.md).
 
 ## Environment Variables
 

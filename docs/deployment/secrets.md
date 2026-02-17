@@ -8,8 +8,8 @@ This document outlines how to manage secrets and sensitive configuration for the
 
 For local development, secrets are stored in `.env` files:
 
-- `backend/.env` - Backend secrets
-- `frontend/.env.local` - Frontend secrets
+- `apps/backend/.env` - Backend secrets
+- `apps/frontend/.env.local` - Frontend secrets
 
 **Important:** These files are gitignored and should never be committed to version control.
 
@@ -58,13 +58,13 @@ For production deployments, use your hosting platform's secrets management:
 #### Vercel (Frontend)
 
 1. Go to Project Settings → Environment Variables
-2. Add all variables from `frontend/.env.example`
+2. Add all variables from `apps/frontend/.env.example`
 3. Set different values for Production, Preview, and Development
 
 #### Railway/Render/Heroku (Backend)
 
 1. Use the platform's environment variables UI
-2. Add all variables from `backend/.env.example`
+2. Add all variables from `apps/backend/.env.example`
 3. Ensure `DEBUG=False` in production
 
 ### Docker Secrets (Docker Swarm)

@@ -33,13 +33,13 @@ chmod +x setup.sh
 
 ```bash
 # Copy environment files
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
+cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/.env.example apps/frontend/.env.local
 ```
 
 ## Step 3: Configure Credentials
 
-Edit `backend/.env` and add your credentials:
+Edit `apps/backend/.env` and add your credentials:
 
 ```env
 # Required for authentication
@@ -55,7 +55,7 @@ AWS_S3_BUCKET=your-bucket-name
 RESEND_API_KEY=re_your_key_here
 ```
 
-Edit `frontend/.env.local`:
+Edit `apps/frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_key_here
@@ -189,7 +189,7 @@ docker-compose restart
 curl http://localhost:8000/v1/health
 ```
 
-2. Check `frontend/.env.local` has correct API URL:
+2. Check `apps/frontend/.env.local` has correct API URL:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/v1
 ```
@@ -198,8 +198,8 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/v1
 
 ### Development
 
-- Read [DEVELOPMENT.md](DEVELOPMENT.md) for detailed development guide
-- Check [SECRETS.md](SECRETS.md) for secrets management
+- Read [Development Guide](development.md) for detailed development guide
+- Check [Secrets Management](../deployment/secrets.md) for secrets management
 - Review the API docs at http://localhost:8000/v1/docs
 
 ### Create Your First Story
@@ -234,8 +234,8 @@ docker-compose down -v
 
 ## Getting Help
 
-- Check [DEVELOPMENT.md](DEVELOPMENT.md) for detailed documentation
-- Review [README.md](README.md) for project overview
+- Check [Development Guide](development.md) for detailed documentation
+- Review [Project Overview](../../README.md) for project overview
 - Check Docker logs: `docker-compose logs -f [service-name]`
 - Verify environment variables are set correctly
 
@@ -244,6 +244,6 @@ docker-compose down -v
 You now have MueJam Library running locally. Happy coding!
 
 For more detailed information, see:
-- [README.md](README.md) - Project overview
-- [DEVELOPMENT.md](DEVELOPMENT.md) - Development guide
-- [SECRETS.md](SECRETS.md) - Secrets management
+- [Project Overview](../../README.md) - Project overview
+- [Development Guide](development.md) - Development guide
+- [Secrets Management](../deployment/secrets.md) - Secrets management
