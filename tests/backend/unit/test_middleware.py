@@ -2,7 +2,7 @@
 Unit tests for Django middleware integration.
 
 Tests the infrastructure middleware components to ensure they properly
-integrate with Django request/response cycle.
+integrate with Django mock_request/response cycle.
 """
 
 import os
@@ -45,35 +45,35 @@ class TestDatabaseInfrastructureMiddleware:
         return DatabaseInfrastructureMiddleware(get_response)
     
     @pytest.fixture
-    def request(self):
-        """Create mock request."""
+    def mock_request(self):
+        """Create mock mock_request."""
         factory = RequestFactory()
         return factory.get('/test/')
     
-    def test_process_request_attaches_infrastructure(self, middleware, request):
-        """Test that process_request attaches infrastructure to request."""
-        # Process request
-        result = middleware.process_request(request)
+    def test_process_request_attaches_infrastructure(self, middleware, mock_request):
+        """Test that process_request attaches infrastructure to mock_request."""
+        # Process mock_request
+        result = middleware.process_request(mock_request)
         
         # Should return None to continue processing
         assert result is None
         
         # Should attach infrastructure components
-        assert hasattr(request, 'db_pool')
-        assert hasattr(request, 'workload_isolator')
-        assert hasattr(request, '_db_infra_start_time')
+        assert hasattr(mock_request, 'db_pool')
+        assert hasattr(mock_request, 'workload_isolator')
+        assert hasattr(mock_request, '_db_infra_start_time')
     
-    def test_process_response_adds_debug_headers(self, middleware, request):
+    def test_process_response_adds_debug_headers(self, middleware, mock_request):
         """Test that process_response adds debug headers when DEBUG=True."""
-        # Set up request
-        request._db_infra_start_time = 0.0
+        # Set up mock_request
+        mock_request._db_infra_start_time = 0.0
         
         # Create response
         response = HttpResponse()
         
         # Process response with DEBUG=True
         with patch.object(settings, 'DEBUG', True):
-            result = middleware.process_response(request, response)
+            result = middleware.process_response(mock_request, response)
         
         # Should return response
         assert result == response
@@ -106,30 +106,30 @@ class TestCacheMiddleware:
         return CacheMiddleware(get_response)
     
     @pytest.fixture
-    def request(self):
-        """Create mock request."""
+    def mock_request(self):
+        """Create mock mock_request."""
         factory = RequestFactory()
         return factory.get('/test/')
     
-    def test_process_request_attaches_cache_manager(self, middleware, request):
-        """Test that process_request attaches cache manager to request."""
-        # Process request
-        result = middleware.process_request(request)
+    def test_process_request_attaches_cache_manager(self, middleware, mock_request):
+        """Test that process_request attaches cache manager to mock_request."""
+        # Process mock_request
+        result = middleware.process_request(mock_request)
         
         # Should return None to continue processing
         assert result is None
         
         # Should attach cache manager
-        assert hasattr(request, 'cache_manager')
+        assert hasattr(mock_request, 'cache_manager')
     
-    def test_process_response_adds_cache_stats(self, middleware, request):
+    def test_process_response_adds_cache_stats(self, middleware, mock_request):
         """Test that process_response adds cache statistics when DEBUG=True."""
         # Create response
         response = HttpResponse()
         
         # Process response with DEBUG=True
         with patch.object(settings, 'DEBUG', True):
-            result = middleware.process_response(request, response)
+            result = middleware.process_response(mock_request, response)
         
         # Should return response
         assert result == response
@@ -157,34 +157,34 @@ class TestRateLimitMiddleware:
         return RateLimitMiddleware(get_response)
     
     @pytest.fixture
-    def request(self):
-        """Create mock request."""
+    def mock_request(self):
+        """Create mock mock_request."""
         factory = RequestFactory()
-        request = factory.get('/test/')
+        mock_request = factory.get('/test/')
         # Add mock user
-        request.user = Mock()
-        request.user.is_authenticated = True
-        request.user.id = 123
-        request.user.is_staff = False
-        request.user.is_superuser = False
-        return request
+        mock_request.user = Mock()
+        mock_request.user.is_authenticated = True
+        mock_request.user.id = 123
+        mock_request.user.is_staff = False
+        mock_request.user.is_superuser = False
+        return mock_request
     
-    def test_process_request_allows_request_within_limit(self, middleware, request):
+    def test_process_request_allows_request_within_limit(self, middleware, mock_request):
         """Test that requests within rate limit are allowed."""
-        # Mock rate limiter to allow request
+        # Mock rate limiter to allow mock_request
         if RateLimitMiddleware._rate_limiter:
             with patch.object(RateLimitMiddleware._rate_limiter, 'allow_request', return_value=True):
-                result = middleware.process_request(request)
+                result = middleware.process_request(mock_request)
                 
                 # Should return None to continue processing
                 assert result is None
                 
                 # Should attach rate limiter
-                assert hasattr(request, 'rate_limiter')
+                assert hasattr(mock_request, 'rate_limiter')
     
-    def test_process_request_blocks_request_over_limit(self, middleware, request):
+    def test_process_request_blocks_request_over_limit(self, middleware, mock_request):
         """Test that requests over rate limit are blocked."""
-        # Mock rate limiter to block request
+        # Mock rate limiter to block mock_request
         if RateLimitMiddleware._rate_limiter:
             with patch.object(RateLimitMiddleware._rate_limiter, 'allow_request', return_value=False):
                 # Mock get_limit_info
@@ -201,7 +201,7 @@ class TestRateLimitMiddleware:
                 )
                 
                 with patch.object(RateLimitMiddleware._rate_limiter, 'get_limit_info', return_value=mock_limit_info):
-                    result = middleware.process_request(request)
+                    result = middleware.process_request(mock_request)
                     
                     # Should return 429 response
                     assert result is not None
@@ -212,34 +212,34 @@ class TestRateLimitMiddleware:
                     assert 'X-RateLimit-Remaining' in result
                     assert 'Retry-After' in result
     
-    def test_get_user_id_authenticated(self, middleware, request):
+    def test_get_user_id_authenticated(self, middleware, mock_request):
         """Test getting user ID for authenticated user."""
-        user_id = middleware._get_user_id(request)
+        user_id = middleware._get_user_id(mock_request)
         assert user_id == "123"
     
     def test_get_user_id_anonymous(self, middleware):
         """Test getting user ID for anonymous user."""
         factory = RequestFactory()
-        request = factory.get('/test/')
-        request.user = Mock()
-        request.user.is_authenticated = False
+        mock_request = factory.get('/test/')
+        mock_request.user = Mock()
+        mock_request.user.is_authenticated = False
         
-        user_id = middleware._get_user_id(request)
+        user_id = middleware._get_user_id(mock_request)
         assert user_id.startswith("anon:")
     
-    def test_is_admin_user_staff(self, middleware, request):
+    def test_is_admin_user_staff(self, middleware, mock_request):
         """Test admin check for staff user."""
-        request.user.is_staff = True
-        assert middleware._is_admin_user(request) is True
+        mock_request.user.is_staff = True
+        assert middleware._is_admin_user(mock_request) is True
     
-    def test_is_admin_user_superuser(self, middleware, request):
+    def test_is_admin_user_superuser(self, middleware, mock_request):
         """Test admin check for superuser."""
-        request.user.is_superuser = True
-        assert middleware._is_admin_user(request) is True
+        mock_request.user.is_superuser = True
+        assert middleware._is_admin_user(mock_request) is True
     
-    def test_is_admin_user_regular(self, middleware, request):
+    def test_is_admin_user_regular(self, middleware, mock_request):
         """Test admin check for regular user."""
-        assert middleware._is_admin_user(request) is False
+        assert middleware._is_admin_user(mock_request) is False
     
     def test_get_rate_limiter(self):
         """Test getting rate limiter instance."""
@@ -258,45 +258,45 @@ class TestQueryOptimizerMiddleware:
         return QueryOptimizerMiddleware(get_response)
     
     @pytest.fixture
-    def request(self):
-        """Create mock request."""
+    def mock_request(self):
+        """Create mock mock_request."""
         factory = RequestFactory()
         return factory.get('/test/')
     
-    def test_process_request_starts_tracking(self, middleware, request):
+    def test_process_request_starts_tracking(self, middleware, mock_request):
         """Test that process_request starts query tracking."""
-        # Process request
-        result = middleware.process_request(request)
+        # Process mock_request
+        result = middleware.process_request(mock_request)
         
         # Should return None to continue processing
         assert result is None
         
-        # Should attach query optimizer and request ID
+        # Should attach query optimizer and mock_request ID
         if QueryOptimizerMiddleware._query_optimizer:
-            assert hasattr(request, 'query_optimizer')
-            assert hasattr(request, '_query_optimizer_request_id')
+            assert hasattr(mock_request, 'query_optimizer')
+            assert hasattr(mock_request, '_query_optimizer_request_id')
     
-    def test_process_response_ends_tracking(self, middleware, request):
+    def test_process_response_ends_tracking(self, middleware, mock_request):
         """Test that process_response ends query tracking."""
-        # Set up request with tracking
+        # Set up mock_request with tracking
         if QueryOptimizerMiddleware._query_optimizer:
-            request._query_optimizer_request_id = "test_request_123"
+            mock_request._query_optimizer_request_id = "test_request_123"
             QueryOptimizerMiddleware._query_optimizer.start_request_context("test_request_123")
             
             # Create response
             response = HttpResponse()
             
             # Process response
-            result = middleware.process_response(request, response)
+            result = middleware.process_response(mock_request, response)
             
             # Should return response
             assert result == response
     
-    def test_process_response_adds_query_stats(self, middleware, request):
+    def test_process_response_adds_query_stats(self, middleware, mock_request):
         """Test that process_response adds query statistics when DEBUG=True."""
-        # Set up request with tracking
+        # Set up mock_request with tracking
         if QueryOptimizerMiddleware._query_optimizer:
-            request._query_optimizer_request_id = "test_request_123"
+            mock_request._query_optimizer_request_id = "test_request_123"
             QueryOptimizerMiddleware._query_optimizer.start_request_context("test_request_123")
             
             # Create response
@@ -304,7 +304,7 @@ class TestQueryOptimizerMiddleware:
             
             # Process response with DEBUG=True
             with patch.object(settings, 'DEBUG', True):
-                result = middleware.process_response(request, response)
+                result = middleware.process_response(mock_request, response)
             
             # Should add query stats headers
             assert 'X-Query-Count' in result
@@ -321,18 +321,18 @@ class TestMiddlewareIntegration:
     """Test middleware integration scenarios."""
     
     @pytest.fixture
-    def request(self):
-        """Create mock request."""
+    def mock_request(self):
+        """Create mock mock_request."""
         factory = RequestFactory()
-        request = factory.get('/test/')
-        request.user = Mock()
-        request.user.is_authenticated = True
-        request.user.id = 123
-        request.user.is_staff = False
-        request.user.is_superuser = False
-        return request
+        mock_request = factory.get('/test/')
+        mock_request.user = Mock()
+        mock_request.user.is_authenticated = True
+        mock_request.user.id = 123
+        mock_request.user.is_staff = False
+        mock_request.user.is_superuser = False
+        return mock_request
     
-    def test_middleware_chain(self, request):
+    def test_middleware_chain(self, mock_request):
         """Test that middleware can be chained together."""
         # Create middleware instances
         get_response = Mock(return_value=HttpResponse())
@@ -342,39 +342,39 @@ class TestMiddlewareIntegration:
         rate_middleware = RateLimitMiddleware(get_response)
         query_middleware = QueryOptimizerMiddleware(get_response)
         
-        # Process request through chain
-        result = db_middleware.process_request(request)
+        # Process mock_request through chain
+        result = db_middleware.process_request(mock_request)
         assert result is None
         
-        result = cache_middleware.process_request(request)
+        result = cache_middleware.process_request(mock_request)
         assert result is None
         
-        result = rate_middleware.process_request(request)
+        result = rate_middleware.process_request(mock_request)
         # May be None or 429 response depending on rate limiter state
         assert result is None or result.status_code == 429
         
         if result is None:
-            result = query_middleware.process_request(request)
+            result = query_middleware.process_request(mock_request)
             assert result is None
             
             # Create response
             response = HttpResponse()
             
             # Process response through chain (reverse order)
-            response = query_middleware.process_response(request, response)
-            response = rate_middleware.process_response(request, response)
-            response = cache_middleware.process_response(request, response)
-            response = db_middleware.process_response(request, response)
+            response = query_middleware.process_response(mock_request, response)
+            response = rate_middleware.process_response(mock_request, response)
+            response = cache_middleware.process_response(mock_request, response)
+            response = db_middleware.process_response(mock_request, response)
             
             assert response.status_code == 200
     
-    def test_middleware_with_rate_limit_exceeded(self, request):
+    def test_middleware_with_rate_limit_exceeded(self, mock_request):
         """Test middleware chain when rate limit is exceeded."""
         # Create middleware instances
         get_response = Mock(return_value=HttpResponse())
         rate_middleware = RateLimitMiddleware(get_response)
         
-        # Mock rate limiter to block request
+        # Mock rate limiter to block mock_request
         if RateLimitMiddleware._rate_limiter:
             with patch.object(RateLimitMiddleware._rate_limiter, 'allow_request', return_value=False):
                 from infrastructure.models import LimitInfo
@@ -390,7 +390,7 @@ class TestMiddlewareIntegration:
                 )
                 
                 with patch.object(RateLimitMiddleware._rate_limiter, 'get_limit_info', return_value=mock_limit_info):
-                    result = rate_middleware.process_request(request)
+                    result = rate_middleware.process_request(mock_request)
                     
                     # Should short-circuit with 429 response
                     assert result is not None
@@ -398,3 +398,4 @@ class TestMiddlewareIntegration:
                     
                     # Subsequent middleware should not be called
                     # (in real Django, middleware chain stops here)
+
