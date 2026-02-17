@@ -40,6 +40,9 @@ Welcome to the MueJam Library documentation. This directory contains comprehensi
 ### Deployment
 - [Secrets Management](deployment/secrets.md) - Managing secrets and environment variables
 
+### Packages
+- [Packages Overview](packages.md) - Shared libraries and utilities across the monorepo
+
 ## Quick Links
 
 - [Main README](../README.md) - Project overview and quick start
