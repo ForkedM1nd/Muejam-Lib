@@ -11,6 +11,23 @@ Welcome to the MueJam Library documentation. This directory contains comprehensi
 ### Architecture
 - [API Documentation](architecture/api.md) - REST API endpoints and usage
 
+### Backend
+#### Infrastructure
+- [Infrastructure Overview](backend/infrastructure/overview.md) - Database optimization and caching infrastructure
+- [Deployment Guide](backend/infrastructure/deployment-guide.md) - Production deployment instructions
+- [Operations Runbook](backend/infrastructure/operations-runbook.md) - Operational procedures and troubleshooting
+- [Tuning Guide](backend/infrastructure/tuning-guide.md) - Performance tuning and optimization
+- [Database Replication Setup](backend/infrastructure/database-replication-setup.md) - Setting up database replication
+- [Query Optimizer Integration](backend/infrastructure/query-optimizer-integration.md) - Query optimization guide
+- [Schema Manager Integration](backend/infrastructure/schema-manager-integration.md) - Schema management guide
+- [Rate Limiting Guide](backend/infrastructure/rate-limiting-guide.md) - Rate limiting configuration
+- [Valkey Configuration](backend/infrastructure/valkey-configuration.md) - Valkey cache configuration
+- [Django Integration](backend/infrastructure/django-integration.md) - Django integration guide
+
+#### Monitoring
+- [Monitoring Overview](backend/monitoring/overview.md) - Monitoring setup and architecture
+- [Configuration Guide](backend/monitoring/configuration-guide.md) - Monitoring configuration details
+
 ### Frontend
 - [Authentication Guide](frontend/authentication.md) - Complete authentication documentation
 - [API Client](frontend/api-client.md) - Frontend API integration guide
