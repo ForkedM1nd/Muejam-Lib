@@ -280,7 +280,7 @@ The implementation will use Python scripts for automation, with manual verificat
     - Test that no AI-generated phrases remain in docs
     - Check for: "verification report", "checkpoint", "implementation summary", etc.
 
-- [-] 24. Run Phase 5 documentation update script
+- [x] 24. Run Phase 5 documentation update script
   - Execute `python tools/restructure/update_docs.py`
   - Verify README.md updated for monorepo
   - Verify CONTRIBUTING.md created
@@ -291,7 +291,7 @@ The implementation will use Python scripts for automation, with manual verificat
   - Commit changes: "Phase 5: Update documentation for monorepo structure"
   - _Requirements: 10.1, 10.2, 10.4, 10.5, 10.6_
 
-- [~] 25. Checkpoint - Verify Phase 5 complete
+- [x] 25. Checkpoint - Verify Phase 5 complete
   - Ensure README.md reflects monorepo structure
   - Ensure CONTRIBUTING.md exists with guidelines
   - Ensure docs/README.md serves as index
@@ -300,7 +300,7 @@ The implementation will use Python scripts for automation, with manual verificat
   - Ensure changes committed
   - Ask user if questions arise
 
-- [~] 26. Create validation script
+- [x] 26. Create validation script
   - Create Python script `tools/restructure/validate.py` for Phase 6
   - Script should verify docker-compose up works
   - Script should verify backend tests pass
@@ -312,7 +312,7 @@ The implementation will use Python scripts for automation, with manual verificat
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
 - [ ] 27. Implement validation runner
-  - [~] 27.1 Create ValidationRunner class
+  - [x] 27.1 Create ValidationRunner class
     - Implement verify_docker_compose() to test docker-compose up
     - Implement verify_backend_tests() to run pytest
     - Implement verify_frontend_tests() to run npm test
@@ -349,7 +349,7 @@ The implementation will use Python scripts for automation, with manual verificat
     - **Validates: Requirements 11.1, 11.2, 11.3, 11.4, 11.5**
     - Test all critical workflows function correctly
 
-- [~] 29. Run Phase 6 validation script
+- [x] 29. Run Phase 6 validation script
   - Execute `python tools/restructure/validate.py`
   - Review validation report
   - Fix any issues found
@@ -357,7 +357,7 @@ The implementation will use Python scripts for automation, with manual verificat
   - Commit changes: "Phase 6: Validation complete"
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
-- [~] 30. Final checkpoint - Merge restructure branch
+- [-] 30. Final checkpoint - Merge restructure branch
   - Ensure all validation checks pass
   - Review complete validation report
   - Merge restructure-monorepo branch to main
