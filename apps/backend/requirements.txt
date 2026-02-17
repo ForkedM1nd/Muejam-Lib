@@ -13,7 +13,7 @@ PyJWT==2.9.0
 bcrypt==5.0.0
 
 # Caching and Queue
-redis==5.0.1
+redis==4.6.0
 celery==5.3.6
 
 # Email
