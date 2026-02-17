@@ -10,8 +10,8 @@ Tests password validation requirements including:
 import pytest
 import bcrypt
 from unittest.mock import AsyncMock, MagicMock
-from ..services.password_validator import PasswordValidator
-from ..repositories.user_repository import UserRepository
+from apps.users.password_reset.services.password_validator import PasswordValidator
+from apps.users.password_reset.repositories.user_repository import UserRepository
 
 
 @pytest.fixture

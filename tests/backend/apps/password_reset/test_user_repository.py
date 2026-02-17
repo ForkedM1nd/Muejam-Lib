@@ -7,7 +7,7 @@ import pytest
 import bcrypt
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
-from ..repositories.user_repository import UserRepository
+from apps.users.password_reset.repositories.user_repository import UserRepository
 
 
 @pytest.fixture

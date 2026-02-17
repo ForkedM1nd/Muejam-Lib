@@ -6,13 +6,13 @@ Tests the complete flow with real service implementations.
 import pytest
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
-from ..services.password_reset_service import PasswordResetService
-from ..services.token_service import TokenService
-from ..services.rate_limit_service import RateLimitService
-from ..services.email_service import EmailService
-from ..services.audit_logger import AuditLogger
-from ..repositories.token_repository import TokenRepository
-from ..repositories.user_repository import UserRepository
+from apps.users.password_reset.services.password_reset_service import PasswordResetService
+from apps.users.password_reset.services.token_service import TokenService
+from apps.users.password_reset.services.rate_limit_service import RateLimitService
+from apps.users.password_reset.services.email_service import EmailService
+from apps.users.password_reset.services.audit_logger import AuditLogger
+from apps.users.password_reset.repositories.token_repository import TokenRepository
+from apps.users.password_reset.repositories.user_repository import UserRepository
 
 
 @pytest.fixture

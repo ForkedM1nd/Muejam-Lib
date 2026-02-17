@@ -8,8 +8,8 @@ import json
 import logging
 from datetime import datetime
 from unittest.mock import Mock, patch
-from ..services.audit_logger import AuditLogger
-from ..types import AuditEvent, AuditEventType
+from apps.users.password_reset.services.audit_logger import AuditLogger
+from apps.users.password_reset.types import AuditEvent, AuditEventType
 
 
 @pytest.fixture

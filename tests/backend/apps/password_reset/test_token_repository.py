@@ -7,8 +7,8 @@ import pytest
 import pytest_asyncio
 from datetime import datetime, timedelta
 from uuid import uuid4
-from ..repositories.token_repository import TokenRepository
-from ..types import Token
+from apps.users.password_reset.repositories.token_repository import TokenRepository
+from apps.users.password_reset.types import Token
 from prisma import Prisma
 
 

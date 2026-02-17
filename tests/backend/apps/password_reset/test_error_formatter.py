@@ -4,7 +4,7 @@ Unit tests for ErrorFormatter.
 Tests verify that all error types are formatted correctly according to the design document.
 """
 import pytest
-from ..error_formatter import ErrorFormatter
+from apps.users.password_reset.error_formatter import ErrorFormatter
 
 
 class TestErrorFormatter:

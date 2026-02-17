@@ -32,7 +32,7 @@ from infrastructure.middleware import (
     RateLimitMiddleware,
     QueryOptimizerMiddleware
 )
-from infrastructure.models import Priority, Query, QueryType
+from infrastructure.models import Priority, QueryType
 
 
 class TestDatabaseInfrastructureMiddleware:

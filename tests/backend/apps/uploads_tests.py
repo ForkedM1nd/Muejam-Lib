@@ -2,7 +2,7 @@
 import pytest
 from django.test import TestCase
 from rest_framework.test import APIClient
-from .s3 import S3UploadManager
+from apps.uploads.s3 import S3UploadManager
 from hypothesis import given, strategies as st
 from hypothesis.strategies import integers, sampled_from
 

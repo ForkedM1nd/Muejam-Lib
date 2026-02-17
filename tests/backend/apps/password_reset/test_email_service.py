@@ -6,7 +6,7 @@ Tests email composition and delivery for password reset emails.
 import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
-from ..services.email_service import EmailService
+from apps.users.password_reset.services.email_service import EmailService
 
 
 @pytest.fixture

@@ -6,9 +6,9 @@ Tests token generation, validation, and lifecycle management.
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, Mock
-from ..services.token_service import TokenService
-from ..types import Token, TokenData
-from ..constants import TOKEN_EXPIRATION_HOURS
+from apps.users.password_reset.services.token_service import TokenService
+from apps.users.password_reset.types import Token, TokenData
+from apps.users.password_reset.constants import TOKEN_EXPIRATION_HOURS
 
 
 class TestTokenServiceGeneration:

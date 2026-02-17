@@ -10,7 +10,7 @@ Requirements: 10.1, 10.2, 10.3, 10.4
 import pytest
 import time
 from datetime import datetime, timedelta
-from backend.infrastructure.metrics_collector import (
+from infrastructure.metrics_collector import (
     MetricsCollector,
     ThresholdConfig,
     DatabaseMetrics,

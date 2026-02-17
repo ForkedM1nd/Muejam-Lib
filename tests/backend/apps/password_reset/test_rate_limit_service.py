@@ -9,8 +9,8 @@ Tests cover:
 """
 import pytest
 from datetime import datetime, timedelta, timezone
-from ..services.rate_limit_service import RateLimitService
-from ..constants import (
+from apps.users.password_reset.services.rate_limit_service import RateLimitService
+from apps.users.password_reset.constants import (
     USER_RATE_LIMIT_REQUESTS,
     IP_RATE_LIMIT_REQUESTS,
 )

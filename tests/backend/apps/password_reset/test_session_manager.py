@@ -10,7 +10,7 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.utils import timezone
 from datetime import timedelta
 from django.test import TransactionTestCase
-from ..services.session_manager import SessionManager
+from apps.users.password_reset.services.session_manager import SessionManager
 import asyncio
 
 

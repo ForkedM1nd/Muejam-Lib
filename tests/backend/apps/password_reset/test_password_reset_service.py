@@ -6,8 +6,8 @@ Tests the main orchestration service for password reset operations.
 import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, Mock, patch
-from ..services.password_reset_service import PasswordResetService
-from ..types import TokenData, AuditEventType
+from apps.users.password_reset.services.password_reset_service import PasswordResetService
+from apps.users.password_reset.types import TokenData, AuditEventType
 
 
 @pytest.fixture

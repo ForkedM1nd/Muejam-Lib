@@ -8,10 +8,10 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.response import Response
 from rest_framework import status
 
-from .pagination import CursorPagination
-from .rate_limiting import rate_limit
-from .cache import CacheManager, CacheInvalidator
-from .exceptions import (
+from apps.core.pagination import CursorPagination
+from apps.core.rate_limiting import rate_limit
+from apps.core.cache import CacheManager, CacheInvalidator
+from apps.core.exceptions import (
     RateLimitExceeded,
     InvalidCursor,
     ContentDeleted,
