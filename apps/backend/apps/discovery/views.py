@@ -245,8 +245,8 @@ async def fetch_trending_feed(request, tag_slug=None, search_query=None):
                 {'blurb': {'contains': search_query, 'mode': 'insensitive'}}
             ]
         
-        # Get today's date for stats
-        today = datetime.now().date()
+        # Get today's date for stats (convert to datetime for Prisma)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         
         # Fetch stories with stats
         stories = await db.story.find_many(

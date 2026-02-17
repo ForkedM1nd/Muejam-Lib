@@ -106,8 +106,8 @@ async def fetch_search_results(query, blocked_ids, request):
             {'blurb': {'contains': query, 'mode': 'insensitive'}}
         ]
         
-        # Get today's date for stats
-        today = datetime.now().date()
+        # Get today's date for stats (convert to datetime for Prisma)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         
         # Fetch stories with stats and author info
         stories = await db.story.find_many(

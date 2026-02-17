@@ -211,7 +211,7 @@ class PersonalizationEngine:
                 return None
             
             # Get candidate stories (published, not deleted, not blocked)
-            today = datetime.now().date()
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
             
             stories = await db.story.find_many(
                 where={
