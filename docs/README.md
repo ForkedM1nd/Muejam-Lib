@@ -28,6 +28,10 @@ Welcome to the MueJam Library documentation. This directory contains comprehensi
 - [Monitoring Overview](backend/monitoring/overview.md) - Monitoring setup and architecture
 - [Configuration Guide](backend/monitoring/configuration-guide.md) - Monitoring configuration details
 
+#### Django Apps
+- [Users App](backend/apps/users.md) - User management and authentication
+- [Password Reset](backend/apps/password-reset.md) - Password reset functionality
+
 ### Frontend
 - [Authentication Guide](frontend/authentication.md) - Complete authentication documentation
 - [API Client](frontend/api-client.md) - Frontend API integration guide
