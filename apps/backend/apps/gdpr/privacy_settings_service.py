@@ -1,7 +1,7 @@
 """
 Privacy Settings Service
 
-Manages user privacy settings and consent records.
+Manages user privacy settings and consent management records.
 
 Requirements:
 - 11.1: Provide privacy settings page with granular controls

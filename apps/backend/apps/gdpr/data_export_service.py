@@ -2,6 +2,7 @@
 Data Export Service
 
 Generates comprehensive user data exports for GDPR compliance.
+Implements data_export functionality for user data portability.
 
 Requirements:
 - 10.1: Provide "Download My Data" feature

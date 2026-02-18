@@ -1,0 +1,38 @@
+# Example configuration for the audit system
+
+# Project paths
+project_root: "."
+backend_path: "apps"
+frontend_path: "packages"
+infra_path: "infra"
+docs_path: "docs"
+
+# Enabled analyzers
+enabled_analyzers:
+  - code_quality
+  - security
+  - performance
+  - architecture
+  - database
+  - api
+  - test_coverage
+  - infrastructure
+  - dependencies
+  - documentation
+  - scalability
+
+# Thresholds
+min_code_coverage: 80.0
+max_complexity: 10
+max_function_length: 50
+
+# Output configuration
+output_dir: "audit_reports"
+output_formats:
+  - markdown
+  - json
+  - html
+
+# External tool paths (optional)
+pylint_config: null
+eslint_config: null

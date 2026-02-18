@@ -1,0 +1,134 @@
+{
+  "timestamp": "2026-02-19T00:01:03.139524",
+  "project_name": ".",
+  "project_version": "1.0.0",
+  "execution_time": 0.182092,
+  "results": {
+    "DatabaseAnalyzer": {
+      "analyzer_name": "DatabaseAnalyzer",
+      "execution_time": 0.0016169548034667969,
+      "findings": [],
+      "metrics": {
+        "total_issues": 0,
+        "schema_issues": 0
+      },
+      "success": true,
+      "error_message": null
+    },
+    "APIEvaluator": {
+      "analyzer_name": "APIEvaluator",
+      "execution_time": 0.0024323463439941406,
+      "findings": [],
+      "metrics": {
+        "total_issues": 0
+      },
+      "success": true,
+      "error_message": null
+    },
+    "PerformanceProfiler": {
+      "analyzer_name": "PerformanceProfiler",
+      "execution_time": 0.009767532348632812,
+      "findings": [],
+      "metrics": {
+        "total_issues": 0,
+        "n_plus_one_queries": 0,
+        "missing_indexes": 0
+      },
+      "success": true,
+      "error_message": null
+    },
+    "TestCoverageAnalyzer": {
+      "analyzer_name": "TestCoverageAnalyzer",
+      "execution_time": 0.005042314529418945,
+      "findings": [],
+      "metrics": {
+        "total_issues": 0
+      },
+      "success": true,
+      "error_message": null
+    },
+    "DependencyChecker": {
+      "analyzer_name": "DependencyChecker",
+      "execution_time": 0.0026869773864746094,
+      "findings": [],
+      "metrics": {
+        "total_issues": 0
+      },
+      "success": true,
+      "error_message": null
+    },
+    "code_quality_analyzer": {
+      "analyzer_name": "code_quality_analyzer",
+      "execution_time": 0.04551410675048828,
+      "findings": [],
+      "metrics": {
+        "python_files_analyzed": 0,
+        "typescript_files_analyzed": 0,
+        "total_complexity_issues": 0,
+        "total_duplication_issues": 0,
+        "total_style_issues": 0,
+        "django_pattern_issues": 0,
+        "react_pattern_issues": 0
+      },
+      "success": true,
+      "error_message": null
+    },
+    "InfrastructureAuditor": {
+      "analyzer_name": "InfrastructureAuditor",
+      "execution_time": 0.06015419960021973,
+      "findings": [],
+      "metrics": {
+        "total_issues": 0
+      },
+      "success": true,
+      "error_message": null
+    },
+    "SecurityScanner": {
+      "analyzer_name": "SecurityScanner",
+      "execution_time": 0.13152074813842773,
+      "findings": [],
+      "metrics": {
+        "total_issues": 0,
+        "critical_issues": 0,
+        "high_issues": 0
+      },
+      "success": true,
+      "error_message": null
+    },
+    "DocumentationEvaluator": {
+      "analyzer_name": "DocumentationEvaluator",
+      "execution_time": 0.11022591590881348,
+      "findings": [],
+      "metrics": {
+        "total_issues": 0
+      },
+      "success": true,
+      "error_message": null
+    },
+    "ScalabilityAssessor": {
+      "analyzer_name": "ScalabilityAssessor",
+      "execution_time": 0.12764859199523926,
+      "findings": [],
+      "metrics": {
+        "total_issues": 0
+      },
+      "success": true,
+      "error_message": null
+    }
+  },
+  "summary": {
+    "total_findings": 0,
+    "findings_by_severity": {},
+    "findings_by_category": {},
+    "overall_score": 100.0,
+    "category_scores": {},
+    "key_findings": []
+  },
+  "action_plan": {
+    "quick_wins": [],
+    "critical_issues": [],
+    "short_term": [],
+    "long_term": [],
+    "technical_debt": []
+  }
+}

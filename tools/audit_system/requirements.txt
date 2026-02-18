@@ -1,0 +1,19 @@
+# Core dependencies
+pyyaml>=6.0
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+hypothesis>=6.82.0
+
+# Code quality tools
+pylint>=2.17.0
+flake8>=6.0.0
+radon>=5.1.0
+
+# Security scanning
+safety>=2.3.0
+bandit>=1.7.5
+
+# Type checking
+mypy>=1.4.0

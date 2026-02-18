@@ -17,7 +17,17 @@ from django.conf import settings
 
 
 def verify_documentation():
-    """Verify that API documentation is properly configured."""
+    """
+    Verify that API documentation is properly configured.
+    
+    Checks for:
+    - drf-spectacular installation
+    - Proper Django settings configuration
+    - Documentation URL configuration
+    
+    Returns:
+        bool: True if all checks pass, False otherwise
+    """
     
     print("=" * 60)
     print("MueJam Library API Documentation Verification")

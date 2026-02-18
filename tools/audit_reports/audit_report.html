@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Report: .</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 3px solid #007bff; padding-bottom: 10px; }
+        h2 { color: #555; margin-top: 30px; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; }
+        h3 { color: #666; margin-top: 20px; }
+        .metadata { color: #666; margin-bottom: 20px; }
+        .score { font-size: 48px; font-weight: bold; color: #007bff; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+        .summary-card { background: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid #007bff; }
+        .summary-card h4 { margin: 0 0 10px 0; color: #555; }
+        .summary-card .value { font-size: 32px; font-weight: bold; color: #333; }
+        .finding { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 4px solid #ccc; }
+        .finding-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .finding-title { font-weight: bold; font-size: 16px; color: #333; }
+        .badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; }
+        .location { font-family: monospace; background: #e9ecef; padding: 2px 6px; border-radius: 3px; font-size: 14px; }
+        .recommendation { margin-top: 10px; padding: 10px; background: #e7f3ff; border-radius: 4px; }
+        .analyzer-result { margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 6px; }
+        .metrics { display: flex; flex-wrap: wrap; gap: 15px; margin: 10px 0; }
+        .metric { background: white; padding: 10px 15px; border-radius: 4px; }
+        ul { list-style-type: none; padding-left: 0; }
+        li { padding: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audit Report: .</h1>
+        <div class="metadata">
+            <strong>Version:</strong> 1.0.0 | 
+            <strong>Date:</strong> 2026-02-19T00:01:03.139524 | 
+            <strong>Execution Time:</strong> 0.18s
+        </div>
+        <h2>Executive Summary</h2>
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h4>Overall Score</h4>
+                <div class="value">100.0/100</div>
+            </div>
+            <div class="summary-card">
+                <h4>Total Findings</h4>
+                <div class="value">0</div>
+            </div>
+        </div>
+        <h3>Findings by Severity</h3>
+        <ul>
+        </ul>
+        <h2>Action Plan</h2>
+        <h2>Detailed Results</h2>
+        <div class="analyzer-result">
+            <h3>Apievaluator</h3>
+            <p><strong>Execution Time:</strong> 0.00s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Total Issues:</strong> 0</div>
+            </div>
+        </div>
+        <div class="analyzer-result">
+            <h3>Databaseanalyzer</h3>
+            <p><strong>Execution Time:</strong> 0.00s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Total Issues:</strong> 0</div>
+                <div class="metric"><strong>Schema Issues:</strong> 0</div>
+            </div>
+        </div>
+        <div class="analyzer-result">
+            <h3>Dependencychecker</h3>
+            <p><strong>Execution Time:</strong> 0.00s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Total Issues:</strong> 0</div>
+            </div>
+        </div>
+        <div class="analyzer-result">
+            <h3>Documentationevaluator</h3>
+            <p><strong>Execution Time:</strong> 0.11s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Total Issues:</strong> 0</div>
+            </div>
+        </div>
+        <div class="analyzer-result">
+            <h3>Infrastructureauditor</h3>
+            <p><strong>Execution Time:</strong> 0.06s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Total Issues:</strong> 0</div>
+            </div>
+        </div>
+        <div class="analyzer-result">
+            <h3>Performanceprofiler</h3>
+            <p><strong>Execution Time:</strong> 0.01s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Total Issues:</strong> 0</div>
+                <div class="metric"><strong>N Plus One Queries:</strong> 0</div>
+                <div class="metric"><strong>Missing Indexes:</strong> 0</div>
+            </div>
+        </div>
+        <div class="analyzer-result">
+            <h3>Scalabilityassessor</h3>
+            <p><strong>Execution Time:</strong> 0.13s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Total Issues:</strong> 0</div>
+            </div>
+        </div>
+        <div class="analyzer-result">
+            <h3>Securityscanner</h3>
+            <p><strong>Execution Time:</strong> 0.13s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Total Issues:</strong> 0</div>
+                <div class="metric"><strong>Critical Issues:</strong> 0</div>
+                <div class="metric"><strong>High Issues:</strong> 0</div>
+            </div>
+        </div>
+        <div class="analyzer-result">
+            <h3>Testcoverageanalyzer</h3>
+            <p><strong>Execution Time:</strong> 0.01s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Total Issues:</strong> 0</div>
+            </div>
+        </div>
+        <div class="analyzer-result">
+            <h3>Code Quality Analyzer</h3>
+            <p><strong>Execution Time:</strong> 0.05s | 
+            <strong>Status:</strong> ✓ Success | 
+            <strong>Findings:</strong> 0</p>
+            <div class="metrics">
+                <div class="metric"><strong>Python Files Analyzed:</strong> 0</div>
+                <div class="metric"><strong>Typescript Files Analyzed:</strong> 0</div>
+                <div class="metric"><strong>Total Complexity Issues:</strong> 0</div>
+                <div class="metric"><strong>Total Duplication Issues:</strong> 0</div>
+                <div class="metric"><strong>Total Style Issues:</strong> 0</div>
+                <div class="metric"><strong>Django Pattern Issues:</strong> 0</div>
+                <div class="metric"><strong>React Pattern Issues:</strong> 0</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -2,6 +2,7 @@
 Account Deletion Service
 
 Handles account deletion requests with 30-day retention period and anonymization.
+Implements data_deletion functionality for GDPR right to be forgotten.
 
 Requirements:
 - 10.6: Provide "Delete My Account" feature requiring password confirmation

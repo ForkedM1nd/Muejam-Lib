@@ -113,6 +113,7 @@ muejam-library/
                 pattern = r'\[([^\]]+)\]\(([^\)]*' + re.escape(old_path) + r'[^\)]*)\)'
                 
                 def replace_link(match):
+                    """Replace old path with new path in markdown link."""
                     text = match.group(1)
                     full_path = match.group(2)
                     # Replace the old path with new path
