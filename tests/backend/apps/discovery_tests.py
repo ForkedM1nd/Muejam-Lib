@@ -4,6 +4,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from prisma import Prisma
 import asyncio
+from hypothesis.extra.django import TestCase as HypothesisTestCase
 
 
 class DiscoveryFeedTests(TestCase):
@@ -118,7 +119,7 @@ from hypothesis.strategies import floats, lists, integers
 from decimal import Decimal
 
 
-class InterestDecayPropertyTests(TestCase):
+class InterestDecayPropertyTests(HypothesisTestCase):
     """
     Property-based tests for interest score decay.
     

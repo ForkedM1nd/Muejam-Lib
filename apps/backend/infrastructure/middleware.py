@@ -28,6 +28,7 @@ from infrastructure.cache_manager import CacheManager
 from infrastructure.rate_limiter import RateLimiter
 from infrastructure.query_optimizer import QueryOptimizer
 from infrastructure.models import Priority, ReplicaInfo
+from apps.users.account_suspension import AccountSuspensionService
 
 
 logger = logging.getLogger(__name__)
@@ -356,33 +357,60 @@ class RateLimitMiddleware(MiddlewareMixin):
         # Check if user is admin (bypass rate limits)
         is_admin = self._is_admin_user(request)
         
-        # Check rate limits
-        allowed = RateLimitMiddleware._rate_limiter.allow_request(
-            user_id=user_id,
-            is_admin=is_admin
-        )
+        # Store user_id and is_admin on request for use in process_response
+        request._rate_limit_user_id = user_id
+        request._rate_limit_is_admin = is_admin
         
-        if not allowed:
-            # Get limit info for response headers
-            limit_info = RateLimitMiddleware._rate_limiter.get_limit_info(user_id)
+        # Check rate limits
+        user_result = RateLimitMiddleware._rate_limiter.check_user_limit(user_id)
+        
+        # Skip rate limiting for admins
+        if is_admin and RateLimitMiddleware._rate_limiter.admin_bypass:
+            # Store result for headers but don't enforce
+            request._rate_limit_result = user_result
+            request.rate_limiter = RateLimitMiddleware._rate_limiter
+            return None
+        
+        # Store result for adding headers in process_response
+        request._rate_limit_result = user_result
+        
+        if not user_result.allowed:
+            # Log rate limit event (Requirement 15.6)
+            from infrastructure.logging_config import get_logger, log_rate_limit_event
+            structured_logger = get_logger(__name__)
+            
+            # Get client IP
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip_address = x_forwarded_for.split(',')[0].strip()
+            else:
+                ip_address = request.META.get('REMOTE_ADDR', 'unknown')
+            
+            log_rate_limit_event(
+                logger=structured_logger,
+                ip_address=ip_address,
+                endpoint=request.path,
+                limit_type='user' if not user_id.startswith('anon:') else 'ip',
+                limit_exceeded=f'{user_result.limit}/minute',
+            )
             
             # Return 429 Too Many Requests
             response = JsonResponse(
                 {
                     'error': 'Rate limit exceeded',
-                    'message': f'Too many requests. Please try again in {limit_info.retry_after} seconds.',
-                    'limit': limit_info.user_limit,
-                    'remaining': limit_info.user_remaining,
-                    'reset_at': limit_info.reset_at.isoformat()
+                    'message': f'Too many requests. Please try again in {user_result.retry_after} seconds.',
+                    'limit': user_result.limit,
+                    'remaining': user_result.remaining,
+                    'reset_at': user_result.reset_at.isoformat()
                 },
                 status=429
             )
             
-            # Add rate limit headers
-            response['X-RateLimit-Limit'] = str(limit_info.user_limit)
-            response['X-RateLimit-Remaining'] = str(limit_info.user_remaining)
-            response['X-RateLimit-Reset'] = limit_info.reset_at.isoformat()
-            response['Retry-After'] = str(limit_info.retry_after)
+            # Add rate limit headers (Requirements 34.6, 34.7)
+            response['X-RateLimit-Limit'] = str(user_result.limit)
+            response['X-RateLimit-Remaining'] = str(user_result.remaining)
+            response['X-RateLimit-Reset'] = str(int(user_result.reset_at.timestamp()))
+            response['Retry-After'] = str(user_result.retry_after)
             
             logger.warning(f"Rate limit exceeded for user {user_id}")
             return response
@@ -428,6 +456,35 @@ class RateLimitMiddleware(MiddlewareMixin):
         if hasattr(request, 'user') and request.user.is_authenticated:
             return request.user.is_staff or request.user.is_superuser
         return False
+    
+    def process_response(self, request: HttpRequest, response: HttpResponse) -> HttpResponse:
+        """
+        Process outgoing response and add rate limit headers.
+        
+        Adds rate limit headers to ALL API responses per Requirement 34.7.
+        
+        Args:
+            request: Django HTTP request
+            response: Django HTTP response
+            
+        Returns:
+            Modified response with rate limit headers
+        """
+        # Add rate limit headers to all responses (Requirement 34.7)
+        if hasattr(request, '_rate_limit_result'):
+            result = request._rate_limit_result
+            
+            # Add standard rate limit headers
+            response['X-RateLimit-Limit'] = str(result.limit)
+            response['X-RateLimit-Remaining'] = str(result.remaining)
+            # Use Unix timestamp for X-RateLimit-Reset (standard practice)
+            response['X-RateLimit-Reset'] = str(int(result.reset_at.timestamp()))
+            
+            # Only add Retry-After if rate limit was exceeded
+            if not result.allowed and result.retry_after:
+                response['Retry-After'] = str(result.retry_after)
+        
+        return response
     
     @classmethod
     def get_rate_limiter(cls) -> Optional[RateLimiter]:
@@ -549,3 +606,72 @@ class QueryOptimizerMiddleware(MiddlewareMixin):
     def get_query_optimizer(cls) -> Optional[QueryOptimizer]:
         """Get the query optimizer instance."""
         return cls._query_optimizer
+
+
+
+class AccountSuspensionMiddleware(MiddlewareMixin):
+    """
+    Middleware for enforcing account suspensions.
+    
+    This middleware:
+    - Checks if authenticated user is suspended
+    - Prevents access for suspended accounts
+    - Returns 403 Forbidden with suspension details
+    
+    Requirements: 5.14
+    """
+    
+    def __init__(self, get_response: Callable):
+        """Initialize middleware."""
+        super().__init__(get_response)
+        self.get_response = get_response
+        self.suspension_service = AccountSuspensionService()
+    
+    async def __call__(self, request: HttpRequest) -> HttpResponse:
+        """
+        Process request and check for account suspension.
+        
+        Args:
+            request: Django HTTP request
+            
+        Returns:
+            Response or 403 if account is suspended
+        """
+        # Only check authenticated users
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            # Get user ID from Clerk user
+            user_id = getattr(request.user, 'id', None)
+            
+            if user_id:
+                # Check suspension status
+                suspension = await self.suspension_service.check_suspension(user_id)
+                
+                if suspension:
+                    # Account is suspended, return 403
+                    logger.warning(
+                        f"Suspended user {user_id} attempted to access {request.path}"
+                    )
+                    
+                    # Format expiration message
+                    if suspension['is_permanent']:
+                        duration_msg = "This suspension is permanent."
+                    else:
+                        expires_at = suspension['expires_at']
+                        duration_msg = f"This suspension expires at {expires_at.isoformat()}."
+                    
+                    return JsonResponse(
+                        {
+                            'error': 'Account Suspended',
+                            'message': 'Your account has been suspended.',
+                            'reason': suspension['reason'],
+                            'suspended_at': suspension['suspended_at'].isoformat(),
+                            'expires_at': suspension['expires_at'].isoformat() if suspension['expires_at'] else None,
+                            'is_permanent': suspension['is_permanent'],
+                            'duration_message': duration_msg
+                        },
+                        status=403
+                    )
+        
+        # Continue processing
+        response = await self.get_response(request)
+        return response

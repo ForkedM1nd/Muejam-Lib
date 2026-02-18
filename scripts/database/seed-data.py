@@ -1,10 +1,19 @@
+#!/usr/bin/env python
 """
 Seed script for development data.
 
 Usage:
-    python seed_data.py
+    cd apps/backend
+    python ../../scripts/database/seed-data.py
 """
 import asyncio
+import sys
+from pathlib import Path
+
+# Add backend to path for Django imports
+backend_path = Path(__file__).parent.parent.parent / 'apps' / 'backend'
+sys.path.insert(0, str(backend_path))
+
 from prisma import Prisma
 from datetime import datetime, timedelta
 import random

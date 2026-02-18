@@ -5,7 +5,7 @@ Handles token generation, validation, and lifecycle management.
 """
 import secrets
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from ..interfaces import ITokenService
 from ..types import TokenData, TokenValidationResult, Token
 from ..constants import TOKEN_EXPIRATION_HOURS, TOKEN_ENTROPY_BYTES
@@ -49,7 +49,7 @@ class TokenService(ITokenService):
         
         # Calculate expiration time (1 hour from now)
         # Requirement 2.2: Set token expiration to 1 hour from generation time
-        created_at = datetime.utcnow()
+        created_at = datetime.now(timezone.utc)
         expires_at = created_at + timedelta(hours=TOKEN_EXPIRATION_HOURS)
         
         # Hash the token using SHA-256 for secure storage
@@ -136,7 +136,7 @@ class TokenService(ITokenService):
         # Check if token has expired
         # Requirement 2.3: Expired tokens should be rejected
         # Requirement 4.2: Expired token should display error message
-        current_time = datetime.utcnow()
+        current_time = datetime.now(timezone.utc)
         if current_time > token_record.expires_at:
             return TokenValidationResult(
                 valid=False,
@@ -170,7 +170,7 @@ class TokenService(ITokenService):
         if token_record is not None:
             # Mark token as used and invalidated
             # Requirement 2.4: Token should be invalidated immediately after use
-            token_record.used_at = datetime.utcnow()
+            token_record.used_at = datetime.now(timezone.utc)
             token_record.invalidated = True
             
             # Update the token in the database

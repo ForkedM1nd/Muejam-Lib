@@ -173,7 +173,17 @@ class TestRateLimitMiddleware:
         """Test that requests within rate limit are allowed."""
         # Mock rate limiter to allow mock_request
         if RateLimitMiddleware._rate_limiter:
-            with patch.object(RateLimitMiddleware._rate_limiter, 'allow_request', return_value=True):
+            from infrastructure.models import RateLimitResult
+            from datetime import datetime, timedelta
+            
+            mock_result = RateLimitResult(
+                allowed=True,
+                limit=100,
+                remaining=50,
+                reset_at=datetime.now() + timedelta(seconds=60)
+            )
+            
+            with patch.object(RateLimitMiddleware._rate_limiter, 'check_user_limit', return_value=mock_result):
                 result = middleware.process_request(mock_request)
                 
                 # Should return None to continue processing
@@ -181,36 +191,133 @@ class TestRateLimitMiddleware:
                 
                 # Should attach rate limiter
                 assert hasattr(mock_request, 'rate_limiter')
+                
+                # Should store result for headers
+                assert hasattr(mock_request, '_rate_limit_result')
+                assert mock_request._rate_limit_result == mock_result
     
     def test_process_request_blocks_request_over_limit(self, middleware, mock_request):
         """Test that requests over rate limit are blocked."""
         # Mock rate limiter to block mock_request
         if RateLimitMiddleware._rate_limiter:
-            with patch.object(RateLimitMiddleware._rate_limiter, 'allow_request', return_value=False):
-                # Mock get_limit_info
-                from infrastructure.models import LimitInfo
-                from datetime import datetime, timedelta
+            from infrastructure.models import RateLimitResult
+            from datetime import datetime, timedelta
+            
+            mock_result = RateLimitResult(
+                allowed=False,
+                limit=100,
+                remaining=0,
+                reset_at=datetime.now() + timedelta(seconds=60),
+                retry_after=60
+            )
+            
+            with patch.object(RateLimitMiddleware._rate_limiter, 'check_user_limit', return_value=mock_result):
+                result = middleware.process_request(mock_request)
                 
-                mock_limit_info = LimitInfo(
-                    user_limit=100,
-                    user_remaining=0,
-                    global_limit=10000,
-                    global_remaining=5000,
-                    reset_at=datetime.now() + timedelta(seconds=60),
-                    retry_after=60
-                )
+                # Should return 429 response
+                assert result is not None
+                assert result.status_code == 429
                 
-                with patch.object(RateLimitMiddleware._rate_limiter, 'get_limit_info', return_value=mock_limit_info):
+                # Should have rate limit headers
+                assert 'X-RateLimit-Limit' in result
+                assert 'X-RateLimit-Remaining' in result
+                assert 'X-RateLimit-Reset' in result
+                assert 'Retry-After' in result
+                
+                # Verify header values
+                assert result['X-RateLimit-Limit'] == '100'
+                assert result['X-RateLimit-Remaining'] == '0'
+                assert result['Retry-After'] == '60'
+    
+    def test_process_response_adds_rate_limit_headers(self, middleware, mock_request):
+        """Test that rate limit headers are added to all responses."""
+        from infrastructure.models import RateLimitResult
+        from datetime import datetime, timedelta
+        
+        # Set up request with rate limit result
+        mock_result = RateLimitResult(
+            allowed=True,
+            limit=100,
+            remaining=50,
+            reset_at=datetime.now() + timedelta(seconds=60)
+        )
+        mock_request._rate_limit_result = mock_result
+        
+        # Create response
+        response = HttpResponse()
+        
+        # Process response
+        result = middleware.process_response(mock_request, response)
+        
+        # Should have rate limit headers
+        assert 'X-RateLimit-Limit' in result
+        assert 'X-RateLimit-Remaining' in result
+        assert 'X-RateLimit-Reset' in result
+        
+        # Verify header values
+        assert result['X-RateLimit-Limit'] == '100'
+        assert result['X-RateLimit-Remaining'] == '50'
+        
+        # Should NOT have Retry-After when allowed
+        assert 'Retry-After' not in result
+    
+    def test_process_response_includes_retry_after_when_blocked(self, middleware, mock_request):
+        """Test that Retry-After header is included when rate limited."""
+        from infrastructure.models import RateLimitResult
+        from datetime import datetime, timedelta
+        
+        # Set up request with rate limit result (blocked)
+        mock_result = RateLimitResult(
+            allowed=False,
+            limit=100,
+            remaining=0,
+            reset_at=datetime.now() + timedelta(seconds=60),
+            retry_after=60
+        )
+        mock_request._rate_limit_result = mock_result
+        
+        # Create response
+        response = HttpResponse(status=429)
+        
+        # Process response
+        result = middleware.process_response(mock_request, response)
+        
+        # Should have all rate limit headers including Retry-After
+        assert 'X-RateLimit-Limit' in result
+        assert 'X-RateLimit-Remaining' in result
+        assert 'X-RateLimit-Reset' in result
+        assert 'Retry-After' in result
+        
+        # Verify Retry-After value
+        assert result['Retry-After'] == '60'
+    
+    def test_admin_bypass(self, middleware, mock_request):
+        """Test that admin users bypass rate limits."""
+        if RateLimitMiddleware._rate_limiter:
+            from infrastructure.models import RateLimitResult
+            from datetime import datetime, timedelta
+            
+            # Set user as admin
+            mock_request.user.is_staff = True
+            
+            # Mock result that would normally block
+            mock_result = RateLimitResult(
+                allowed=False,
+                limit=100,
+                remaining=0,
+                reset_at=datetime.now() + timedelta(seconds=60),
+                retry_after=60
+            )
+            
+            with patch.object(RateLimitMiddleware._rate_limiter, 'check_user_limit', return_value=mock_result):
+                with patch.object(RateLimitMiddleware._rate_limiter, 'admin_bypass', True):
                     result = middleware.process_request(mock_request)
                     
-                    # Should return 429 response
-                    assert result is not None
-                    assert result.status_code == 429
+                    # Should return None (allow request) despite rate limit
+                    assert result is None
                     
-                    # Should have rate limit headers
-                    assert 'X-RateLimit-Limit' in result
-                    assert 'X-RateLimit-Remaining' in result
-                    assert 'Retry-After' in result
+                    # Should still store result for headers
+                    assert hasattr(mock_request, '_rate_limit_result')
     
     def test_get_user_id_authenticated(self, middleware, mock_request):
         """Test getting user ID for authenticated user."""
@@ -376,26 +483,24 @@ class TestMiddlewareIntegration:
         
         # Mock rate limiter to block mock_request
         if RateLimitMiddleware._rate_limiter:
-            with patch.object(RateLimitMiddleware._rate_limiter, 'allow_request', return_value=False):
-                from infrastructure.models import LimitInfo
-                from datetime import datetime, timedelta
+            from infrastructure.models import RateLimitResult
+            from datetime import datetime, timedelta
+            
+            mock_result = RateLimitResult(
+                allowed=False,
+                limit=100,
+                remaining=0,
+                reset_at=datetime.now() + timedelta(seconds=60),
+                retry_after=60
+            )
+            
+            with patch.object(RateLimitMiddleware._rate_limiter, 'check_user_limit', return_value=mock_result):
+                result = rate_middleware.process_request(mock_request)
                 
-                mock_limit_info = LimitInfo(
-                    user_limit=100,
-                    user_remaining=0,
-                    global_limit=10000,
-                    global_remaining=5000,
-                    reset_at=datetime.now() + timedelta(seconds=60),
-                    retry_after=60
-                )
+                # Should short-circuit with 429 response
+                assert result is not None
+                assert result.status_code == 429
                 
-                with patch.object(RateLimitMiddleware._rate_limiter, 'get_limit_info', return_value=mock_limit_info):
-                    result = rate_middleware.process_request(mock_request)
-                    
-                    # Should short-circuit with 429 response
-                    assert result is not None
-                    assert result.status_code == 429
-                    
-                    # Subsequent middleware should not be called
-                    # (in real Django, middleware chain stops here)
+                # Subsequent middleware should not be called
+                # (in real Django, middleware chain stops here)
 

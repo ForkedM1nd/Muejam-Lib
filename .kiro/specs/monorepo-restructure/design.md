@@ -2,24 +2,9 @@
 
 ## Overview
 
-This design outlines the approach for restructuring the MueJam Library repository from its current scattered layout into a clean, professional monorepo structure. The restructure will organize code into apps/, packages/, docs/, and tools/ directories while preserving git history, removing build artifacts and AI-generated documentation, and ensuring all builds and tests continue to work.
+This design document outlines the technical approach for restructuring the MueJam Library monorepo from its current organic state into a clean, professional, and maintainable structure. The restructuring will organize 30+ AI-generated artifacts, consolidate scattered documentation, separate infrastructure from application code, and establish consistent naming conventions—all while preserving production functionality and ensuring the application remains buildable and runnable.
 
-### Goals
-
-1. Implement a standard monorepo structure that scales with future growth
-2. Preserve complete git history for all moved files
-3. Remove all build artifacts and AI-generated documentation footprints
-4. Consolidate documentation into a centralized docs/ directory
-5. Update all configuration files to reflect new paths
-6. Ensure zero downtime in development workflows
-
-### Non-Goals
-
-1. Changing the technology stack (Django, React, PostgreSQL, etc.)
-2. Modifying application functionality or features
-3. Refactoring code structure within apps
-4. Changing CI/CD pipelines (future work)
-5. Implementing new shared packages (structure only)
+The restructuring follows a phased migration approach with automated tooling, comprehensive validation, and rollback capabilities. The design prioritizes safety (no behavior changes), traceability (all moves tracked), and developer experience (clear documentation and conventions).
 
 ## Architecture
 
@@ -27,462 +12,653 @@ This design outlines the approach for restructuring the MueJam Library repositor
 
 ```
 muejam-library/
-├── apps/
-│   ├── backend/              # Django REST API (moved from backend/)
-│   │   ├── apps/             # Django apps
-│   │   ├── config/           # Django settings
-│   │   ├── infrastructure/   # DB/cache optimization
-│   │   ├── monitoring/       # Metrics and monitoring
-│   │   ├── prisma/           # Prisma schema
-│   │   ├── tests/            # Backend tests
+├── apps/                          # Deployable applications
+│   ├── backend/                   # Django backend application
+│   │   ├── apps/                  # Django apps (unchanged structure)
+│   │   ├── config/                # Django settings and configuration
+│   │   ├── infrastructure/        # True infrastructure code only
+│   │   ├── prisma/                # Prisma schema and migrations
 │   │   ├── manage.py
 │   │   ├── requirements.txt
 │   │   ├── pytest.ini
 │   │   ├── Dockerfile
 │   │   └── .env.example
-│   └── frontend/             # Vite React app (moved from frontend/)
-│       ├── src/              # Source code
-│       ├── public/           # Static assets
-│       ├── dist/             # Build output (gitignored)
+│   └── frontend/                  # React frontend application
+│       ├── src/                   # Source code (unchanged)
+│       ├── public/                # Static assets
 │       ├── package.json
 │       ├── vite.config.ts
-│       ├── vitest.config.ts
-│       ├── Dockerfile
-│       └── .env.example
-├── packages/                 # Shared libraries (future)
+│       └── Dockerfile
+│
+├── packages/                      # Shared libraries (future use)
 │   └── README.md
-├── tools/                    # Build tools and scripts
-│   ├── setup.sh              # Linux/Mac setup
-│   ├── setup.ps1             # Windows setup
+│
+├── docs/                          # All documentation
+│   ├── architecture/              # System design and architecture
+│   │   ├── monorepo-structure.md
+│   │   ├── infrastructure.md
+│   │   └── data-models.md
+│   ├── backend/                   # Backend-specific documentation
+│   │   ├── api/                   # API documentation
+│   │   └── deployment/            # Backend deployment docs
+│   ├── frontend/                  # Frontend-specific documentation
+│   ├── features/                  # Feature-specific documentation
+│   │   ├── authentication/
+│   │   ├── moderation/
+│   │   ├── gdpr/
+│   │   └── ...
+│   ├── development/               # Developer guides
+│   │   ├── setup.md
+│   │   ├── conventions.md
+│   │   ├── testing.md
+│   │   ├── workflows.md
+│   │   └── troubleshooting.md
+│   ├── deployment/                # Deployment and operations
+│   │   ├── migration-guide.md
+│   │   ├── verification.md
+│   │   ├── ci-cd.md
+│   │   └── infrastructure.md
+│   ├── archive/                   # Historical artifacts
+│   │   ├── ai-artifacts/          # AI-generated task summaries
+│   │   ├── INDEX.md               # Archive index
+│   │   └── README.md              # Archive purpose
+│   └── README.md                  # Documentation index
+│
+├── tests/                         # Centralized test suites
+│   ├── backend/                   # Backend tests
+│   │   ├── integration/           # Integration tests
+│   │   ├── e2e/                   # End-to-end tests
+│   │   └── infrastructure/        # Infrastructure tests
+│   ├── frontend/                  # Frontend tests
+│   │   ├── integration/
+│   │   └── e2e/
+│   └── README.md                  # Test organization guide
+│
+├── scripts/                       # Automation and utility scripts
+│   ├── database/                  # Database utilities
+│   │   ├── seed-data.py
+│   │   └── seed-legal-documents.py
+│   ├── deployment/                # Deployment scripts
+│   │   ├── deploy.sh
+│   │   ├── rollback.sh
+│   │   └── smoke-tests.sh
+│   ├── verification/              # Verification scripts
+│   │   ├── verify-ratelimit-setup.py
+│   │   └── verify-security-headers.py
+│   └── README.md                  # Scripts documentation
+│
+├── infra/                         # Infrastructure as code
+│   ├── terraform/                 # Terraform configurations
+│   │   ├── environments/
+│   │   │   ├── dev/
+│   │   │   ├── staging/
+│   │   │   └── production/
+│   │   └── modules/
+│   ├── iam-policies/              # IAM policy documents
+│   ├── monitoring/                # Monitoring configurations
+│   └── README.md                  # Infrastructure documentation
+│
+├── tools/                         # Development tools
+│   ├── restructure/               # Restructuring automation
 │   └── README.md
-├── docs/                     # Centralized documentation
-│   ├── README.md             # Documentation index
-│   ├── getting-started/
-│   │   ├── quickstart.md     # From QUICKSTART.md
-│   │   └── development.md    # From DEVELOPMENT.md
-│   ├── architecture/
-│   │   ├── overview.md       # New: system architecture
-│   │   └── api.md            # From backend/API_DOCUMENTATION.md
-│   ├── deployment/
-│   │   └── secrets.md        # From SECRETS.md
-│   └── specs/                # Kiro specs (moved from .kiro/specs/)
-│       ├── db-cache-optimization/
-│       ├── forgot-password/
-│       ├── muejam-library/
-│       └── monorepo-restructure/
-├── tests/                    # Integration tests (new)
-│   └── README.md
-├── .kiro/                    # Kiro tooling (preserved)
-│   └── (internal Kiro files)
-├── .github/                  # CI/CD (future)
-├── docker-compose.yml        # Updated paths
-├── README.md                 # Rewritten for monorepo
-├── CONTRIBUTING.md           # New: contribution guidelines
-├── LICENSE                   # Preserved if exists
-└── .gitignore                # Updated for monorepo
+│
+├── .github/                       # GitHub configuration
+│   └── workflows/                 # CI/CD workflows
+│
+├── docker-compose.yml             # Local development orchestration
+├── .gitignore                     # Git ignore patterns
+├── README.md                      # Project overview
+└── CONTRIBUTING.md                # Contribution guidelines
 ```
 
-### Migration Strategy
 
-The restructure will follow a phased approach to minimize risk:
+### Design Principles
 
-**Phase 1: Preparation**
-- Create new directory structure (apps/, packages/, tools/, docs/, tests/)
-- Update .gitignore to ensure build artifacts stay ignored
-- Create placeholder README.md files in new directories
+1. **Safety First**: No production code logic changes, only file movements and path updates
+2. **Traceability**: Every file movement tracked in migration documentation
+3. **Incremental**: Phased approach with validation checkpoints
+4. **Reversible**: Clear rollback procedures for each phase
+5. **Automated**: Scripted migrations to reduce human error
+6. **Validated**: Comprehensive verification at each step
 
-**Phase 2: File Moves (Git History Preservation)**
-- Use `git mv` for all file and directory moves
-- Move backend/ to apps/backend/
-- Move frontend/ to apps/frontend/
-- Move documentation files to docs/ subdirectories
-- Move setup scripts to tools/
+### Key Architectural Decisions
 
-**Phase 3: Configuration Updates**
-- Update docker-compose.yml paths
-- Update Django settings.py paths
-- Update frontend tsconfig.json paths
-- Update Dockerfile paths
-- Update test configuration files
+#### Decision 1: Keep Django Apps Colocated Tests
 
-**Phase 4: Cleanup**
-- Remove build artifacts (.coverage, .hypothesis/, htmlcov/, venv/)
-- Remove AI-generated documentation files
-- Remove temporary root-level files (prompt.txt, doc.txt, PROJECT_STATUS.md)
+**Rationale**: Django convention is to keep tests within app directories (apps/backend/apps/*/tests/). This provides:
+- Clear ownership and proximity to code
+- Easier discovery when working on specific apps
+- Alignment with Django best practices
+- Simpler import paths for app-specific tests
 
-**Phase 5: Documentation**
-- Rewrite README.md for monorepo structure
-- Create CONTRIBUTING.md
-- Create docs/README.md as documentation index
-- Update all documentation cross-references
-- Remove AI-generated language from docs
+**Trade-off**: Some duplication of test utilities, but acceptable given Django's design philosophy.
 
-**Phase 6: Validation**
-- Verify docker-compose up works
-- Verify backend tests run
-- Verify frontend tests run
-- Verify builds complete successfully
-- Verify git log --follow works for moved files
+#### Decision 2: Separate Infrastructure from Features
+
+**Problem**: apps/backend/infrastructure/ currently mixes true infrastructure code (caching, monitoring, database config) with application features (account suspension, shadowban, audit logs).
+
+**Solution**: 
+- Keep infrastructure code (caching, monitoring, database, logging, metrics) in apps/backend/infrastructure/
+- Move feature code to appropriate Django apps or create new apps
+- Move IaC (Terraform, IAM policies) to top-level infra/
+
+**Rationale**: Clear separation of concerns improves maintainability and deployment independence.
+
+#### Decision 3: Archive vs Delete AI Artifacts
+
+**Decision**: Move all AI-generated artifacts to docs/archive/ai-artifacts/ rather than deleting.
+
+**Rationale**:
+- Preserves historical context for future reference
+- Allows recovery if information is needed
+- Git history alone may not provide sufficient context
+- Minimal storage cost for significant safety benefit
+
+#### Decision 4: Centralized Documentation
+
+**Decision**: Consolidate all documentation in docs/ with clear hierarchy by domain.
+
+**Rationale**:
+- Single source of truth for all documentation
+- Easier for new contributors to find information
+- Reduces duplication and inconsistency
+- Supports better documentation tooling (e.g., static site generators)
+
+#### Decision 5: Kebab-Case for Directories
+
+**Decision**: Use lowercase with hyphens (kebab-case) for new top-level directories and infrastructure directories.
+
+**Exceptions**: 
+- Django apps remain snake_case (Django convention)
+- Python modules remain snake_case (PEP 8)
+
+**Rationale**: Kebab-case is URL-friendly, widely used in modern projects, and avoids case-sensitivity issues across operating systems.
 
 ## Components and Interfaces
 
-### Directory Structure Manager
+### Migration Automation Tool
 
-Responsible for creating the new monorepo directory structure.
+**Purpose**: Automate file movements, path updates, and validation to reduce human error.
 
+**Components**:
+- **File Mover**: Handles file and directory movements with conflict detection
+- **Path Updater**: Updates import statements, configuration files, and references
+- **Validator**: Verifies syntax, imports, and build success after changes
+- **Rollback Manager**: Tracks changes and enables rollback to previous state
+
+**Interface**:
 ```python
-class DirectoryStructureManager:
-    """Creates and validates monorepo directory structure."""
-    
-    def create_apps_directory(self) -> None:
-        """Create apps/ with backend/ and frontend/ subdirectories."""
-        
-    def create_packages_directory(self) -> None:
-        """Create packages/ with README.md."""
-        
-    def create_tools_directory(self) -> None:
-        """Create tools/ with README.md."""
-        
-    def create_docs_directory(self) -> None:
-        """Create docs/ with subdirectories for getting-started/, 
-        architecture/, deployment/, and specs/."""
-        
-    def create_tests_directory(self) -> None:
-        """Create tests/ with README.md for integration tests."""
-        
-    def validate_structure(self) -> bool:
-        """Verify all required directories exist."""
+class MigrationTool:
+    def move_files(self, mapping: Dict[str, str]) -> MigrationResult
+    def update_imports(self, old_path: str, new_path: str) -> UpdateResult
+    def validate_changes(self) -> ValidationResult
+    def rollback(self, checkpoint: str) -> RollbackResult
+    def create_checkpoint(self, name: str) -> Checkpoint
 ```
 
-### Git History Preserver
+### File Movement Tracker
 
-Responsible for moving files while preserving git history.
+**Purpose**: Maintain a complete record of all file movements for documentation and rollback.
 
+**Data Model**:
 ```python
-class GitHistoryPreserver:
-    """Moves files and directories using git mv to preserve history."""
-    
-    def move_directory(self, source: str, destination: str) -> None:
-        """Move directory using git mv, preserving history for all files."""
-        
-    def move_file(self, source: str, destination: str) -> None:
-        """Move file using git mv, preserving history."""
-        
-    def verify_history_preserved(self, file_path: str) -> bool:
-        """Verify git log --follow works for moved file."""
-        
-    def get_move_plan(self) -> List[Tuple[str, str]]:
-        """Return list of (source, destination) tuples for all moves."""
-```
-
-### Build Artifact Cleaner
-
-Responsible for removing build artifacts from version control.
-
-```python
-class BuildArtifactCleaner:
-    """Removes build artifacts and updates .gitignore."""
-    
-    def find_artifacts(self) -> List[str]:
-        """Find all build artifacts in repository."""
-        
-    def remove_artifacts(self, artifacts: List[str]) -> None:
-        """Remove artifacts using git rm."""
-        
-    def update_gitignore(self) -> None:
-        """Ensure .gitignore includes all artifact patterns."""
-        
-    def verify_artifacts_ignored(self) -> bool:
-        """Verify all artifact patterns are in .gitignore."""
-```
-
-### Documentation Cleaner
-
-Responsible for removing AI-generated documentation files.
-
-```python
-class DocumentationCleaner:
-    """Removes AI-generated checkpoint and verification files."""
-    
-    def find_ai_footprints(self) -> List[str]:
-        """Find all AI-generated documentation files."""
-        
-    def is_essential_doc(self, file_path: str) -> bool:
-        """Determine if documentation file should be preserved."""
-        
-    def remove_ai_footprints(self, files: List[str]) -> None:
-        """Remove AI-generated files using git rm."""
-        
-    def verify_no_footprints(self) -> bool:
-        """Verify no checkpoint or verification files remain."""
+@dataclass
+class FileMovement:
+    old_path: str
+    new_path: str
+    file_type: str  # 'code', 'doc', 'test', 'config', 'artifact'
+    phase: int
+    timestamp: datetime
+    reason: str
 ```
 
 ### Configuration Updater
 
-Responsible for updating configuration files to reflect new paths.
+**Purpose**: Update all configuration files to reflect new paths.
 
+**Targets**:
+- Django settings.py (INSTALLED_APPS, import paths)
+- pytest.ini (testpaths)
+- docker-compose.yml (volume mounts, context paths)
+- Dockerfile (COPY, WORKDIR)
+- package.json (scripts with paths)
+
+**Interface**:
 ```python
-class ConfigurationUpdater:
-    """Updates configuration files for new directory structure."""
-    
-    def update_docker_compose(self) -> None:
-        """Update docker-compose.yml service paths and volumes."""
-        
-    def update_django_settings(self) -> None:
-        """Update Django settings.py BASE_DIR and paths."""
-        
-    def update_frontend_config(self) -> None:
-        """Update tsconfig.json, vite.config.ts paths."""
-        
-    def update_test_configs(self) -> None:
-        """Update pytest.ini, vitest.config.ts paths."""
-        
-    def update_dockerfiles(self) -> None:
-        """Update Dockerfile WORKDIR and COPY paths."""
-        
-    def verify_configs_valid(self) -> bool:
-        """Verify all configuration files are syntactically valid."""
+class ConfigUpdater:
+    def update_django_settings(self, movements: List[FileMovement]) -> None
+    def update_pytest_config(self, movements: List[FileMovement]) -> None
+    def update_docker_compose(self, movements: List[FileMovement]) -> None
+    def update_dockerfile(self, movements: List[FileMovement]) -> None
 ```
 
-### Documentation Consolidator
+### Validation Suite
 
-Responsible for moving and organizing documentation files.
+**Purpose**: Verify the restructured repository is functional.
 
+**Checks**:
+1. **Syntax Validation**: All Python and TypeScript files parse correctly
+2. **Import Resolution**: All import statements resolve
+3. **Django Check**: `python manage.py check` passes
+4. **Frontend Build**: `npm run build` succeeds
+5. **Docker Build**: All services build successfully
+6. **Test Discovery**: pytest can discover all tests
+7. **Configuration Validity**: All config files are valid
+
+**Interface**:
 ```python
-class DocumentationConsolidator:
-    """Moves and organizes documentation into docs/ directory."""
-    
-    def move_getting_started_docs(self) -> None:
-        """Move QUICKSTART.md and DEVELOPMENT.md to docs/getting-started/."""
-        
-    def move_architecture_docs(self) -> None:
-        """Move API_DOCUMENTATION.md to docs/architecture/api.md."""
-        
-    def move_deployment_docs(self) -> None:
-        """Move SECRETS.md to docs/deployment/secrets.md."""
-        
-    def move_specs(self) -> None:
-        """Move .kiro/specs/ to docs/specs/ or keep in place."""
-        
-    def create_docs_index(self) -> None:
-        """Create docs/README.md as documentation index."""
-        
-    def update_cross_references(self) -> None:
-        """Update all internal documentation links."""
-```
-
-### Documentation Rewriter
-
-Responsible for rewriting documentation to remove AI language and update for new structure.
-
-```python
-class DocumentationRewriter:
-    """Rewrites documentation to be professional and accurate."""
-    
-    def rewrite_readme(self) -> None:
-        """Rewrite README.md for monorepo structure."""
-        
-    def create_contributing_guide(self) -> None:
-        """Create CONTRIBUTING.md with contribution guidelines."""
-        
-    def remove_ai_language(self, content: str) -> str:
-        """Remove AI-generated phrases from documentation."""
-        
-    def update_structure_references(self, content: str) -> str:
-        """Update references to old directory structure."""
-        
-    def validate_links(self) -> bool:
-        """Verify all documentation links are valid."""
-```
-
-### Validation Runner
-
-Responsible for verifying the restructure was successful.
-
-```python
-class ValidationRunner:
-    """Validates that restructure preserved functionality."""
-    
-    def verify_docker_compose(self) -> bool:
-        """Verify docker-compose up starts all services."""
-        
-    def verify_backend_tests(self) -> bool:
-        """Verify pytest runs successfully."""
-        
-    def verify_frontend_tests(self) -> bool:
-        """Verify npm test runs successfully."""
-        
-    def verify_backend_migrations(self) -> bool:
-        """Verify Django migrations run successfully."""
-        
-    def verify_frontend_build(self) -> bool:
-        """Verify npm run build completes successfully."""
-        
-    def verify_git_history(self) -> bool:
-        """Verify git log --follow works for moved files."""
-        
-    def generate_validation_report(self) -> str:
-        """Generate report of validation results."""
+class ValidationSuite:
+    def validate_syntax(self) -> ValidationResult
+    def validate_imports(self) -> ValidationResult
+    def validate_django(self) -> ValidationResult
+    def validate_frontend_build(self) -> ValidationResult
+    def validate_docker_build(self) -> ValidationResult
+    def validate_test_discovery(self) -> ValidationResult
+    def run_all(self) -> ValidationReport
 ```
 
 ## Data Models
 
-### Move Operation
+### File Movement Mapping
 
-Represents a file or directory move operation.
+The complete mapping of files to be moved, organized by phase:
+
+#### Phase 1: AI Artifacts Cleanup
+
+**Root Level Artifacts → docs/archive/ai-artifacts/**
+```
+BACKEND_TEST_SUMMARY.md
+ENDPOINT_TEST_REPORT.md
+FIXES_APPLIED_SUMMARY.md
+PRODUCTION_FIXES_COMPLETE.md
+PRODUCTION_READY_FINAL.md
+test_endpoints.py
+test_fixed_endpoints.py
+test_schema.yml
+```
+
+**Backend Root Artifacts → docs/archive/ai-artifacts/**
+```
+apps/backend/CAPTCHA_INTEGRATION.md
+apps/backend/CHANGELOG.md
+apps/backend/PRODUCTION_READINESS_COMPLETE.md
+apps/backend/TASK_13.2_SUMMARY.md
+apps/backend/TASK_14.3_SUMMARY.md
+apps/backend/TASK_15.1_SUMMARY.md
+apps/backend/TASK_15.2_SUMMARY.md
+apps/backend/TASK_17.1_CSRF_PROTECTION_SUMMARY.md
+apps/backend/TASK_17.3_SECURITY_HEADERS_SUMMARY.md
+apps/backend/TASK_18.1_CONTENT_SANITIZER_SUMMARY.md
+apps/backend/TASK_19.1_API_KEY_AUTH_SUMMARY.md
+apps/backend/TASK_20.2_LOGIN_SECURITY_SUMMARY.md
+apps/backend/TASK_22.1_2FA_MODELS_SUMMARY.md
+apps/backend/TASK_22.2_2FA_SERVICE_SUMMARY.md
+apps/backend/TASK_23.2_2FA_LOGIN_FLOW_SUMMARY.md
+apps/backend/TASK_24_NSFW_DETECTION_SUMMARY.md
+apps/backend/TASK_25_NSFW_FILTERING_SUMMARY.md
+apps/backend/TASK_26_NSFW_MANUAL_MARKING_SUMMARY.md
+apps/backend/TASK_39_SENTRY_INTEGRATION_SUMMARY.md
+apps/backend/TASK_40_APM_INTEGRATION_SUMMARY.md
+apps/backend/TASK_61_SECRETS_MANAGEMENT_SUMMARY.md
+apps/backend/TASK_62_DEPLOYMENT_PROCEDURES_SUMMARY.md
+apps/backend/TASK_64_ONBOARDING_SUMMARY.md
+apps/backend/TASK_65_HELP_SYSTEM_SUMMARY.md
+apps/backend/TASK_66_ENHANCED_PROFILES_SUMMARY.md
+apps/backend/TASK_67_CONTENT_DISCOVERY_SUMMARY.md
+apps/backend/TASK_68_ANALYTICS_DASHBOARD_SUMMARY.md
+```
+
+**Frontend Artifacts → docs/archive/ai-artifacts/**
+```
+apps/frontend/RECAPTCHA_INTEGRATION.md
+apps/frontend/TASK_13.1_SUMMARY.md
+```
+
+**Infrastructure Artifacts → docs/archive/ai-artifacts/**
+```
+apps/backend/infrastructure/TASK_58_SUMMARY.md
+apps/backend/infrastructure/TASK_59_SUMMARY.md
+apps/backend/infrastructure/SUSPICIOUS_ACTIVITY_DETECTOR_USAGE.md
+```
+
+**Moderation Artifacts → docs/archive/ai-artifacts/**
+```
+apps/backend/apps/moderation/FILTER_CONFIG_IMPLEMENTATION.md
+apps/backend/apps/moderation/IMPLEMENTATION_SUMMARY.md
+apps/backend/apps/moderation/URL_VALIDATOR_IMPLEMENTATION.md
+```
+
+#### Phase 2: Documentation Consolidation
+
+**Feature Documentation → docs/features/**
+
+Core App Documentation:
+```
+apps/backend/apps/core/README_API_KEY_AUTH.md → docs/features/authentication/api-key-auth.md
+apps/backend/apps/core/README_CONTENT_SANITIZER.md → docs/features/security/content-sanitizer.md
+apps/backend/apps/core/README_ENCRYPTION.md → docs/features/security/encryption.md
+apps/backend/apps/core/README_PII_CONFIG.md → docs/features/privacy/pii-configuration.md
+```
+
+GDPR App Documentation:
+```
+apps/backend/apps/gdpr/README_ACCOUNT_DELETION.md → docs/features/gdpr/account-deletion.md
+apps/backend/apps/gdpr/README_CONSENT_MANAGEMENT.md → docs/features/gdpr/consent-management.md
+apps/backend/apps/gdpr/README_DATA_EXPORT.md → docs/features/gdpr/data-export.md
+apps/backend/apps/gdpr/README_PRIVACY_SETTINGS.md → docs/features/gdpr/privacy-settings.md
+apps/backend/apps/gdpr/README.md → docs/features/gdpr/overview.md
+```
+
+Moderation App Documentation:
+```
+apps/backend/apps/moderation/README_CONTENT_FILTERS.md → docs/features/moderation/content-filters.md
+apps/backend/apps/moderation/README_DASHBOARD.md → docs/features/moderation/dashboard.md
+apps/backend/apps/moderation/README_FILTER_CONFIG_API.md → docs/features/moderation/filter-config-api.md
+apps/backend/apps/moderation/README_FILTER_INTEGRATION.md → docs/features/moderation/filter-integration.md
+apps/backend/apps/moderation/README_NSFW_CONTENT_FILTER.md → docs/features/moderation/nsfw-content-filter.md
+apps/backend/apps/moderation/README_NSFW_DETECTION.md → docs/features/moderation/nsfw-detection.md
+apps/backend/apps/moderation/README_PERMISSIONS.md → docs/features/moderation/permissions.md
+apps/backend/apps/moderation/README_QUEUE.md → docs/features/moderation/queue.md
+apps/backend/apps/moderation/README_URL_VALIDATOR.md → docs/features/moderation/url-validator.md
+```
+
+Legal App Documentation:
+```
+apps/backend/apps/legal/README_DMCA.md → docs/features/legal/dmca.md
+```
+
+Users App Documentation:
+```
+apps/backend/apps/users/README_LOGIN_SECURITY.md → docs/features/authentication/login-security.md
+```
+
+Backup App Documentation:
+```
+apps/backend/apps/backup/DISASTER_RECOVERY_RUNBOOK.md → docs/deployment/disaster-recovery.md
+apps/backend/apps/backup/README.md → docs/features/backup/overview.md
+```
+
+**Backend Documentation → docs/backend/**
+```
+apps/backend/docs/DEPLOYMENT_CHECKLIST.md → docs/deployment/checklist.md
+apps/backend/docs/rate-limiting-setup.md → docs/backend/rate-limiting.md
+apps/backend/docs/SECRETS_MANAGEMENT.md → docs/deployment/secrets-management.md
+```
+
+**Infrastructure Documentation → docs/architecture/**
+```
+apps/backend/infrastructure/README_ALERTING.md → docs/architecture/alerting.md
+apps/backend/infrastructure/README_APM.md → docs/architecture/apm.md
+apps/backend/infrastructure/README_CDN.md → docs/architecture/cdn.md
+apps/backend/infrastructure/README_DATABASE_CACHE.md → docs/architecture/database-cache.md
+apps/backend/infrastructure/README_IMAGE_OPTIMIZATION.md → docs/architecture/image-optimization.md
+apps/backend/infrastructure/README_LOGGING.md → docs/architecture/logging.md
+apps/backend/infrastructure/README_READ_REPLICAS.md → docs/architecture/read-replicas.md
+apps/backend/infrastructure/README_SEARCH.md → docs/architecture/search.md
+apps/backend/infrastructure/README_SENTRY.md → docs/architecture/sentry.md
+```
+
+**App-Level READMEs → docs/features/**
+```
+apps/backend/apps/admin/README.md → docs/features/admin/overview.md
+apps/backend/apps/notifications/README.md → docs/features/notifications/overview.md
+apps/backend/apps/notifications/TEMPLATES.md → docs/features/notifications/templates.md
+apps/backend/apps/status/README.md → docs/features/status/overview.md
+```
+
+#### Phase 3: Script Organization
+
+**Database Scripts → scripts/database/**
+```
+apps/backend/seed_data.py → scripts/database/seed-data.py
+apps/backend/seed_legal_documents.py → scripts/database/seed-legal-documents.py
+```
+
+**Verification Scripts → scripts/verification/**
+```
+check_db.py → scripts/verification/check-db.py
+apps/backend/verify_ratelimit_setup.py → scripts/verification/verify-ratelimit-setup.py
+apps/backend/verify_security_headers.py → scripts/verification/verify-security-headers.py
+```
+
+**Deployment Scripts → scripts/deployment/**
+```
+apps/backend/scripts/backup-database.sh → scripts/deployment/backup-database.sh
+apps/backend/scripts/check-error-rate.sh → scripts/deployment/check-error-rate.sh
+apps/backend/scripts/check-latency.sh → scripts/deployment/check-latency.sh
+apps/backend/scripts/create-release.sh → scripts/deployment/create-release.sh
+apps/backend/scripts/deploy-blue-green.sh → scripts/deployment/deploy-blue-green.sh
+apps/backend/scripts/deploy.sh → scripts/deployment/deploy.sh
+apps/backend/scripts/maintenance-mode.sh → scripts/deployment/maintenance-mode.sh
+apps/backend/scripts/notify-deployment.sh → scripts/deployment/notify-deployment.sh
+apps/backend/scripts/rollback.sh → scripts/deployment/rollback.sh
+apps/backend/scripts/smoke-tests.sh → scripts/deployment/smoke-tests.sh
+apps/backend/scripts/warmup.sh → scripts/deployment/warmup.sh
+```
+
+#### Phase 4: Infrastructure Code Separation
+
+**Terraform → infra/terraform/**
+```
+apps/backend/infrastructure/terraform/cloudfront.tf → infra/terraform/modules/cloudfront/main.tf
+```
+
+**IAM Policies → infra/iam-policies/**
+```
+apps/backend/infrastructure/iam_policies/README.md → infra/iam-policies/README.md
+apps/backend/infrastructure/iam_policies/secrets_manager_policy.json → infra/iam-policies/secrets-manager-policy.json
+```
+
+**Feature Code Extraction from Infrastructure**
+
+Account Suspension (Feature Code):
+```
+apps/backend/infrastructure/account_suspension.py → apps/backend/apps/users/account_suspension.py
+```
+
+Shadowban (Feature Code):
+```
+apps/backend/infrastructure/shadowban.py → apps/backend/apps/moderation/shadowban.py
+```
+
+Audit Logs (Feature Code):
+```
+apps/backend/infrastructure/audit_log_service.py → apps/backend/apps/admin/audit_log_service.py
+apps/backend/infrastructure/audit_log_views.py → apps/backend/apps/admin/audit_log_views.py
+apps/backend/infrastructure/audit_alert_service.py → apps/backend/apps/admin/audit_alert_service.py
+```
+
+Suspicious Activity Detection (Feature Code):
+```
+apps/backend/infrastructure/suspicious_activity_detector.py → apps/backend/apps/security/suspicious_activity_detector.py
+```
+
+Note: apps/security/ is a new Django app to be created for security-related features.
+
+#### Phase 5: Test Organization
+
+**Infrastructure Tests → tests/backend/infrastructure/**
+```
+apps/backend/infrastructure/tests/test_config_validator.py → tests/backend/infrastructure/test_config_validator.py
+apps/backend/infrastructure/tests/test_secrets_manager.py → tests/backend/infrastructure/test_secrets_manager.py
+```
+
+**Inline Test Files → Appropriate Test Directories**
+```
+apps/backend/apps/moderation/test_content_filter_integration.py → apps/backend/apps/moderation/tests/test_content_filter_integration.py
+apps/backend/apps/moderation/test_filter_config.py → apps/backend/apps/moderation/tests/test_filter_config.py
+apps/backend/apps/moderation/test_permissions.py → apps/backend/apps/moderation/tests/test_permissions.py
+apps/backend/apps/moderation/test_url_validator.py → apps/backend/apps/moderation/tests/test_url_validator.py
+apps/backend/apps/users/test_login_security.py → apps/backend/apps/users/tests/test_login_security.py
+```
+
+### Import Path Changes
+
+After file movements, the following import paths will change:
+
+#### Infrastructure Feature Code Imports
+
+**Account Suspension**:
+```python
+# Old
+from infrastructure.account_suspension import AccountSuspensionService
+
+# New
+from apps.users.account_suspension import AccountSuspensionService
+```
+
+**Shadowban**:
+```python
+# Old
+from infrastructure.shadowban import ShadowbanService
+
+# New
+from apps.moderation.shadowban import ShadowbanService
+```
+
+**Audit Logs**:
+```python
+# Old
+from infrastructure.audit_log_service import AuditLogService
+from infrastructure.audit_log_views import AuditLogViewSet
+
+# New
+from apps.admin.audit_log_service import AuditLogService
+from apps.admin.audit_log_views import AuditLogViewSet
+```
+
+**Suspicious Activity**:
+```python
+# Old
+from infrastructure.suspicious_activity_detector import SuspiciousActivityDetector
+
+# New
+from apps.security.suspicious_activity_detector import SuspiciousActivityDetector
+```
+
+#### Script Imports
+
+Scripts moved to scripts/ directory will need updated imports:
 
 ```python
-@dataclass
-class MoveOperation:
-    """Represents a file or directory move."""
-    source: str              # Original path
-    destination: str         # New path
-    is_directory: bool       # True if moving directory
-    preserve_history: bool   # True to use git mv
-    dependencies: List[str]  # Paths that must be moved first
+# Old (when in apps/backend/)
+from apps.core.models import User
+from config import settings
+
+# New (when in scripts/database/)
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent / 'apps' / 'backend'))
+
+from apps.core.models import User
+from config import settings
 ```
 
-### Artifact Pattern
+### Configuration Changes
 
-Represents a build artifact pattern to remove.
+#### Django settings.py
 
+**INSTALLED_APPS Addition**:
 ```python
-@dataclass
-class ArtifactPattern:
-    """Represents a build artifact pattern."""
-    pattern: str             # Glob pattern (e.g., "**/.coverage")
-    description: str         # Human-readable description
-    gitignore_entry: str     # Entry to add to .gitignore
+INSTALLED_APPS = [
+    # ... existing apps ...
+    'apps.security',  # New app for security features
+]
 ```
 
-### Documentation File
-
-Represents a documentation file to be moved or cleaned.
-
+**Import Path Updates** (if infrastructure code is imported in settings):
 ```python
-@dataclass
-class DocumentationFile:
-    """Represents a documentation file."""
-    path: str                # Current file path
-    is_ai_generated: bool    # True if AI-generated
-    is_essential: bool       # True if should be preserved
-    new_path: Optional[str]  # New path if moving
-    needs_rewrite: bool      # True if needs AI language removed
+# Old
+from infrastructure.config_validator import validate_config_on_startup
+
+# New (stays the same - infrastructure code remains)
+from infrastructure.config_validator import validate_config_on_startup
 ```
 
-### Configuration File
+#### pytest.ini
 
-Represents a configuration file that needs updating.
-
-```python
-@dataclass
-class ConfigurationFile:
-    """Represents a configuration file to update."""
-    path: str                # File path
-    file_type: str           # Type: docker-compose, django, typescript, etc.
-    path_updates: Dict[str, str]  # Old path -> new path mappings
-    backup_path: str         # Backup file path
+**testpaths Update**:
+```ini
+[pytest]
+DJANGO_SETTINGS_MODULE = config.settings
+python_files = tests.py test_*.py *_tests.py
+python_classes = Test*
+python_functions = test_*
+addopts = 
+    --verbose
+    --strict-markers
+    --tb=short
+    --reuse-db
+markers =
+    asyncio: mark test as an asyncio test
+    property: mark test as a property-based test
+    integration: mark test as an integration test
+    performance: mark test as a performance test
+testpaths = apps ../../tests/backend
 ```
 
-### Validation Result
+No change needed - testpaths already includes both apps/ (for colocated tests) and ../../tests/backend (for centralized tests).
 
-Represents the result of a validation check.
+#### docker-compose.yml
 
-```python
-@dataclass
-class ValidationResult:
-    """Represents a validation check result."""
-    check_name: str          # Name of validation check
-    passed: bool             # True if check passed
-    message: str             # Success or error message
-    details: Optional[str]   # Additional details
-    timestamp: datetime      # When check was performed
+**Volume Mount Updates** (if scripts are referenced):
+```yaml
+# Old
+volumes:
+  - ./apps/backend:/app
+
+# New (no change needed - scripts are outside app directory)
+volumes:
+  - ./apps/backend:/app
 ```
 
-## Data Flow
+**Script Execution Updates** (if scripts are run in containers):
+```yaml
+# Example: If a seed script is run
+command: python /scripts/database/seed-data.py
 
-### Restructure Workflow
-
-```
-1. Preparation Phase
-   ├─> Create directory structure (apps/, packages/, tools/, docs/, tests/)
-   ├─> Update .gitignore
-   └─> Create placeholder README files
-
-2. File Move Phase
-   ├─> Generate move plan (source -> destination mappings)
-   ├─> Execute git mv for backend/ -> apps/backend/
-   ├─> Execute git mv for frontend/ -> apps/frontend/
-   ├─> Execute git mv for documentation files
-   ├─> Execute git mv for setup scripts
-   └─> Verify git history preserved
-
-3. Configuration Update Phase
-   ├─> Update docker-compose.yml
-   ├─> Update Django settings.py
-   ├─> Update frontend tsconfig.json
-   ├─> Update Dockerfiles
-   ├─> Update test configurations
-   └─> Verify configurations valid
-
-4. Cleanup Phase
-   ├─> Find and remove build artifacts
-   ├─> Find and remove AI-generated docs
-   ├─> Remove temporary root files
-   └─> Verify cleanup complete
-
-5. Documentation Phase
-   ├─> Rewrite README.md
-   ├─> Create CONTRIBUTING.md
-   ├─> Create docs/README.md
-   ├─> Update cross-references
-   ├─> Remove AI language
-   └─> Validate links
-
-6. Validation Phase
-   ├─> Verify docker-compose up
-   ├─> Verify backend tests
-   ├─> Verify frontend tests
-   ├─> Verify builds
-   ├─> Verify git history
-   └─> Generate validation report
+# Would need volume mount:
+volumes:
+  - ./apps/backend:/app
+  - ./scripts:/scripts
 ```
 
-### Path Update Flow
+#### .gitignore
 
+**Additions**:
 ```
-Configuration File
-    ↓
-Parse file content
-    ↓
-Identify path references
-    ↓
-Map old paths to new paths
-    ├─> backend/ -> apps/backend/
-    ├─> frontend/ -> apps/frontend/
-    ├─> QUICKSTART.md -> docs/getting-started/quickstart.md
-    └─> etc.
-    ↓
-Update path references
-    ↓
-Validate syntax
-    ↓
-Write updated file
+# Hypothesis cache
+.hypothesis/
+
+# Pytest cache
+.pytest_cache/
+
+# Python cache
+__pycache__/
+
+# Logs
+logs/
+*.log
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
 ```
 
-### Git History Verification Flow
-
-```
-Moved File
-    ↓
-Execute: git log --follow <file>
-    ↓
-Check if history exists
-    ├─> Yes: History preserved ✓
-    └─> No: History lost ✗
-    ↓
-Report verification result
-```
+All patterns already present in current .gitignore.
 
 
 ## Correctness Properties
@@ -491,465 +667,253 @@ A property is a characteristic or behavior that should hold true across all vali
 
 ### Property Reflection
 
-After analyzing all acceptance criteria, I identified the following properties that provide unique validation value. Many acceptance criteria are specific examples (e.g., "create apps/ directory") that can be validated through unit tests. The properties below focus on universal rules that should hold across multiple inputs or after the restructure is complete.
+After analyzing all acceptance criteria, I identified the following key properties while eliminating redundancy:
 
-**Redundancy eliminated:**
-- Verification criteria (2.4, 3.8, 4.6, 5.7, 6.6, 7.8) are covered by their parent functional requirements
-- Multiple "verify X works" criteria (11.1-11.5) can be combined into a single comprehensive validation property
-- Documentation link validation (5.7, 10.6) can be combined into one property
+**Redundancy Eliminated**:
+- Individual directory placement checks (1.2-1.8) are subsumed by the overall structure check (1.1)
+- Individual file pattern movement checks (2.1-2.5) can be combined into a single pattern-based movement property
+- Individual test organization checks (4.1-4.8) can be combined into a test location property
+- Individual configuration update checks (9.1-9.8) can be combined into a reference consistency property
+- Individual verification checks (10.1-10.7) can be combined into a build/run verification property
 
-### Property 1: Git History Preservation
+**Properties Retained**:
+- Pattern-based file movement (covers all AI artifact movements)
+- Documentation consolidation (covers all README movements)
+- Import path consistency (covers all code references)
+- Production code preservation (covers all code integrity)
+- Naming convention consistency (covers all directory naming)
+- Configuration validity (covers all config files)
+- Build and runtime verification (covers all system checks)
 
-*For any* file that existed before restructuring and was moved to a new location, executing `git log --follow <new_path>` should show the complete commit history from before the move.
+### Core Properties
 
-**Validates: Requirements 2.2**
+Property 1: Pattern-Based File Movement Correctness
+*For any* file matching a specified pattern (TASK_*.md, *_SUMMARY.md, README_*.md, etc.), the migration tool should move it to the correct destination directory according to the file movement mapping, and the file should exist at the new location with identical content.
+**Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 3.1**
 
-### Property 2: Build Artifact Removal and Gitignore Consistency
+Property 2: File Preservation (No Deletion)
+*For any* file identified for migration, the file should exist after migration (either at its original location if not moved, or at its new location if moved), ensuring no files are accidentally deleted.
+**Validates: Requirements 2.7, 12.2**
 
-*For any* build artifact pattern that was removed from the repository (e.g., .coverage, .hypothesis/, htmlcov/), that pattern should be present in the .gitignore file.
+Property 3: Import Path Consistency
+*For any* Python or TypeScript file that imports from a moved module, all import statements should be updated to reference the new module location, and all imports should resolve successfully.
+**Validates: Requirements 9.1, 9.2**
 
-**Validates: Requirements 3.8**
+Property 4: Production Code Content Preservation
+*For any* production code file (excluding comments and import statements), the functional code content should be byte-for-byte identical before and after migration, ensuring no logic changes.
+**Validates: Requirements 12.1, 12.3, 12.4, 12.5, 12.6**
 
-### Property 3: Python Import Resolution
+Property 5: Configuration File Validity
+*For any* configuration file (settings.py, pytest.ini, docker-compose.yml, package.json, Dockerfile), the file should be syntactically valid and all referenced paths should exist after migration.
+**Validates: Requirements 9.2, 9.3, 9.4, 9.5, 9.6, 9.7**
 
-*For any* Python file in apps/backend/, all import statements should resolve successfully when the Python interpreter attempts to import them.
+Property 6: Directory Naming Convention Consistency
+*For any* newly created or renamed top-level directory (excluding apps/backend/apps/* which follow Django conventions), the directory name should use lowercase with hyphens (kebab-case).
+**Validates: Requirements 8.1, 8.2**
 
-**Validates: Requirements 7.3**
+Property 7: Test Discovery Preservation
+*For any* test file that was discoverable by pytest before migration, the test file should remain discoverable by pytest after migration (either in its original location or new location).
+**Validates: Requirements 4.8, 10.4**
 
-### Property 4: TypeScript Import Resolution
+Property 8: Documentation Link Validity
+*For any* internal link in documentation files (Markdown links to other docs), the link should resolve to an existing file after migration.
+**Validates: Requirements 17.7**
 
-*For any* TypeScript file in apps/frontend/, all import statements should resolve successfully when the TypeScript compiler checks them.
+Property 9: Git Ignore Pattern Coverage
+*For any* temporary file pattern specified in requirements (hypothesis/, pytest_cache/, __pycache__/, logs/, node_modules/), the pattern should be present in .gitignore.
+**Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5, 7.6**
 
-**Validates: Requirements 7.4**
+Property 10: Build and Runtime Verification
+*For any* critical system check (Django check, frontend build, Docker build, test discovery), the check should pass successfully after migration, indicating the system remains functional.
+**Validates: Requirements 10.1, 10.2, 10.3, 10.4, 10.5**
 
-### Property 5: Documentation Cross-Reference Validity
+### Example-Based Checks
 
-*For any* documentation file in docs/, all internal links and cross-references should point to files or sections that exist in the repository.
+The following checks validate specific structural requirements that are not universal properties:
 
-**Validates: Requirements 5.7, 10.6**
+Example 1: Top-Level Directory Structure
+Verify that the repository contains exactly these top-level directories: apps/, packages/, docs/, tests/, scripts/, infra/, tools/, .github/
+**Validates: Requirements 1.1**
 
-### Property 6: AI Language Removal
+Example 2: Documentation Hierarchy
+Verify that docs/ contains these subdirectories: architecture/, backend/, frontend/, features/, development/, deployment/, archive/
+**Validates: Requirements 3.2, 3.3, 3.4, 3.5, 3.6**
 
-*For any* documentation file in docs/, the content should not contain AI-generated phrases such as "verification report", "checkpoint", "implementation summary", "final verification", or similar AI footprint language.
+Example 3: Archive Structure
+Verify that docs/archive/ contains: ai-artifacts/, README.md, INDEX.md
+**Validates: Requirements 2.6, 20.1, 20.2, 20.3, 20.7**
 
-**Validates: Requirements 10.2**
+Example 4: Test Organization Structure
+Verify that tests/ contains: backend/integration/, backend/e2e/, backend/infrastructure/, frontend/, README.md
+**Validates: Requirements 4.2, 4.3, 4.4, 4.5, 4.7**
 
-### Property 7: Docker Compose Build Success
+Example 5: Script Organization Structure
+Verify that scripts/ contains: database/, deployment/, verification/, README.md
+**Validates: Requirements 6.1, 6.2, 6.3, 6.4**
 
-*After* all restructuring is complete, executing `docker-compose up --build` should successfully build all services without errors.
+Example 6: Infrastructure Organization Structure
+Verify that infra/ contains: terraform/, iam-policies/, monitoring/, README.md
+**Validates: Requirements 5.1, 5.2, 15.1, 15.2, 15.3, 15.4**
 
-**Validates: Requirements 8.5**
+Example 7: Django Settings INSTALLED_APPS
+Verify that config/settings.py INSTALLED_APPS includes 'apps.security' after migration
+**Validates: Requirements 9.2**
 
-### Property 8: Backend Test Suite Success
+Example 8: Migration Documentation Exists
+Verify that docs/deployment/migration-guide.md exists and contains file movement mapping
+**Validates: Requirements 11.1, 11.2**
 
-*After* all restructuring is complete, executing `pytest` in apps/backend/ should run all tests successfully with zero failures.
+Example 9: Developer Documentation Exists
+Verify that these files exist: CONTRIBUTING.md, docs/development/setup.md, docs/development/conventions.md, docs/development/testing.md, docs/development/workflows.md, docs/development/troubleshooting.md
+**Validates: Requirements 14.1, 14.2, 14.4, 14.5, 14.6**
 
-**Validates: Requirements 9.6, 11.2**
-
-### Property 9: Frontend Test Suite Success
-
-*After* all restructuring is complete, executing `npm test` in apps/frontend/ should run all tests successfully with zero failures.
-
-**Validates: Requirements 9.7, 11.3**
-
-### Property 10: Comprehensive Workflow Validation
-
-*After* all restructuring is complete, all critical development workflows should function correctly:
-- docker-compose up starts all services
-- Backend migrations run successfully
-- Frontend builds successfully
-- Backend tests pass
-- Frontend tests pass
-
-**Validates: Requirements 11.1, 11.2, 11.3, 11.4, 11.5**
+Example 10: CI/CD Documentation Exists
+Verify that docs/deployment/ci-cd.md exists and contains example workflows
+**Validates: Requirements 18.2**
 
 ## Error Handling
 
-### Git Operation Failures
+### Migration Errors
 
-**Scenario**: Git mv command fails due to uncommitted changes or conflicts.
+**File Conflict Detection**:
+- Before moving a file, check if destination already exists
+- If exists and content differs, halt migration and report conflict
+- Provide options: skip, overwrite, rename, or abort
 
-**Handling**:
-1. Check for uncommitted changes before starting restructure
-2. Prompt user to commit or stash changes
-3. If git mv fails, log error with specific file path
-4. Provide rollback instructions
-5. Do not proceed with subsequent moves if any move fails
+**Import Update Failures**:
+- If import statement cannot be parsed, log warning and continue
+- Collect all unparseable imports for manual review
+- Provide report of files needing manual import updates
 
-### Configuration File Parsing Errors
+**Configuration Update Failures**:
+- If configuration file cannot be parsed, halt migration
+- Preserve backup of original configuration
+- Provide clear error message with file location and parse error
 
-**Scenario**: Configuration file (docker-compose.yml, tsconfig.json, etc.) cannot be parsed.
+**Validation Failures**:
+- If any validation check fails, halt migration before committing changes
+- Provide detailed report of which checks failed and why
+- Offer rollback to previous checkpoint
 
-**Handling**:
-1. Create backup of configuration file before modification
-2. Validate syntax after modification
-3. If validation fails, restore from backup
-4. Log specific parsing error with line number
-5. Provide manual fix instructions
+### Rollback Procedures
 
-### Missing Required Files
+**Checkpoint System**:
+- Create git commit before each phase
+- Tag commits with phase number and description
+- Store file movement log for each phase
 
-**Scenario**: Expected file (e.g., QUICKSTART.md) does not exist at source location.
+**Rollback Process**:
+1. Identify target checkpoint (phase to roll back to)
+2. Use git to revert to checkpoint commit
+3. Verify system state matches checkpoint
+4. Update migration status tracking
 
-**Handling**:
-1. Log warning about missing file
-2. Skip move operation for that file
-3. Continue with other operations
-4. Include missing files in final report
-5. Do not fail entire restructure for missing optional files
+**Partial Rollback**:
+- Support rolling back individual phases
+- Maintain dependency tracking between phases
+- Warn if rolling back a phase that other phases depend on
 
-### Docker Build Failures
+### Validation Errors
 
-**Scenario**: docker-compose up fails after restructure.
+**Syntax Errors**:
+- Report file path and line number
+- Show syntax error message
+- Suggest possible fixes (e.g., missing import update)
 
-**Handling**:
-1. Capture full docker-compose error output
-2. Check for common issues (missing .env, incorrect paths)
-3. Provide specific fix instructions based on error
-4. Include rollback instructions if needed
-5. Log all docker-compose output for debugging
+**Import Resolution Errors**:
+- Report importing file and failed import statement
+- Show expected module location
+- List possible causes (file not moved, import not updated, module renamed)
 
-### Test Failures After Restructure
+**Build Errors**:
+- Capture full build output
+- Highlight specific errors
+- Provide link to relevant documentation
 
-**Scenario**: Tests fail after restructure due to path issues.
-
-**Handling**:
-1. Capture full test output with failures
-2. Identify if failures are path-related or functional
-3. For path-related failures, provide specific path fixes
-4. For functional failures, note that these are pre-existing
-5. Do not block restructure completion on pre-existing test failures
-
-### Documentation Link Validation Failures
-
-**Scenario**: Documentation contains broken links after restructure.
-
-**Handling**:
-1. Generate report of all broken links
-2. Provide old path -> new path mapping for each broken link
-3. Offer to automatically fix common link patterns
-4. Log links that require manual review
-5. Do not block restructure completion on broken links
+**Test Discovery Errors**:
+- Report which tests cannot be discovered
+- Show expected test location
+- Verify pytest configuration is correct
 
 ## Testing Strategy
 
 ### Dual Testing Approach
 
-The restructure will be validated using both unit tests and property-based tests:
+The restructuring will be validated through both unit tests and property-based tests:
 
-**Unit Tests**: Verify specific examples and edge cases
-- Directory creation (apps/, packages/, tools/, docs/, tests/)
-- Specific file moves (QUICKSTART.md, DEVELOPMENT.md, etc.)
-- Specific file removals (prompt.txt, doc.txt, etc.)
-- Configuration file updates (docker-compose.yml, settings.py, etc.)
-- Build artifact patterns in .gitignore
+**Unit Tests**: Validate specific examples, edge cases, and error conditions
+- Test specific file movements (e.g., TASK_13.2_SUMMARY.md → docs/archive/ai-artifacts/)
+- Test specific import updates (e.g., infrastructure.shadowban → apps.moderation.shadowban)
+- Test specific configuration updates (e.g., INSTALLED_APPS includes apps.security)
+- Test error handling (file conflicts, parse errors, validation failures)
+- Test rollback procedures (checkpoint creation, rollback execution)
 
-**Property Tests**: Verify universal properties across all inputs
-- Git history preservation for all moved files
-- Import resolution for all Python files
-- Import resolution for all TypeScript files
-- Documentation link validity for all docs
-- AI language removal from all docs
-- Build and test success after restructure
+**Property-Based Tests**: Validate universal properties across all inputs
+- Test pattern-based file movement for all matching files
+- Test import path consistency for all moved modules
+- Test production code preservation for all code files
+- Test configuration validity for all config files
+- Test naming conventions for all directories
+- Test build and runtime verification for all critical checks
 
-### Test Configuration
+### Property-Based Testing Configuration
 
-**Property-Based Testing**:
-- Library: Hypothesis (Python)
-- Minimum iterations: 100 per property test
-- Each property test references its design document property
-- Tag format: **Feature: monorepo-restructure, Property {number}: {property_text}**
-
-**Unit Testing**:
-- Framework: pytest (Python)
-- Coverage target: 85%
-- Focus on specific examples and edge cases
-- Integration with property tests for comprehensive coverage
+**Library**: Use Hypothesis for Python property-based testing
+**Iterations**: Minimum 100 iterations per property test
+**Tagging**: Each property test tagged with: **Feature: monorepo-restructure, Property {number}: {property_text}**
 
 ### Test Organization
 
-```
-tests/
-├── unit/
-│   ├── test_directory_structure.py      # Test directory creation
-│   ├── test_file_moves.py                # Test specific file moves
-│   ├── test_artifact_cleanup.py          # Test artifact removal
-│   ├── test_config_updates.py            # Test config file updates
-│   └── test_documentation.py             # Test doc consolidation
-├── property/
-│   ├── test_git_history.py               # Property 1
-│   ├── test_gitignore_consistency.py     # Property 2
-│   ├── test_python_imports.py            # Property 3
-│   ├── test_typescript_imports.py        # Property 4
-│   ├── test_doc_links.py                 # Property 5
-│   ├── test_ai_language.py               # Property 6
-│   ├── test_docker_build.py              # Property 7
-│   ├── test_backend_tests.py             # Property 8
-│   ├── test_frontend_tests.py            # Property 9
-│   └── test_workflow_validation.py       # Property 10
-└── integration/
-    └── test_full_restructure.py          # End-to-end restructure test
-```
+**Unit Tests Location**: tests/backend/restructure/
+**Property Tests Location**: tests/backend/restructure/properties/
+**Test Fixtures**: tests/backend/restructure/fixtures/ (sample repository structures)
 
-### Validation Checklist
+### Test Coverage Goals
 
-After restructure completion, the following must be verified:
+- 100% of file movement mappings validated
+- 100% of import path changes validated
+- 100% of configuration changes validated
+- 100% of validation checks tested
+- 100% of error conditions tested
+- 100% of rollback procedures tested
 
-1. **Directory Structure**
-   - [ ] apps/backend/ exists with all backend files
-   - [ ] apps/frontend/ exists with all frontend files
-   - [ ] packages/ exists with README.md
-   - [ ] tools/ exists with setup scripts
-   - [ ] docs/ exists with organized documentation
-   - [ ] tests/ exists for integration tests
+### Integration Testing
 
-2. **Git History**
-   - [ ] git log --follow works for moved backend files
-   - [ ] git log --follow works for moved frontend files
-   - [ ] git log --follow works for moved documentation
+**Pre-Migration Tests**:
+1. Verify current repository structure
+2. Verify all tests pass in current state
+3. Verify application builds and runs
+4. Create baseline metrics (build time, test time, import graph)
 
-3. **Build Artifacts**
-   - [ ] No .coverage files in repository
-   - [ ] No .hypothesis/ directories in repository
-   - [ ] No htmlcov/ directories in repository
-   - [ ] No venv/ directories in repository
-   - [ ] All artifact patterns in .gitignore
+**Post-Migration Tests**:
+1. Verify new repository structure
+2. Verify all tests still pass
+3. Verify application still builds and runs
+4. Compare metrics to baseline (should be similar)
+5. Verify all documentation links work
+6. Verify all imports resolve
 
-4. **AI Documentation**
-   - [ ] No CHECKPOINT files remain
-   - [ ] No VERIFICATION files remain
-   - [ ] No IMPLEMENTATION_SUMMARY files remain
-   - [ ] Essential docs preserved (API_DOCUMENTATION.md, AUTHENTICATION.md)
+**Migration Process Tests**:
+1. Test each phase independently on a copy of the repository
+2. Test full migration end-to-end
+3. Test rollback from each phase
+4. Test migration with conflicts (intentionally create conflicts)
+5. Test migration with parse errors (intentionally introduce errors)
 
-5. **Configuration Files**
-   - [ ] docker-compose.yml references apps/ paths
-   - [ ] Django settings.py has correct BASE_DIR
-   - [ ] Frontend tsconfig.json has correct paths
-   - [ ] Dockerfiles have correct WORKDIR and COPY paths
+### Manual Testing Checklist
 
-6. **Builds and Tests**
-   - [ ] docker-compose up builds successfully
-   - [ ] Backend tests pass (pytest)
-   - [ ] Frontend tests pass (npm test)
-   - [ ] Backend migrations run successfully
-   - [ ] Frontend builds successfully (npm run build)
+After automated tests pass, perform manual verification:
 
-7. **Documentation**
-   - [ ] README.md reflects monorepo structure
-   - [ ] CONTRIBUTING.md exists with guidelines
-   - [ ] docs/README.md serves as index
-   - [ ] All documentation links are valid
-   - [ ] No AI-generated language in docs
+- [ ] Clone repository fresh and follow setup instructions
+- [ ] Run Django development server and verify it starts
+- [ ] Run frontend development server and verify it starts
+- [ ] Access API endpoints and verify they respond
+- [ ] Access frontend pages and verify they load
+- [ ] Run full test suite and verify all tests pass
+- [ ] Build Docker images and verify they build
+- [ ] Run Docker Compose and verify all services start
+- [ ] Review migration documentation for completeness
+- [ ] Review archived artifacts for correctness
+- [ ] Verify no production code logic changed (spot check)
+- [ ] Verify all imports resolve (spot check)
 
-### Manual Testing Steps
-
-1. **Clone Fresh Repository**
-   ```bash
-   git clone <repository-url> muejam-test
-   cd muejam-test
-   ```
-
-2. **Verify Directory Structure**
-   ```bash
-   ls -la apps/
-   ls -la packages/
-   ls -la tools/
-   ls -la docs/
-   ls -la tests/
-   ```
-
-3. **Verify Git History**
-   ```bash
-   git log --follow apps/backend/manage.py
-   git log --follow apps/frontend/package.json
-   git log --follow docs/getting-started/quickstart.md
-   ```
-
-4. **Verify No Build Artifacts**
-   ```bash
-   find . -name ".coverage" -o -name ".hypothesis" -o -name "htmlcov" -o -name "venv"
-   # Should return nothing
-   ```
-
-5. **Verify Docker Build**
-   ```bash
-   docker-compose up --build -d
-   docker-compose ps
-   # All services should be "Up"
-   ```
-
-6. **Verify Backend Tests**
-   ```bash
-   docker-compose exec backend pytest
-   # All tests should pass
-   ```
-
-7. **Verify Frontend Tests**
-   ```bash
-   docker-compose exec frontend npm test
-   # All tests should pass
-   ```
-
-8. **Verify Backend Migrations**
-   ```bash
-   docker-compose exec backend python manage.py migrate
-   # Should complete without errors
-   ```
-
-9. **Verify Frontend Build**
-   ```bash
-   docker-compose exec frontend npm run build
-   # Should complete without errors
-   ```
-
-10. **Verify Documentation Links**
-    ```bash
-    # Use markdown link checker or manual review
-    grep -r "\[.*\](.*)" docs/
-    # Verify all links point to existing files
-    ```
-
-## Implementation Notes
-
-### Phased Execution
-
-The restructure should be executed in phases with validation after each phase:
-
-1. **Phase 1: Preparation** (Low risk)
-   - Create new directories
-   - Update .gitignore
-   - Validate: Directories exist
-
-2. **Phase 2: File Moves** (Medium risk)
-   - Move backend/ to apps/backend/
-   - Move frontend/ to apps/frontend/
-   - Move documentation files
-   - Move setup scripts
-   - Validate: Git history preserved
-
-3. **Phase 3: Configuration Updates** (High risk)
-   - Update docker-compose.yml
-   - Update Django settings
-   - Update frontend configs
-   - Update Dockerfiles
-   - Validate: Syntax valid
-
-4. **Phase 4: Cleanup** (Low risk)
-   - Remove build artifacts
-   - Remove AI documentation
-   - Remove temporary files
-   - Validate: Files removed
-
-5. **Phase 5: Documentation** (Low risk)
-   - Rewrite README.md
-   - Create CONTRIBUTING.md
-   - Create docs/README.md
-   - Update cross-references
-   - Validate: Links valid
-
-6. **Phase 6: Validation** (Critical)
-   - Run all validation checks
-   - Generate validation report
-   - Verify all properties hold
-
-### Rollback Strategy
-
-If any phase fails, rollback should be possible:
-
-1. **Before Starting**: Create a git branch for restructure
-   ```bash
-   git checkout -b restructure-monorepo
-   ```
-
-2. **After Each Phase**: Commit changes
-   ```bash
-   git add .
-   git commit -m "Phase X: <description>"
-   ```
-
-3. **If Failure Occurs**: Rollback to previous phase
-   ```bash
-   git reset --hard HEAD~1
-   ```
-
-4. **If Complete Rollback Needed**: Return to main branch
-   ```bash
-   git checkout main
-   git branch -D restructure-monorepo
-   ```
-
-### Performance Considerations
-
-- **Git Operations**: Moving large directories may take time; provide progress feedback
-- **File Scanning**: Scanning for build artifacts and AI docs may be slow; use parallel processing
-- **Configuration Parsing**: YAML and JSON parsing is fast; no optimization needed
-- **Validation**: Running full test suites may take minutes; run in parallel where possible
-
-### Security Considerations
-
-- **Backup**: Create full repository backup before starting
-- **Credentials**: Ensure .env files are not committed during moves
-- **Permissions**: Preserve file permissions during moves
-- **Sensitive Data**: Verify SECRETS.md is moved to docs/deployment/ and not exposed
-
-### Compatibility
-
-- **Git Version**: Requires Git 2.0+ for git mv with directories
-- **Python Version**: Requires Python 3.11+ (existing requirement)
-- **Node Version**: Requires Node 20+ (existing requirement)
-- **Docker Version**: Requires Docker Compose V2 (existing requirement)
-
-## Future Enhancements
-
-### Potential Improvements
-
-1. **Automated Rollback**: Implement automatic rollback on validation failure
-2. **Incremental Migration**: Support migrating one app at a time
-3. **CI/CD Integration**: Add GitHub Actions workflows for monorepo
-4. **Workspace Configuration**: Add package manager workspace config (npm workspaces, pnpm, etc.)
-5. **Shared Package Creation**: Create first shared package (e.g., @muejam/types)
-6. **Linting Rules**: Add monorepo-specific linting rules
-7. **Build Optimization**: Implement incremental builds for changed apps only
-8. **Documentation Generation**: Auto-generate API docs from code
-
-### Scalability Considerations
-
-The monorepo structure is designed to scale:
-
-- **Multiple Backends**: apps/ can contain multiple backend services (api, admin, worker, etc.)
-- **Multiple Frontends**: apps/ can contain multiple frontend apps (web, mobile-web, admin-panel, etc.)
-- **Shared Packages**: packages/ can contain shared libraries (types, utils, ui-components, etc.)
-- **Tooling**: tools/ can contain build scripts, generators, migration tools, etc.
-- **Documentation**: docs/ structure supports growing documentation needs
-
-### Migration Path for Future Services
-
-When adding new services:
-
-1. **New Backend Service**:
-   ```
-   apps/
-   ├── backend/          # Existing API
-   ├── admin-api/        # New admin service
-   └── worker-service/   # New background worker
-   ```
-
-2. **New Frontend App**:
-   ```
-   apps/
-   ├── frontend/         # Existing web app
-   ├── admin-panel/      # New admin interface
-   └── mobile-web/       # New mobile-optimized app
-   ```
-
-3. **New Shared Package**:
-   ```
-   packages/
-   ├── types/            # Shared TypeScript types
-   ├── utils/            # Shared utilities
-   └── ui-components/    # Shared React components
-   ```
-
-## Conclusion
-
-This design provides a comprehensive approach to restructuring the MueJam Library repository into a professional monorepo structure. The phased execution strategy minimizes risk, the property-based testing ensures correctness, and the scalable structure supports future growth. All existing functionality will be preserved, git history will be maintained, and development workflows will continue to work seamlessly after the restructure.

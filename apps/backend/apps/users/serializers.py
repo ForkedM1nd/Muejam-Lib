@@ -9,10 +9,12 @@ class UserProfileReadSerializer(serializers.Serializer):
     Serializer for reading UserProfile data.
     
     Returns all public profile fields including:
-    - id, clerk_user_id, handle, display_name, bio, avatar_key, created_at
+    - id, clerk_user_id, handle, display_name, bio, avatar_key, age_verified, created_at
+    - Profile customization: banner_key, theme_color, social links, pinned stories
     
     Requirements:
         - 1.4: Return profile fields when user requests their profile
+        - 24.1, 24.7, 24.12: Return profile customization fields
     """
     id = serializers.CharField(read_only=True)
     clerk_user_id = serializers.CharField(read_only=True)
@@ -20,18 +22,31 @@ class UserProfileReadSerializer(serializers.Serializer):
     display_name = serializers.CharField(read_only=True)
     bio = serializers.CharField(read_only=True, allow_null=True)
     avatar_key = serializers.CharField(read_only=True, allow_null=True)
+    age_verified = serializers.BooleanField(read_only=True)
+    age_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
     created_at = serializers.DateTimeField(read_only=True)
+    
+    # Profile customization
+    banner_key = serializers.CharField(read_only=True, allow_null=True)
+    theme_color = serializers.CharField(read_only=True, allow_null=True)
+    twitter_url = serializers.CharField(read_only=True, allow_null=True)
+    instagram_url = serializers.CharField(read_only=True, allow_null=True)
+    website_url = serializers.CharField(read_only=True, allow_null=True)
+    pinned_story_1 = serializers.CharField(read_only=True, allow_null=True)
+    pinned_story_2 = serializers.CharField(read_only=True, allow_null=True)
+    pinned_story_3 = serializers.CharField(read_only=True, allow_null=True)
 
 
 class UserProfileWriteSerializer(serializers.Serializer):
     """
     Serializer for updating UserProfile data.
     
-    Allows updating: handle, display_name, bio, avatar_key
+    Allows updating: handle, display_name, bio, avatar_key, profile customization
     
     Requirements:
         - 1.3: Validate handle uniqueness and update profile fields
         - 1.5: Enforce handle format (alphanumeric + underscore, 3-30 chars)
+        - 24.7, 24.12: Allow updating social links and profile customization
     """
     handle = serializers.CharField(
         required=False,
@@ -57,6 +72,64 @@ class UserProfileWriteSerializer(serializers.Serializer):
         allow_null=True,
         max_length=255,
         help_text="S3 object key for avatar image"
+    )
+    
+    # Profile customization
+    banner_key = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=255,
+        help_text="S3 object key for banner image"
+    )
+    theme_color = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=7,
+        help_text="Hex color code for profile theme (e.g., #6366f1)"
+    )
+    twitter_url = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=255,
+        help_text="Twitter profile URL"
+    )
+    instagram_url = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=255,
+        help_text="Instagram profile URL"
+    )
+    website_url = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=255,
+        help_text="Personal website URL"
+    )
+    pinned_story_1 = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=36,
+        help_text="ID of first pinned story"
+    )
+    pinned_story_2 = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=36,
+        help_text="ID of second pinned story"
+    )
+    pinned_story_3 = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=36,
+        help_text="ID of third pinned story"
     )
     
     def validate_handle(self, value):
@@ -114,6 +187,7 @@ class PublicUserProfileSerializer(serializers.Serializer):
     
     Requirements:
         - 1.4: Return public profile when accessed by handle
+        - 24.1, 24.7, 24.12: Return public profile customization
     """
     id = serializers.CharField(read_only=True)
     handle = serializers.CharField(read_only=True)
@@ -121,3 +195,13 @@ class PublicUserProfileSerializer(serializers.Serializer):
     bio = serializers.CharField(read_only=True, allow_null=True)
     avatar_key = serializers.CharField(read_only=True, allow_null=True)
     created_at = serializers.DateTimeField(read_only=True)
+    
+    # Profile customization
+    banner_key = serializers.CharField(read_only=True, allow_null=True)
+    theme_color = serializers.CharField(read_only=True, allow_null=True)
+    twitter_url = serializers.CharField(read_only=True, allow_null=True)
+    instagram_url = serializers.CharField(read_only=True, allow_null=True)
+    website_url = serializers.CharField(read_only=True, allow_null=True)
+    pinned_story_1 = serializers.CharField(read_only=True, allow_null=True)
+    pinned_story_2 = serializers.CharField(read_only=True, allow_null=True)
+    pinned_story_3 = serializers.CharField(read_only=True, allow_null=True)

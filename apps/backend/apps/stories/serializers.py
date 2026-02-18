@@ -76,10 +76,11 @@ class StoryCreateSerializer(serializers.Serializer):
     """
     Serializer for creating a story draft.
     
-    Accepts: title, blurb, cover_key (optional)
+    Accepts: title, blurb, cover_key (optional), mark_as_nsfw (optional)
     
     Requirements:
         - 5.1: Create story draft with title, blurb, cover_key
+        - 8.3: Allow content creators to manually mark their content as NSFW
     """
     title = serializers.CharField(
         required=True,
@@ -97,6 +98,11 @@ class StoryCreateSerializer(serializers.Serializer):
         allow_null=True,
         max_length=255,
         help_text="S3 object key for cover image"
+    )
+    mark_as_nsfw = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Mark this story as NSFW (Not Safe For Work)"
     )
     
     def validate_title(self, value):
@@ -116,10 +122,11 @@ class StoryUpdateSerializer(serializers.Serializer):
     """
     Serializer for updating a story draft.
     
-    Accepts: title, blurb, cover_key (all optional)
+    Accepts: title, blurb, cover_key, mark_as_nsfw (all optional)
     
     Requirements:
         - 5.5: Update draft without affecting publication status
+        - 8.3: Allow content creators to manually mark their content as NSFW
     """
     title = serializers.CharField(
         required=False,
@@ -137,6 +144,10 @@ class StoryUpdateSerializer(serializers.Serializer):
         allow_null=True,
         max_length=255,
         help_text="S3 object key for cover image"
+    )
+    mark_as_nsfw = serializers.BooleanField(
+        required=False,
+        help_text="Mark this story as NSFW (Not Safe For Work)"
     )
     
     def validate_title(self, value):
@@ -196,10 +207,11 @@ class ChapterCreateSerializer(serializers.Serializer):
     """
     Serializer for creating a chapter draft.
     
-    Accepts: title, content, chapter_number
+    Accepts: title, content, chapter_number, mark_as_nsfw (optional)
     
     Requirements:
         - 5.2: Create chapter draft with title, content, chapter_number
+        - 8.3: Allow content creators to manually mark their content as NSFW
     """
     title = serializers.CharField(
         required=True,
@@ -214,6 +226,11 @@ class ChapterCreateSerializer(serializers.Serializer):
         required=True,
         min_value=1,
         help_text="Chapter number (must be positive)"
+    )
+    mark_as_nsfw = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Mark this chapter as NSFW (Not Safe For Work)"
     )
     
     def validate_title(self, value):
@@ -233,10 +250,11 @@ class ChapterUpdateSerializer(serializers.Serializer):
     """
     Serializer for updating a chapter draft.
     
-    Accepts: title, content (all optional)
+    Accepts: title, content, mark_as_nsfw (all optional)
     
     Requirements:
         - 5.4: Update draft without affecting publication status
+        - 8.3: Allow content creators to manually mark their content as NSFW
     """
     title = serializers.CharField(
         required=False,
@@ -246,6 +264,10 @@ class ChapterUpdateSerializer(serializers.Serializer):
     content = serializers.CharField(
         required=False,
         help_text="Chapter content in markdown format"
+    )
+    mark_as_nsfw = serializers.BooleanField(
+        required=False,
+        help_text="Mark this chapter as NSFW (Not Safe For Work)"
     )
     
     def validate_title(self, value):

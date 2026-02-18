@@ -5,7 +5,7 @@ Tests the data access layer for password reset tokens.
 """
 import pytest
 import pytest_asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from apps.users.password_reset.repositories.token_repository import TokenRepository
 from apps.users.password_reset.types import Token
@@ -34,8 +34,8 @@ def sample_token():
         id=str(uuid4()),
         user_id='test-user-123',
         token_hash='test-hash-abc123',
-        expires_at=datetime.utcnow() + timedelta(hours=1),
-        created_at=datetime.utcnow(),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        created_at=datetime.now(timezone.utc),
         used_at=None,
         invalidated=False,
     )
@@ -93,8 +93,8 @@ async def test_find_latest_by_user_id(token_repository, db):
         id=str(uuid4()),
         user_id=user_id,
         token_hash='hash-1',
-        expires_at=datetime.utcnow() + timedelta(hours=1),
-        created_at=datetime.utcnow() - timedelta(minutes=10),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        created_at=datetime.now(timezone.utc) - timedelta(minutes=10),
         used_at=None,
         invalidated=False,
     )
@@ -103,8 +103,8 @@ async def test_find_latest_by_user_id(token_repository, db):
         id=str(uuid4()),
         user_id=user_id,
         token_hash='hash-2',
-        expires_at=datetime.utcnow() + timedelta(hours=1),
-        created_at=datetime.utcnow() - timedelta(minutes=5),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        created_at=datetime.now(timezone.utc) - timedelta(minutes=5),
         used_at=None,
         invalidated=False,
     )
@@ -113,8 +113,8 @@ async def test_find_latest_by_user_id(token_repository, db):
         id=str(uuid4()),
         user_id=user_id,
         token_hash='hash-3',
-        expires_at=datetime.utcnow() + timedelta(hours=1),
-        created_at=datetime.utcnow(),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        created_at=datetime.now(timezone.utc),
         used_at=None,
         invalidated=False,
     )
@@ -150,7 +150,7 @@ async def test_update_token(token_repository, sample_token, db):
     await token_repository.create(sample_token)
     
     # Update the token
-    sample_token.used_at = datetime.utcnow()
+    sample_token.used_at = datetime.now(timezone.utc)
     sample_token.invalidated = True
     
     updated_token = await token_repository.update(sample_token)
@@ -173,8 +173,8 @@ async def test_invalidate_all_by_user_id(token_repository, db):
         id=str(uuid4()),
         user_id=user_id,
         token_hash='hash-a',
-        expires_at=datetime.utcnow() + timedelta(hours=1),
-        created_at=datetime.utcnow(),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        created_at=datetime.now(timezone.utc),
         used_at=None,
         invalidated=False,
     )
@@ -183,8 +183,8 @@ async def test_invalidate_all_by_user_id(token_repository, db):
         id=str(uuid4()),
         user_id=user_id,
         token_hash='hash-b',
-        expires_at=datetime.utcnow() + timedelta(hours=1),
-        created_at=datetime.utcnow(),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        created_at=datetime.now(timezone.utc),
         used_at=None,
         invalidated=False,
     )
@@ -219,3 +219,4 @@ async def test_delete_token(token_repository, sample_token, db):
     # Verify the token was deleted
     found_token = await token_repository.find_by_token(sample_token.token_hash)
     assert found_token is None
+

@@ -2,418 +2,344 @@
 
 ## Overview
 
-This implementation plan breaks down the monorepo restructure into discrete, executable tasks. The restructure will be performed in six phases: Preparation, File Moves, Configuration Updates, Cleanup, Documentation, and Validation. Each phase builds on the previous one and includes validation checkpoints to ensure correctness.
-
-The implementation will use Python scripts for automation, with manual verification steps at key checkpoints. All file moves will use `git mv` to preserve history, and all changes will be committed incrementally to enable rollback if needed.
+This implementation plan breaks down the monorepo restructuring into discrete, incremental tasks that can be executed by a code-generation agent. Each task builds on previous tasks and includes validation checkpoints. The plan follows a phased approach: (1) Create tooling, (2) Archive AI artifacts, (3) Consolidate documentation, (4) Organize scripts, (5) Separate infrastructure, (6) Organize tests, (7) Update configurations, (8) Validate and document.
 
 ## Tasks
 
-- [x] 1. Create restructure branch and preparation script
-  - Create git branch `restructure-monorepo` for all restructure work
-  - Create Python script `tools/restructure/prepare.py` for Phase 1
-  - Script should create new directory structure (apps/, packages/, tools/, docs/, tests/)
-  - Script should create placeholder README.md files in new directories
-  - Script should update .gitignore to ensure build artifacts stay ignored
-  - _Requirements: 1.1, 1.2, 1.3, 1.4, 3.7_
-
-- [x] 2. Implement directory structure creation
-  - [x] 2.1 Create DirectoryStructureManager class
-    - Implement create_apps_directory() to create apps/backend/ and apps/frontend/
-    - Implement create_packages_directory() to create packages/ with README.md
-    - Implement create_tools_directory() to create tools/ with README.md
-    - Implement create_docs_directory() to create docs/ with subdirectories
-    - Implement create_tests_directory() to create tests/ with README.md
-    - Implement validate_structure() to verify all directories exist
-    - _Requirements: 1.1, 1.2, 1.3, 1.4, 9.5_
+- [ ] 1. Create migration automation tooling
+  - [x] 1.1 Create migration tool core structure
+    - Create tools/restructure/migration_tool.py with FileMover, PathUpdater, Validator, and RollbackManager classes
+    - Implement checkpoint creation and tracking
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
   
-  - [ ]* 2.2 Write unit tests for DirectoryStructureManager
-    - Test directory creation for each method
-    - Test validation logic
-    - Test error handling for permission issues
-    - _Requirements: 1.1, 1.2, 1.3, 1.4_
-
-- [x] 3. Implement .gitignore updates
-  - [x] 3.1 Create BuildArtifactCleaner class (partial)
-    - Implement update_gitignore() to add artifact patterns
-    - Implement verify_artifacts_ignored() to check patterns present
-    - Add patterns: .coverage, .hypothesis/, htmlcov/, venv/, node_modules/, dist/, build/
-    - _Requirements: 3.7, 3.8_
+  - [x] 1.2 Implement file movement tracker
+    - Create tools/restructure/file_tracker.py with FileMovement dataclass
+    - Implement movement logging to JSON file
+    - Implement movement history queries
+    - _Requirements: 11.2_
   
-  - [ ]* 3.2 Write unit tests for gitignore updates
-    - Test pattern addition
-    - Test duplicate pattern handling
-    - Test verification logic
-    - _Requirements: 3.7, 3.8_
+  - [x] 1.3 Implement configuration updater
+    - Create tools/restructure/config_updater.py with methods for each config file type
+    - Implement Django settings.py updater (INSTALLED_APPS, imports)
+    - Implement pytest.ini updater (testpaths)
+    - Implement docker-compose.yml updater (volumes, contexts)
+    - Implement Dockerfile updater (COPY, WORKDIR)
+    - _Requirements: 9.2, 9.3, 9.4, 9.5, 9.6_
+  
+  - [x] 1.4 Implement validation suite
+    - Create tools/restructure/validator.py with validation methods
+    - Implement syntax validation for Python and TypeScript
+    - Implement import resolution checking
+    - Implement Django check wrapper
+    - Implement frontend build wrapper
+    - Implement Docker build wrapper
+    - Implement test discovery wrapper
+    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
+  
+  - [ ]* 1.5 Write property tests for migration tool
+    - **Property 1: Pattern-Based File Movement Correctness**
+    - **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 3.1**
+  
+  - [ ]* 1.6 Write unit tests for migration tool
+    - Test file conflict detection
+    - Test import update parsing
+    - Test configuration file parsing
+    - Test rollback procedures
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-- [x] 4. Run Phase 1 preparation script
-  - Execute `python tools/restructure/prepare.py`
-  - Verify all directories created
-  - Verify .gitignore updated
-  - Commit changes: "Phase 1: Create monorepo directory structure"
-  - _Requirements: 1.1, 1.2, 1.3, 1.4, 3.7_
-
-- [x] 5. Checkpoint - Verify Phase 1 complete
-  - Ensure all directories exist (apps/, packages/, tools/, docs/, tests/)
-  - Ensure .gitignore contains all artifact patterns
-  - Ensure changes committed to restructure-monorepo branch
-  - Ask user if questions arise
-
-- [x] 6. Create file move script
-  - Create Python script `tools/restructure/move_files.py` for Phase 2
-  - Script should use git mv for all file and directory moves
-  - Script should verify git history preserved after each move
-  - Script should handle move failures gracefully
-  - _Requirements: 2.1, 2.2_
-
-- [x] 7. Implement git history preservation
-  - [x] 7.1 Create GitHistoryPreserver class
-    - Implement move_directory() using subprocess to run git mv
-    - Implement move_file() using subprocess to run git mv
-    - Implement verify_history_preserved() using git log --follow
-    - Implement get_move_plan() returning list of (source, dest) tuples
-    - Handle errors and provide rollback instructions
+- [ ] 2. Phase 1: Archive AI artifacts
+  - [x] 2.1 Create archive directory structure
+    - Create docs/archive/ai-artifacts/ directory
+    - Create docs/archive/README.md explaining archive purpose
+    - Create docs/archive/INDEX.md for tracking archived content
+    - _Requirements: 2.6, 20.1, 20.2, 20.3, 20.7_
+  
+  - [x] 2.2 Move root-level AI artifacts
+    - Move BACKEND_TEST_SUMMARY.md, ENDPOINT_TEST_REPORT.md, FIXES_APPLIED_SUMMARY.md, PRODUCTION_FIXES_COMPLETE.md, PRODUCTION_READY_FINAL.md to docs/archive/ai-artifacts/
+    - Move test_endpoints.py, test_fixed_endpoints.py, test_schema.yml to docs/archive/ai-artifacts/
+    - Update docs/archive/INDEX.md with moved files
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+  
+  - [x] 2.3 Move backend root AI artifacts
+    - Move all TASK_*.md files from apps/backend/ to docs/archive/ai-artifacts/
+    - Move CAPTCHA_INTEGRATION.md, CHANGELOG.md, PRODUCTION_READINESS_COMPLETE.md to docs/archive/ai-artifacts/
+    - Update docs/archive/INDEX.md with moved files
+    - _Requirements: 2.1, 2.2, 2.3_
+  
+  - [x] 2.4 Move frontend AI artifacts
+    - Move RECAPTCHA_INTEGRATION.md, TASK_13.1_SUMMARY.md from apps/frontend/ to docs/archive/ai-artifacts/
+    - Update docs/archive/INDEX.md with moved files
     - _Requirements: 2.1, 2.2_
   
-  - [ ]* 7.2 Write property test for git history preservation
-    - **Property 1: Git History Preservation**
-    - **Validates: Requirements 2.2**
-    - Test that git log --follow works for moved files
-    - Generate random file moves and verify history preserved
-
-- [x] 8. Implement move plan generation
-  - [x] 8.1 Add move plan to GitHistoryPreserver
-    - Define moves for backend/ -> apps/backend/
-    - Define moves for frontend/ -> apps/frontend/
-    - Define moves for QUICKSTART.md -> docs/getting-started/quickstart.md
-    - Define moves for DEVELOPMENT.md -> docs/getting-started/development.md
-    - Define moves for backend/API_DOCUMENTATION.md -> docs/architecture/api.md
-    - Define moves for SECRETS.md -> docs/deployment/secrets.md
-    - Define moves for setup.sh, setup.ps1 -> tools/
-    - Define moves for .kiro/specs/ -> docs/specs/ (or keep in place)
-    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.6, 6.5_
+  - [x] 2.5 Move infrastructure and moderation AI artifacts
+    - Move TASK_58_SUMMARY.md, TASK_59_SUMMARY.md, SUSPICIOUS_ACTIVITY_DETECTOR_USAGE.md from apps/backend/infrastructure/ to docs/archive/ai-artifacts/
+    - Move FILTER_CONFIG_IMPLEMENTATION.md, IMPLEMENTATION_SUMMARY.md, URL_VALIDATOR_IMPLEMENTATION.md from apps/backend/apps/moderation/ to docs/archive/ai-artifacts/
+    - Update docs/archive/INDEX.md with moved files
+    - _Requirements: 2.1, 2.2, 2.5_
   
-  - [ ]* 8.2 Write unit tests for move plan
-    - Test move plan generation
-    - Test dependency ordering
-    - Test duplicate detection
-    - _Requirements: 5.1, 5.2, 5.3, 5.4_
+  - [ ]* 2.6 Write property test for AI artifact preservation
+    - **Property 2: File Preservation (No Deletion)**
+    - **Validates: Requirements 2.7, 12.2**
 
-- [x] 9. Run Phase 2 file move script
-  - Execute `python tools/restructure/move_files.py`
-  - Verify all files moved to correct locations
-  - Verify git history preserved for moved files
-  - Commit changes: "Phase 2: Move files to monorepo structure"
-  - _Requirements: 2.1, 2.2, 5.1, 5.2, 5.3, 5.4, 5.6, 6.5_
+- [x] 3. Checkpoint - Verify Phase 1
+  - Ensure all AI artifacts moved successfully, archive INDEX updated, no files deleted. Ask user if questions arise.
 
-- [x] 10. Checkpoint - Verify Phase 2 complete
-  - Ensure apps/backend/ contains all backend files
-  - Ensure apps/frontend/ contains all frontend files
-  - Ensure docs/ contains moved documentation
-  - Ensure tools/ contains setup scripts
-  - Verify git log --follow works for sample moved files
-  - Ensure changes committed
-  - Ask user if questions arise
-
-- [x] 11. Create configuration update script
-  - Create Python script `tools/restructure/update_configs.py` for Phase 3
-  - Script should update docker-compose.yml paths
-  - Script should update Django settings.py paths
-  - Script should update frontend configuration paths
-  - Script should update Dockerfile paths
-  - Script should create backups before modifying
-  - Script should validate syntax after modifications
-  - _Requirements: 7.1, 7.2, 7.5, 7.6, 7.7, 8.1, 8.2, 8.3, 8.4_
-
-- [ ] 12. Implement configuration updater
-  - [x] 12.1 Create ConfigurationUpdater class
-    - Implement update_docker_compose() to update service paths and volumes
-    - Implement update_django_settings() to update BASE_DIR and paths
-    - Implement update_frontend_config() to update tsconfig.json, vite.config.ts
-    - Implement update_test_configs() to update pytest.ini, vitest.config.ts
-    - Implement update_dockerfiles() to update WORKDIR and COPY paths
-    - Implement verify_configs_valid() to check syntax
-    - Create backups before each modification
-    - _Requirements: 7.1, 7.2, 7.5, 7.6, 7.7, 8.1, 8.2, 8.3, 8.4, 9.3, 9.4_
+- [ ] 4. Phase 2: Consolidate documentation
+  - [x] 4.1 Create documentation directory structure
+    - Create docs/features/ with subdirectories: authentication/, security/, privacy/, gdpr/, moderation/, legal/, backup/, admin/, notifications/, status/
+    - Create docs/backend/ directory
+    - Create docs/architecture/ directory
+    - _Requirements: 3.2, 3.3, 3.4_
   
-  - [ ]* 12.2 Write unit tests for ConfigurationUpdater
-    - Test docker-compose.yml path updates
-    - Test Django settings path updates
-    - Test frontend config path updates
-    - Test backup creation
-    - Test syntax validation
-    - _Requirements: 7.1, 7.2, 7.5, 7.6, 7.7_
-
-- [ ]* 13. Write property tests for import resolution
-  - [ ]* 13.1 Write property test for Python imports
-    - **Property 3: Python Import Resolution**
-    - **Validates: Requirements 7.3**
-    - Test that all Python imports resolve successfully
-    - Use Python's import system to verify
+  - [x] 4.2 Move core app documentation
+    - Move README_API_KEY_AUTH.md to docs/features/authentication/api-key-auth.md
+    - Move README_CONTENT_SANITIZER.md to docs/features/security/content-sanitizer.md
+    - Move README_ENCRYPTION.md to docs/features/security/encryption.md
+    - Move README_PII_CONFIG.md to docs/features/privacy/pii-configuration.md
+    - _Requirements: 3.1_
   
-  - [ ]* 13.2 Write property test for TypeScript imports
-    - **Property 4: TypeScript Import Resolution**
-    - **Validates: Requirements 7.4**
-    - Test that all TypeScript imports resolve successfully
-    - Use TypeScript compiler to verify
-
-- [x] 14. Run Phase 3 configuration update script
-  - Execute `python tools/restructure/update_configs.py`
-  - Verify all configuration files updated
-  - Verify syntax valid for all configs
-  - Verify backups created
-  - Commit changes: "Phase 3: Update configuration files for new paths"
-  - _Requirements: 7.1, 7.2, 7.5, 7.6, 7.7, 8.1, 8.2, 8.3, 8.4, 9.3, 9.4_
-
-- [x] 15. Checkpoint - Verify Phase 3 complete
-  - Ensure docker-compose.yml references apps/ paths
-  - Ensure Django settings.py has correct BASE_DIR
-  - Ensure frontend configs have correct paths
-  - Ensure Dockerfiles have correct paths
-  - Ensure test configs have correct paths
-  - Ensure backups exist for all modified files
-  - Ensure changes committed
-  - Ask user if questions arise
-
-- [x] 16. Create cleanup script
-  - Create Python script `tools/restructure/cleanup.py` for Phase 4
-  - Script should find and remove build artifacts
-  - Script should find and remove AI-generated documentation
-  - Script should remove temporary root-level files
-  - Script should verify cleanup complete
-  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 4.1, 4.2, 4.3, 4.4, 4.5, 6.1, 6.2, 6.3_
-
-- [ ] 17. Implement cleanup components
-  - [x] 17.1 Complete BuildArtifactCleaner class
-    - Implement find_artifacts() to locate all build artifacts
-    - Implement remove_artifacts() using git rm
-    - Add patterns: .coverage, .hypothesis/, htmlcov/, venv/, node_modules/, dist/, build/
-    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
+  - [x] 4.3 Move GDPR app documentation
+    - Move all README_*.md files from apps/backend/apps/gdpr/ to docs/features/gdpr/
+    - Rename files to remove README_ prefix and use kebab-case
+    - _Requirements: 3.1_
   
-  - [x] 17.2 Create DocumentationCleaner class
-    - Implement find_ai_footprints() to locate AI-generated docs
-    - Implement is_essential_doc() to check if doc should be preserved
-    - Implement remove_ai_footprints() using git rm
-    - Add patterns: *CHECKPOINT*VERIFICATION*.md, *FINAL*VERIFICATION*.md, *IMPLEMENTATION*SUMMARY*.md
-    - Preserve: API_DOCUMENTATION.md, AUTHENTICATION.md
-    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
+  - [x] 4.4 Move moderation app documentation
+    - Move all README_*.md files from apps/backend/apps/moderation/ to docs/features/moderation/
+    - Rename files to remove README_ prefix and use kebab-case
+    - _Requirements: 3.1_
   
-  - [x] 17.3 Implement root-level cleanup
-    - Remove prompt.txt, doc.txt, PROJECT_STATUS.md
-    - Verify essential files remain (README.md, CONTRIBUTING.md, LICENSE, docker-compose.yml, .gitignore)
-    - _Requirements: 6.1, 6.2, 6.3, 6.4_
+  - [x] 4.5 Move remaining app documentation
+    - Move legal, users, backup, admin, notifications, status app README files to docs/features/
+    - Organize by feature domain
+    - _Requirements: 3.1_
   
-  - [ ]* 17.4 Write unit tests for cleanup components
-    - Test artifact finding and removal
-    - Test AI footprint detection
-    - Test essential doc preservation
-    - Test root-level cleanup
-    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 4.1, 4.2, 4.3, 4.4, 4.5_
-
-- [ ]* 18. Write property test for gitignore consistency
-  - **Property 2: Build Artifact Removal and Gitignore Consistency**
-  - **Validates: Requirements 3.8**
-  - Test that all removed artifact patterns are in .gitignore
-  - Generate random artifact patterns and verify consistency
-
-- [x] 19. Run Phase 4 cleanup script
-  - Execute `python tools/restructure/cleanup.py`
-  - Verify all build artifacts removed
-  - Verify all AI-generated docs removed
-  - Verify temporary root files removed
-  - Verify essential files preserved
-  - Commit changes: "Phase 4: Remove build artifacts and AI-generated docs"
-  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 4.1, 4.2, 4.3, 4.4, 4.5, 6.1, 6.2, 6.3_
-
-- [x] 20. Checkpoint - Verify Phase 4 complete
-  - Ensure no build artifacts remain
-  - Ensure no AI-generated docs remain
-  - Ensure temporary root files removed
-  - Ensure essential files preserved
-  - Ensure changes committed
-  - Ask user if questions arise
-
-- [x] 21. Create documentation update script
-  - Create Python script `tools/restructure/update_docs.py` for Phase 5
-  - Script should rewrite README.md for monorepo structure
-  - Script should create CONTRIBUTING.md
-  - Script should create docs/README.md as documentation index
-  - Script should update cross-references in all docs
-  - Script should remove AI-generated language from docs
-  - Script should validate all documentation links
-  - _Requirements: 10.1, 10.2, 10.4, 10.5, 10.6_
-
-- [ ] 22. Implement documentation components
-  - [x] 22.1 Create DocumentationConsolidator class
-    - Implement create_docs_index() to create docs/README.md
-    - Implement update_cross_references() to fix internal links
-    - Update links from old paths to new paths
-    - _Requirements: 5.7, 10.5_
+  - [x] 4.6 Move backend documentation
+    - Move apps/backend/docs/* to docs/backend/ and docs/deployment/
+    - Organize by purpose (deployment, configuration, operations)
+    - _Requirements: 3.3_
   
-  - [x] 22.2 Create DocumentationRewriter class
-    - Implement rewrite_readme() to update README.md for monorepo
-    - Implement create_contributing_guide() to create CONTRIBUTING.md
-    - Implement remove_ai_language() to strip AI-generated phrases
-    - Implement update_structure_references() to update path references
-    - Implement validate_links() to check all links valid
-    - Remove phrases: "verification report", "checkpoint", "implementation summary", "final verification"
-    - _Requirements: 10.1, 10.2, 10.4, 10.5, 10.6_
+  - [x] 4.7 Move infrastructure documentation
+    - Move all README_*.md files from apps/backend/infrastructure/ to docs/architecture/
+    - Rename files to remove README_ prefix and use kebab-case
+    - _Requirements: 3.4_
   
-  - [ ]* 22.3 Write unit tests for documentation components
-    - Test docs index creation
-    - Test cross-reference updates
-    - Test README rewriting
-    - Test CONTRIBUTING.md creation
-    - Test AI language removal
-    - Test link validation
-    - _Requirements: 10.1, 10.2, 10.4, 10.5_
-
-- [ ]* 23. Write property tests for documentation
-  - [ ]* 23.1 Write property test for documentation links
-    - **Property 5: Documentation Cross-Reference Validity**
-    - **Validates: Requirements 5.7, 10.6**
-    - Test that all internal links point to existing files
-    - Generate random documentation files and verify links
+  - [ ]* 4.8 Write property test for documentation consolidation
+    - **Property 1: Pattern-Based File Movement Correctness** (for README_*.md files)
+    - **Validates: Requirements 3.1**
   
-  - [ ]* 23.2 Write property test for AI language removal
-    - **Property 6: AI Language Removal**
-    - **Validates: Requirements 10.2**
-    - Test that no AI-generated phrases remain in docs
-    - Check for: "verification report", "checkpoint", "implementation summary", etc.
+  - [ ]* 4.9 Write property test for documentation link validity
+    - **Property 8: Documentation Link Validity**
+    - **Validates: Requirements 17.7**
 
-- [x] 24. Run Phase 5 documentation update script
-  - Execute `python tools/restructure/update_docs.py`
-  - Verify README.md updated for monorepo
-  - Verify CONTRIBUTING.md created
-  - Verify docs/README.md created as index
-  - Verify cross-references updated
-  - Verify AI language removed
-  - Verify all links valid
-  - Commit changes: "Phase 5: Update documentation for monorepo structure"
-  - _Requirements: 10.1, 10.2, 10.4, 10.5, 10.6_
+- [x] 5. Checkpoint - Verify Phase 2
+  - Ensure all documentation moved successfully, directory structure correct, no broken links. Ask user if questions arise.
 
-- [x] 25. Checkpoint - Verify Phase 5 complete
-  - Ensure README.md reflects monorepo structure
-  - Ensure CONTRIBUTING.md exists with guidelines
-  - Ensure docs/README.md serves as index
-  - Ensure no AI-generated language in docs
-  - Ensure all documentation links valid
-  - Ensure changes committed
-  - Ask user if questions arise
-
-- [x] 26. Create validation script
-  - Create Python script `tools/restructure/validate.py` for Phase 6
-  - Script should verify docker-compose up works
-  - Script should verify backend tests pass
-  - Script should verify frontend tests pass
-  - Script should verify backend migrations work
-  - Script should verify frontend builds successfully
-  - Script should verify git history preserved
-  - Script should generate validation report
-  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
-
-- [ ] 27. Implement validation runner
-  - [x] 27.1 Create ValidationRunner class
-    - Implement verify_docker_compose() to test docker-compose up
-    - Implement verify_backend_tests() to run pytest
-    - Implement verify_frontend_tests() to run npm test
-    - Implement verify_backend_migrations() to run Django migrations
-    - Implement verify_frontend_build() to run npm run build
-    - Implement verify_git_history() to test git log --follow
-    - Implement generate_validation_report() to create report
-    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+- [ ] 6. Phase 3: Organize scripts
+  - [x] 6.1 Create scripts directory structure
+    - Create scripts/database/, scripts/deployment/, scripts/verification/ directories
+    - Create scripts/README.md documenting available scripts
+    - _Requirements: 6.4_
   
-  - [ ]* 27.2 Write unit tests for ValidationRunner
-    - Test each verification method
-    - Test error handling
-    - Test report generation
-    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
-
-- [ ]* 28. Write property tests for workflow validation
-  - [ ]* 28.1 Write property test for Docker build
-    - **Property 7: Docker Compose Build Success**
-    - **Validates: Requirements 8.5**
-    - Test that docker-compose up --build succeeds
+  - [x] 6.2 Move database scripts
+    - Move seed_data.py to scripts/database/seed-data.py
+    - Move seed_legal_documents.py to scripts/database/seed-legal-documents.py
+    - Update import paths in scripts to work from new location
+    - _Requirements: 6.1_
   
-  - [ ]* 28.2 Write property test for backend tests
-    - **Property 8: Backend Test Suite Success**
-    - **Validates: Requirements 9.6, 11.2**
-    - Test that pytest runs successfully
+  - [x] 6.3 Move verification scripts
+    - Move check_db.py to scripts/verification/check-db.py
+    - Move verify_ratelimit_setup.py to scripts/verification/verify-ratelimit-setup.py
+    - Move verify_security_headers.py to scripts/verification/verify-security-headers.py
+    - Update import paths in scripts
+    - _Requirements: 6.2_
   
-  - [ ]* 28.3 Write property test for frontend tests
-    - **Property 9: Frontend Test Suite Success**
-    - **Validates: Requirements 9.7, 11.3**
-    - Test that npm test runs successfully
+  - [x] 6.4 Move deployment scripts
+    - Move all .sh scripts from apps/backend/scripts/ to scripts/deployment/
+    - Ensure scripts remain executable (preserve permissions)
+    - _Requirements: 6.3, 6.6_
   
-  - [ ]* 28.4 Write comprehensive workflow validation
-    - **Property 10: Comprehensive Workflow Validation**
-    - **Validates: Requirements 11.1, 11.2, 11.3, 11.4, 11.5**
-    - Test all critical workflows function correctly
+  - [ ]* 6.5 Write unit tests for script import paths
+    - Test that moved scripts can import Django models and settings
+    - Test that scripts execute without import errors
+    - _Requirements: 6.5_
 
-- [x] 29. Run Phase 6 validation script
-  - Execute `python tools/restructure/validate.py`
-  - Review validation report
-  - Fix any issues found
-  - Re-run validation until all checks pass
-  - Commit changes: "Phase 6: Validation complete"
-  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+- [x] 7. Checkpoint - Verify Phase 3
+  - Ensure all scripts moved successfully, import paths updated, scripts executable. Ask user if questions arise.
 
-- [x] 30. Final checkpoint - Merge restructure branch
-  - Ensure all validation checks pass
-  - Review complete validation report
-  - Merge restructure-monorepo branch to main
-  - Tag release: `git tag v2.0.0-monorepo`
-  - Push changes: `git push origin main --tags`
-  - Archive old structure documentation
-  - Announce restructure completion to team
-  - Ask user if questions arise
+- [ ] 8. Phase 4: Separate infrastructure code
+  - [x] 8.1 Create infrastructure directory structure
+    - Create infra/terraform/modules/, infra/iam-policies/, infra/monitoring/ directories
+    - Create infra/README.md documenting infrastructure organization
+    - _Requirements: 5.7, 15.4_
+  
+  - [x] 8.2 Move Terraform and IAM policies
+    - Move apps/backend/infrastructure/terraform/ to infra/terraform/modules/
+    - Move apps/backend/infrastructure/iam_policies/ to infra/iam-policies/
+    - Rename files to use kebab-case
+    - _Requirements: 5.1, 5.2_
+  
+  - [x] 8.3 Create new security Django app
+    - Create apps/backend/apps/security/ directory
+    - Create __init__.py, apps.py, models.py, views.py, urls.py
+    - Add 'apps.security' to INSTALLED_APPS in settings.py
+    - _Requirements: 5.4, 9.2_
+  
+  - [x] 8.4 Move account suspension to users app
+    - Move infrastructure/account_suspension.py to apps/users/account_suspension.py
+    - Update all imports from infrastructure.account_suspension to apps.users.account_suspension
+    - _Requirements: 5.4_
+  
+  - [x] 8.5 Move shadowban to moderation app
+    - Move infrastructure/shadowban.py to apps/moderation/shadowban.py
+    - Update all imports from infrastructure.shadowban to apps.moderation.shadowban
+    - _Requirements: 5.4_
+  
+  - [x] 8.6 Move audit logs to admin app
+    - Move infrastructure/audit_log_service.py to apps/admin/audit_log_service.py
+    - Move infrastructure/audit_log_views.py to apps/admin/audit_log_views.py
+    - Move infrastructure/audit_alert_service.py to apps/admin/audit_alert_service.py
+    - Update all imports
+    - _Requirements: 5.4_
+  
+  - [x] 8.7 Move suspicious activity detector to security app
+    - Move infrastructure/suspicious_activity_detector.py to apps/security/suspicious_activity_detector.py
+    - Update all imports from infrastructure.suspicious_activity_detector to apps.security.suspicious_activity_detector
+    - _Requirements: 5.4_
+  
+  - [ ]* 8.8 Write property test for import path consistency
+    - **Property 3: Import Path Consistency**
+    - **Validates: Requirements 9.1, 9.2**
+  
+  - [ ]* 8.9 Write property test for production code preservation
+    - **Property 4: Production Code Content Preservation**
+    - **Validates: Requirements 12.1, 12.3, 12.4, 12.5, 12.6**
+
+- [x] 9. Checkpoint - Verify Phase 4
+  - Ensure infrastructure code separated, feature code moved to apps, all imports updated. Ask user if questions arise.
+
+- [x] 10. Phase 5: Organize tests
+  - [x] 10.1 Create test directory structure
+    - Create tests/backend/integration/, tests/backend/e2e/, tests/backend/infrastructure/ directories
+    - Create tests/frontend/integration/, tests/frontend/e2e/ directories
+    - Create tests/README.md documenting test organization
+    - _Requirements: 4.2, 4.3, 4.4, 4.5, 4.7_
+  
+  - [x] 10.2 Move infrastructure tests
+    - Move apps/backend/infrastructure/tests/* to tests/backend/infrastructure/
+    - Update import paths in test files
+    - _Requirements: 4.4_
+  
+  - [x] 10.3 Move inline moderation tests to colocated directory
+    - Create apps/backend/apps/moderation/tests/ if not exists
+    - Move test_*.py files from apps/backend/apps/moderation/ to apps/backend/apps/moderation/tests/
+    - _Requirements: 4.6_
+  
+  - [x] 10.4 Move inline users tests to colocated directory
+    - Create apps/backend/apps/users/tests/ if not exists
+    - Move test_login_security.py to apps/backend/apps/users/tests/
+    - _Requirements: 4.6_
+  
+  - [ ]* 10.5 Write property test for test discovery preservation
+    - **Property 7: Test Discovery Preservation**
+    - **Validates: Requirements 4.8, 10.4**
+
+- [x] 11. Checkpoint - Verify Phase 5
+  - Ensure all tests moved successfully, pytest can discover all tests, test imports work. Ask user if questions arise.
+
+- [ ] 12. Phase 6: Update configurations
+  - [x] 12.1 Update Django settings.py
+    - Verify INSTALLED_APPS includes 'apps.security'
+    - Verify all import statements reference correct paths
+    - _Requirements: 9.2_
+  
+  - [x] 12.2 Update pytest.ini
+    - Verify testpaths includes both apps/ and ../../tests/backend
+    - No changes needed (already correct)
+    - _Requirements: 9.3_
+  
+  - [x] 12.3 Update docker-compose.yml
+    - Add volume mount for scripts/ if needed
+    - Verify all context paths are correct
+    - _Requirements: 9.4_
+  
+  - [x] 12.4 Update .gitignore
+    - Verify all temporary file patterns are present
+    - Add any missing patterns
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
+  
+  - [ ]* 12.5 Write property test for configuration validity
+    - **Property 5: Configuration File Validity**
+    - **Validates: Requirements 9.2, 9.3, 9.4, 9.5, 9.6, 9.7**
+  
+  - [ ]* 12.6 Write property test for git ignore coverage
+    - **Property 9: Git Ignore Pattern Coverage**
+    - **Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5, 7.6**
+
+- [x] 13. Checkpoint - Verify Phase 6
+  - Ensure all configurations updated, all paths correct, .gitignore complete. Ask user if questions arise.
+
+- [ ] 14. Phase 7: Validate and document
+  - [x] 14.1 Run full validation suite
+    - Run syntax validation on all Python and TypeScript files
+    - Run import resolution checks
+    - Run Django check (python manage.py check)
+    - Run frontend build (npm run build)
+    - Run Docker build for all services
+    - Run pytest test discovery
+    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
+  
+  - [ ]* 14.2 Write property test for build and runtime verification
+    - **Property 10: Build and Runtime Verification**
+    - **Validates: Requirements 10.1, 10.2, 10.3, 10.4, 10.5**
+  
+  - [x] 14.3 Create migration documentation
+    - Create docs/deployment/migration-guide.md with complete file movement mapping
+    - Document all import path changes
+    - Document all configuration changes
+    - Document new directory structure and purposes
+    - Include troubleshooting section
+    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.7_
+  
+  - [x] 14.4 Create developer documentation
+    - Create/update CONTRIBUTING.md with setup instructions
+    - Create docs/development/setup.md
+    - Create docs/development/conventions.md documenting naming conventions
+    - Create docs/development/testing.md documenting test organization
+    - Create docs/development/workflows.md
+    - Create docs/development/troubleshooting.md
+    - _Requirements: 14.1, 14.2, 14.4, 14.5, 14.6, 8.5_
+  
+  - [x] 14.5 Create architecture documentation
+    - Create docs/architecture/monorepo-structure.md documenting the new structure
+    - Create docs/architecture/infrastructure.md documenting infrastructure organization
+    - _Requirements: 14.2, 5.7_
+  
+  - [x] 14.6 Create deployment documentation
+    - Create docs/deployment/verification.md documenting verification procedures
+    - Create docs/deployment/ci-cd.md with example GitHub Actions workflows
+    - Update docs/deployment/infrastructure.md
+    - _Requirements: 10.7, 18.2, 15.5_
+  
+  - [x] 14.7 Update root README.md
+    - Update project structure section to reflect new organization
+    - Update setup instructions if needed
+    - Add links to new documentation
+    - _Requirements: 11.8_
+  
+  - [x] 14.8 Create verification script
+    - Create scripts/verification/verify-restructure.py
+    - Implement all validation checks in script form
+    - Document usage in docs/deployment/verification.md
+    - _Requirements: 10.6_
+
+- [x] 15. Final checkpoint - Complete validation
+  - Run full test suite, verify all builds pass, verify documentation complete. Ask user if questions arise.
 
 ## Notes
 
-- Tasks marked with `*` are optional property-based tests that can be skipped for faster completion
-- Each task references specific requirements for traceability
-- Checkpoints ensure incremental validation and enable rollback if needed
-- All file moves use `git mv` to preserve history
-- All configuration changes create backups before modification
-- Python scripts are organized in `tools/restructure/` directory
-- Each phase is committed separately to enable granular rollback
-- Validation runs at the end to ensure all workflows function correctly
-
-## Rollback Instructions
-
-If any phase fails and rollback is needed:
-
-1. **Rollback to previous phase**:
-   ```bash
-   git reset --hard HEAD~1
-   ```
-
-2. **Rollback entire restructure**:
-   ```bash
-   git checkout main
-   git branch -D restructure-monorepo
-   ```
-
-3. **Restore from backup** (if needed):
-   ```bash
-   # Backups are created in tools/restructure/backups/
-   cp tools/restructure/backups/<file> <original-location>
-   ```
-
-## Success Criteria
-
-The restructure is complete when:
-
-- [ ] All 12 requirements are satisfied
-- [ ] All 10 correctness properties hold
-- [ ] All validation checks pass
-- [ ] docker-compose up starts all services
-- [ ] Backend tests pass (pytest)
-- [ ] Frontend tests pass (npm test)
-- [ ] Backend migrations run successfully
-- [ ] Frontend builds successfully
-- [ ] Git history preserved for all moved files
-- [ ] No build artifacts in repository
-- [ ] No AI-generated documentation remains
-- [ ] All documentation links valid
-- [ ] README.md reflects monorepo structure
-- [ ] CONTRIBUTING.md exists with guidelines
+- Tasks marked with `*` are optional property-based and unit tests that can be skipped for faster completion
+- Each checkpoint ensures incremental validation before proceeding
+- All file movements preserve git history
+- All production code logic remains unchanged (only imports and locations change)
+- Rollback is possible at any checkpoint by reverting to the previous git commit
+- The migration tool (Phase 1) automates most of the file movements and updates in subsequent phases

@@ -10,7 +10,7 @@ from apps.highlights import views as highlight_views
 from infrastructure.metrics_views import metrics_view, metrics_json_view, health_check_view
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('django-admin/', admin.site.urls),  # Changed from 'admin/' to avoid namespace conflict
     
     # Monitoring endpoints
     path('metrics', metrics_view, name='metrics'),
@@ -48,7 +48,15 @@ urlpatterns = [
         path('search/', include('apps.search.urls')),
         path('uploads/', include('apps.uploads.urls')),
         path('reports/', include('apps.moderation.urls')),
+        path('legal/', include('apps.legal.urls')),
+        path('gdpr/', include('apps.gdpr.urls')),
         path('health/', include('apps.core.urls')),
+        path('onboarding/', include('apps.onboarding.urls')),
+        path('help/', include('apps.help.urls')),
+        path('analytics/', include('apps.analytics.urls')),
+        path('admin/', include('apps.admin.urls')),
+        path('status/', include('apps.status.urls')),
+        path('', include('infrastructure.urls')),
     ])),
     
     # API Documentation

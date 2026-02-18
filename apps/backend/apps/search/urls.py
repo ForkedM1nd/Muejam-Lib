@@ -1,8 +1,20 @@
-"""URL configuration for search app."""
+"""
+Search API URLs
+"""
+
 from django.urls import path
-from . import views
+from .views import (
+    SearchStoriesView,
+    SearchAuthorsView,
+    AutocompleteView,
+    PopularSearchesView,
+    TrackSearchClickView
+)
 
 urlpatterns = [
-    path('', views.search, name='search'),
-    path('suggest', views.suggest, name='suggest'),
+    path('stories', SearchStoriesView.as_view(), name='search-stories'),
+    path('authors', SearchAuthorsView.as_view(), name='search-authors'),
+    path('autocomplete', AutocompleteView.as_view(), name='search-autocomplete'),
+    path('popular', PopularSearchesView.as_view(), name='search-popular'),
+    path('track-click', TrackSearchClickView.as_view(), name='search-track-click'),
 ]

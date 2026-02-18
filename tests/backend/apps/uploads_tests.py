@@ -5,6 +5,7 @@ from rest_framework.test import APIClient
 from apps.uploads.s3 import S3UploadManager
 from hypothesis import given, strategies as st
 from hypothesis.strategies import integers, sampled_from
+from hypothesis.extra.django import TestCase as HypothesisTestCase
 
 
 class S3UploadManagerTests(TestCase):
@@ -139,7 +140,7 @@ class S3UploadManagerTests(TestCase):
         self.assertTrue(result_gif['object_key'].endswith('.gif'))
 
 
-class UUIDUniquenessPropertyTests(TestCase):
+class UUIDUniquenessPropertyTests(HypothesisTestCase):
     """
     Property-based tests for UUID uniqueness.
     

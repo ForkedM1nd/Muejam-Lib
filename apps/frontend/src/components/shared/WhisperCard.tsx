@@ -4,6 +4,8 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import WhisperComposer from "./WhisperComposer";
+import NSFWWarningLabel from "./NSFWWarningLabel";
+import BlurredNSFWImage from "./BlurredNSFWImage";
 import type { Whisper } from "@/types";
 
 interface WhisperCardProps {
@@ -23,6 +25,10 @@ export default function WhisperCard({
 }: WhisperCardProps) {
   const [showReplyComposer, setShowReplyComposer] = useState(false);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+
+  // Check if whisper has NSFW flag
+  const isNSFW = (whisper as any).is_nsfw || false;
+  const isBlurred = (whisper as any).is_blurred || false;
 
   const handleReply = async (content: string) => {
     if (!onReply) return;
@@ -51,7 +57,7 @@ export default function WhisperCard({
             {whisper.author.display_name.charAt(0).toUpperCase()}
           </div>
         )}
-        <div className="flex items-center gap-1.5 text-sm flex-wrap">
+        <div className="flex items-center gap-1.5 text-sm flex-wrap flex-1">
           <span className="font-medium">{whisper.author.display_name}</span>
           <span className="text-muted-foreground">@{whisper.author.handle}</span>
           <span className="text-muted-foreground">·</span>
@@ -59,6 +65,9 @@ export default function WhisperCard({
             {formatDistanceToNow(new Date(whisper.created_at), { addSuffix: true })}
           </span>
         </div>
+        {isNSFW && (
+          <NSFWWarningLabel variant="badge" />
+        )}
       </div>
 
       {/* Quote */}
@@ -73,14 +82,25 @@ export default function WhisperCard({
 
       {/* Media */}
       {whisper.media_url && (
-        <div className="rounded-lg overflow-hidden border border-border">
-          <img
-            src={whisper.media_url}
-            alt=""
-            className="max-h-80 w-auto"
-            loading="lazy"
-          />
-        </div>
+        <>
+          {isNSFW && isBlurred ? (
+            <BlurredNSFWImage
+              src={whisper.media_url}
+              alt=""
+              aspectRatio="auto"
+              className="rounded-lg border border-border max-h-80"
+            />
+          ) : (
+            <div className="rounded-lg overflow-hidden border border-border">
+              <img
+                src={whisper.media_url}
+                alt=""
+                className="max-h-80 w-auto"
+                loading="lazy"
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Actions */}

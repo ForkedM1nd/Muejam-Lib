@@ -5,6 +5,11 @@ from rest_framework import status
 from prisma import Prisma
 from datetime import datetime
 from .serializers import NotificationSerializer
+import asyncio
+import nest_asyncio
+
+# Apply nest_asyncio to allow nested event loops
+nest_asyncio.apply()
 
 
 def sync_get_notifications(user_id: str, cursor: str = None, page_size: int = 20):
@@ -333,3 +338,111 @@ async def create_notification(user_id: str, notification_type: str, actor_id: st
     except Exception as e:
         await db.disconnect()
         raise e
+
+
+
+# Notification Preference Views
+
+def sync_get_preferences(user_id: str):
+    """Synchronous wrapper for get_preferences."""
+    from .preference_service import NotificationPreferenceService
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(NotificationPreferenceService.get_or_create_preferences(user_id))
+
+
+def sync_update_preferences(user_id: str, updates: dict):
+    """Synchronous wrapper for update_preferences."""
+    from .preference_service import NotificationPreferenceService
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(NotificationPreferenceService.update_preferences(user_id, updates))
+
+
+@api_view(['GET'])
+def notification_preferences(request):
+    """
+    GET /api/notifications/preferences - Get notification preferences
+    
+    Returns:
+        - 200: Notification preferences
+        - 401: Not authenticated
+        
+    Requirements:
+        - 21.9: Retrieve user notification preferences
+    """
+    # Check authentication
+    if not request.clerk_user_id or not request.user_profile:
+        return Response(
+            {'error': {'code': 'UNAUTHORIZED', 'message': 'Authentication required'}},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    preferences = sync_get_preferences(request.user_profile.id)
+    
+    return Response({
+        'data': preferences
+    })
+
+
+@api_view(['PUT'])
+def update_notification_preferences(request):
+    """
+    PUT /api/notifications/preferences - Update notification preferences
+    
+    Body:
+        {
+            "new_comment": "immediate" | "daily_digest" | "weekly_digest" | "disabled",
+            "new_like": "immediate" | "daily_digest" | "weekly_digest" | "disabled",
+            "new_follower": "immediate" | "daily_digest" | "weekly_digest" | "disabled",
+            "new_content": "immediate" | "daily_digest" | "weekly_digest" | "disabled",
+            "marketing_emails": true | false
+        }
+    
+    Returns:
+        - 200: Updated preferences
+        - 400: Invalid request
+        - 401: Not authenticated
+        
+    Requirements:
+        - 21.9: Allow users to configure notification preferences
+        - 21.10: Support per-notification-type frequency settings
+    """
+    # Check authentication
+    if not request.clerk_user_id or not request.user_profile:
+        return Response(
+            {'error': {'code': 'UNAUTHORIZED', 'message': 'Authentication required'}},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    updates = request.data
+    
+    # Validate updates
+    valid_fields = [
+        'welcome_email', 'new_comment', 'new_like', 'new_follower',
+        'new_content', 'content_takedown', 'security_alert', 'marketing_emails'
+    ]
+    
+    invalid_fields = [key for key in updates.keys() if key not in valid_fields]
+    if invalid_fields:
+        return Response(
+            {'error': {'code': 'INVALID_REQUEST', 'message': f'Invalid fields: {invalid_fields}'}},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        preferences = sync_update_preferences(request.user_profile.id, updates)
+        
+        return Response({
+            'data': preferences,
+            'message': 'Notification preferences updated successfully'
+        })
+        
+    except ValueError as e:
+        return Response(
+            {'error': {'code': 'INVALID_REQUEST', 'message': str(e)}},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        return Response(
+            {'error': {'code': 'INTERNAL_ERROR', 'message': 'Failed to update preferences'}},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

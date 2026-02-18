@@ -59,14 +59,52 @@ def metrics_json_view(request):
 @require_http_methods(["GET"])
 def health_check_view(request):
     """
-    Simple health check endpoint for monitoring.
+    Health check endpoint for load balancer.
+    
+    Checks:
+    - Database connection
+    - Redis/cache connection
     
     Returns:
-        HttpResponse with status 200 if application is healthy
+        - HTTP 200 if all systems are healthy
+        - HTTP 503 if any system is unhealthy
+    
+    Requirements: 28.2
     """
     from django.http import JsonResponse
+    from django.db import connection
+    from django.core.cache import cache
+    from datetime import datetime, timezone
     
-    return JsonResponse({
+    health_status = {
         'status': 'healthy',
-        'service': 'muejam-library-backend'
-    })
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'service': 'muejam-library-backend',
+        'checks': {}
+    }
+    
+    # Check database connection
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+        health_status['checks']['database'] = 'ok'
+    except Exception as e:
+        health_status['status'] = 'unhealthy'
+        health_status['checks']['database'] = f'error: {str(e)}'
+    
+    # Check Redis/cache connection
+    try:
+        cache.set('health_check', 'ok', 10)
+        if cache.get('health_check') == 'ok':
+            health_status['checks']['cache'] = 'ok'
+        else:
+            health_status['status'] = 'unhealthy'
+            health_status['checks']['cache'] = 'error: cache read/write failed'
+    except Exception as e:
+        health_status['status'] = 'unhealthy'
+        health_status['checks']['cache'] = f'error: {str(e)}'
+    
+    # Return appropriate status code
+    status_code = 200 if health_status['status'] == 'healthy' else 503
+    
+    return JsonResponse(health_status, status=status_code)

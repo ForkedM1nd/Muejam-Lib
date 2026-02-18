@@ -9,6 +9,16 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Validate configuration on startup (Requirements 30.9, 30.10, 30.11)
+# This ensures all required environment variables are present before the app starts
+if os.getenv('SKIP_CONFIG_VALIDATION', 'False') != 'True':
+    from infrastructure.config_validator import validate_config_on_startup
+    try:
+        validate_config_on_startup()
+    except Exception as e:
+        # Re-raise to prevent app from starting with invalid configuration
+        raise
+
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -46,11 +56,17 @@ INSTALLED_APPS = [
     'apps.search',
     'apps.uploads',
     'apps.moderation',
+    'apps.legal',
     'apps.core',
+    'apps.onboarding',
+    'apps.help',
+    'apps.analytics',
+    'apps.security',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'csp.middleware.CSPMiddleware',  # Content Security Policy middleware
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -59,6 +75,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.users.middleware.ClerkAuthMiddleware',
+    'apps.users.email_verification.middleware.EmailVerificationMiddleware',
+    'apps.users.two_factor_auth.middleware.TwoFactorAuthMiddleware',  # 2FA enforcement
+    'infrastructure.logging_middleware.RequestLoggingMiddleware',  # Request logging (Requirement 15.3)
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -202,6 +221,75 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF Protection Configuration (Requirements 6.1, 6.2)
+# CSRF middleware is enabled in MIDDLEWARE list above
+# Configure CSRF cookie settings for security
+CSRF_COOKIE_SECURE = not DEBUG  # Only send cookie over HTTPS in production
+CSRF_COOKIE_HTTPONLY = True  # Prevent JavaScript access to CSRF cookie
+CSRF_COOKIE_SAMESITE = 'Strict'  # Prevent CSRF attacks via cross-site requests
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000').split(',')
+
+# Session Security Configuration (Requirements 6.11, 6.12)
+SESSION_COOKIE_SECURE = not DEBUG  # Only send cookie over HTTPS in production
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+SESSION_COOKIE_SAMESITE = 'Strict'  # Prevent session fixation attacks
+SESSION_COOKIE_AGE = 2592000  # 30 days in seconds
+SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Security Headers Configuration (Requirements 6.3, 6.4, 6.5, 6.6)
+# HTTP Strict Transport Security (HSTS) - Forces HTTPS for 1 year
+SECURE_HSTS_SECONDS = 31536000  # 1 year in seconds (Requirement 6.4)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True  # Apply HSTS to all subdomains
+SECURE_HSTS_PRELOAD = True  # Allow inclusion in browser HSTS preload lists
+
+# X-Frame-Options - Prevents clickjacking attacks
+X_FRAME_OPTIONS = 'DENY'  # Requirement 6.5 - Prevent page from being framed
+
+# X-Content-Type-Options - Prevents MIME type sniffing
+SECURE_CONTENT_TYPE_NOSNIFF = True  # Requirement 6.6 - Force declared content types
+
+# X-XSS-Protection - Legacy XSS protection (for older browsers)
+SECURE_BROWSER_XSS_FILTER = True
+
+# SSL/HTTPS Redirect
+SECURE_SSL_REDIRECT = not DEBUG  # Redirect all HTTP to HTTPS in production
+
+# Content Security Policy (CSP) Configuration (Requirement 6.3)
+# Restricts sources for scripts, styles, images, and other resources
+# Install django-csp package: pip install django-csp
+CSP_DEFAULT_SRC = ("'self'",)  # Default: only allow same-origin resources
+CSP_SCRIPT_SRC = (
+    "'self'",
+    'cdn.jsdelivr.net',  # CDN for frontend libraries
+    'www.google.com',  # Google reCAPTCHA
+    'www.gstatic.com',  # Google reCAPTCHA
+)
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",  # Allow inline styles (needed for some frameworks)
+    'fonts.googleapis.com',  # Google Fonts
+)
+CSP_IMG_SRC = (
+    "'self'",
+    'data:',  # Allow data URIs for inline images
+    'https:',  # Allow all HTTPS images
+    '*.cloudfront.net',  # AWS CloudFront CDN
+)
+CSP_FONT_SRC = (
+    "'self'",
+    'fonts.gstatic.com',  # Google Fonts
+)
+CSP_CONNECT_SRC = (
+    "'self'",
+    'https://api.clerk.com',  # Clerk authentication
+)
+CSP_FRAME_ANCESTORS = ("'none'",)  # Prevent framing (same as X-Frame-Options: DENY)
+CSP_BASE_URI = ("'self'",)  # Restrict base tag URLs
+CSP_FORM_ACTION = ("'self'",)  # Restrict form submission targets
+
 # Clerk Authentication
 CLERK_SECRET_KEY = os.getenv('CLERK_SECRET_KEY', '')
 CLERK_PUBLISHABLE_KEY = os.getenv('CLERK_PUBLISHABLE_KEY', '')
@@ -276,6 +364,11 @@ RATE_LIMIT_WINDOW = int(os.getenv('RATE_LIMIT_WINDOW', '60'))
 # Admin users bypass rate limits
 RATE_LIMIT_ADMIN_BYPASS = os.getenv('RATE_LIMIT_ADMIN_BYPASS', 'True') == 'True'
 
+# django-ratelimit configuration
+# Use Redis cache backend for distributed rate limiting
+RATELIMIT_USE_CACHE = 'default'
+RATELIMIT_ENABLE = RATE_LIMIT_ENABLED
+
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
@@ -293,8 +386,77 @@ AWS_S3_BUCKET = os.getenv('AWS_S3_BUCKET', 'muejam-media')
 # Resend Email Configuration
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 
+# Sentry Error Tracking Configuration (Requirements 13.1, 13.2, 13.6)
+# Get your DSN from: https://sentry.io/settings/projects/
+SENTRY_DSN = os.getenv('SENTRY_DSN', '')
+SENTRY_ENVIRONMENT = os.getenv('SENTRY_ENVIRONMENT', os.getenv('ENVIRONMENT', 'development'))
+SENTRY_TRACES_SAMPLE_RATE = float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0.1'))  # 10% of transactions
+SENTRY_PROFILES_SAMPLE_RATE = float(os.getenv('SENTRY_PROFILES_SAMPLE_RATE', '0.1'))  # 10% of transactions
+APP_VERSION = os.getenv('APP_VERSION', os.getenv('VERSION', '1.0.0'))
+
+# Initialize Sentry if DSN is configured
+if SENTRY_DSN:
+    from infrastructure.sentry_config import init_sentry
+    init_sentry()
+
+# Application Performance Monitoring (APM) Configuration (Requirements 14.1-14.12)
+# Supports both New Relic and DataDog APM providers
+APM_ENABLED = os.getenv('APM_ENABLED', 'False') == 'True'
+APM_PROVIDER = os.getenv('APM_PROVIDER', 'newrelic').lower()  # 'newrelic' or 'datadog'
+
+# New Relic Configuration
+NEW_RELIC_LICENSE_KEY = os.getenv('NEW_RELIC_LICENSE_KEY', '')
+NEW_RELIC_APP_NAME = os.getenv('NEW_RELIC_APP_NAME', 'MueJam Library')
+NEW_RELIC_ENVIRONMENT = os.getenv('NEW_RELIC_ENVIRONMENT', os.getenv('ENVIRONMENT', 'development'))
+
+# DataDog Configuration
+DATADOG_API_KEY = os.getenv('DATADOG_API_KEY', '')
+DATADOG_APP_KEY = os.getenv('DATADOG_APP_KEY', '')
+DATADOG_SERVICE_NAME = os.getenv('DATADOG_SERVICE_NAME', 'muejam-backend')
+DATADOG_ENVIRONMENT = os.getenv('DATADOG_ENVIRONMENT', os.getenv('ENVIRONMENT', 'development'))
+
+# Performance Thresholds (Requirements 14.7, 14.8)
+API_P95_THRESHOLD_MS = int(os.getenv('API_P95_THRESHOLD_MS', '500'))
+API_P99_THRESHOLD_MS = int(os.getenv('API_P99_THRESHOLD_MS', '1000'))
+SLOW_QUERY_THRESHOLD_MS = int(os.getenv('SLOW_QUERY_THRESHOLD_MS', '100'))
+DB_POOL_UTILIZATION_THRESHOLD = float(os.getenv('DB_POOL_UTILIZATION_THRESHOLD', '0.8'))
+
+# Transaction Tracing
+TRANSACTION_TRACE_ENABLED = os.getenv('TRANSACTION_TRACE_ENABLED', 'True') == 'True'
+SLOW_SQL_ENABLED = os.getenv('SLOW_SQL_ENABLED', 'True') == 'True'
+
+# Initialize APM if enabled
+if APM_ENABLED:
+    if APM_PROVIDER == 'newrelic':
+        from infrastructure.apm_config import init_newrelic
+        init_newrelic()
+    elif APM_PROVIDER == 'datadog':
+        from infrastructure.apm_config import init_datadog
+        init_datadog()
+
+# Google Safe Browsing API Configuration
+# Used for URL validation in content moderation (Requirements 4.6, 4.7)
+# Get your API key from: https://developers.google.com/safe-browsing/v4/get-started
+GOOGLE_SAFE_BROWSING_API_KEY = os.getenv('GOOGLE_SAFE_BROWSING_API_KEY', '')
+
+# Google reCAPTCHA v3 Configuration
+# Used for bot protection on signup, login, and content submission (Requirements 5.4, 5.5)
+# Get your keys from: https://www.google.com/recaptcha/admin
+RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY', '')
+RECAPTCHA_SCORE_THRESHOLD = float(os.getenv('RECAPTCHA_SCORE_THRESHOLD', '0.5'))
+
 # Frontend URL
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+
+# Structured Logging Configuration (Requirements 15.1-15.12)
+# JSON-formatted structured logging with automatic PII redaction
+from infrastructure.logging_config import LoggingConfig
+
+LOGGING = LoggingConfig.get_logging_config()
+
+# Create logs directory if it doesn't exist
+import os
+os.makedirs('logs', exist_ok=True)
 
 # DRF Spectacular Settings
 SPECTACULAR_SETTINGS = {

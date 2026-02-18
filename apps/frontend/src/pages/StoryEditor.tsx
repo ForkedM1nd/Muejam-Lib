@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { Save, Globe, Plus, Eye, PenLine, ArrowLeft, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { useRecaptchaToken } from "@/hooks/useRecaptchaToken";
 
 function ChapterEditor({ chapterId, onBack }: { chapterId: string; onBack: () => void }) {
   const queryClient = useQueryClient();
@@ -27,6 +28,7 @@ function ChapterEditor({ chapterId, onBack }: { chapterId: string; onBack: () =>
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [initialized, setInitialized] = useState(false);
+  const getRecaptchaToken = useRecaptchaToken('submit_chapter');
 
   if (chapter && !initialized) {
     setTitle(chapter.title);
@@ -35,7 +37,10 @@ function ChapterEditor({ chapterId, onBack }: { chapterId: string; onBack: () =>
   }
 
   const saveMutation = useMutation({
-    mutationFn: () => api.updateChapter(chapterId, { title, content }),
+    mutationFn: async () => {
+      const recaptchaToken = await getRecaptchaToken();
+      return api.updateChapter(chapterId, { title, content, recaptcha_token: recaptchaToken });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chapter", chapterId] });
       queryClient.invalidateQueries({ queryKey: ["story-chapters"] });
@@ -51,7 +56,10 @@ function ChapterEditor({ chapterId, onBack }: { chapterId: string; onBack: () =>
   });
 
   const publishMutation = useMutation({
-    mutationFn: () => api.publishChapter(chapterId),
+    mutationFn: async () => {
+      const recaptchaToken = await getRecaptchaToken();
+      return api.publishChapter(chapterId, recaptchaToken);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chapter", chapterId] });
       queryClient.invalidateQueries({ queryKey: ["story-chapters"] });
@@ -175,6 +183,7 @@ export default function StoryEditor() {
   const queryClient = useQueryClient();
   const [editingChapter, setEditingChapter] = useState<string | null>(null);
   const [newChapterTitle, setNewChapterTitle] = useState("");
+  const getRecaptchaToken = useRecaptchaToken('submit_story');
 
   const { data: story, isLoading } = useQuery({
     queryKey: ["story-edit", id],
@@ -202,7 +211,10 @@ export default function StoryEditor() {
   }
 
   const updateMutation = useMutation({
-    mutationFn: () => api.updateStory(id!, { title, blurb, tags } as any),
+    mutationFn: async () => {
+      const recaptchaToken = await getRecaptchaToken();
+      return api.updateStory(id!, { title, blurb, tags, recaptcha_token: recaptchaToken } as any);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["story-edit", id] });
       toast({ title: "Story saved successfully!" });
@@ -217,7 +229,10 @@ export default function StoryEditor() {
   });
 
   const publishMutation = useMutation({
-    mutationFn: () => api.publishStory(id!),
+    mutationFn: async () => {
+      const recaptchaToken = await getRecaptchaToken();
+      return api.publishStory(id!, recaptchaToken);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["story-edit", id] });
       toast({ title: "Story published successfully!" });
@@ -232,7 +247,10 @@ export default function StoryEditor() {
   });
 
   const createChapterMutation = useMutation({
-    mutationFn: () => api.createChapter(id!, { title: newChapterTitle }),
+    mutationFn: async () => {
+      const recaptchaToken = await getRecaptchaToken();
+      return api.createChapter(id!, { title: newChapterTitle, recaptcha_token: recaptchaToken });
+    },
     onSuccess: (chapter) => {
       queryClient.invalidateQueries({ queryKey: ["story-chapters", id] });
       setNewChapterTitle("");

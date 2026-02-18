@@ -6,12 +6,22 @@ This directory contains all tests for the MueJam Library monorepo.
 
 ```
 tests/
-├── backend/           # Backend tests
-│   ├── unit/          # Unit tests for backend components
-│   ├── integration/   # Backend integration tests
-│   ├── property/      # Property-based tests
-│   └── performance/   # Performance and load tests
-└── README.md          # This file
+├── backend/              # Backend tests
+│   ├── unit/             # Unit tests for backend components
+│   ├── integration/      # Backend integration tests
+│   ├── e2e/              # End-to-end backend tests
+│   ├── infrastructure/   # Infrastructure code tests
+│   ├── property/         # Property-based tests
+│   ├── performance/      # Performance and load tests
+│   └── apps/             # Django app-specific tests
+│       ├── core/         # Core app tests
+│       ├── moderation/   # Moderation app tests
+│       ├── users/        # Users app tests
+│       └── ...           # Other app tests
+├── frontend/             # Frontend tests
+│   ├── integration/      # Frontend integration tests
+│   └── e2e/              # End-to-end frontend tests
+└── README.md             # This file
 ```
 
 ## Backend Tests
@@ -36,6 +46,22 @@ Located in `tests/backend/integration/`, these verify interactions between compo
 pytest tests/backend/integration/
 ```
 
+### End-to-End Tests
+Located in `tests/backend/e2e/`, these test complete user workflows and API interactions.
+
+```bash
+# Run backend e2e tests
+pytest tests/backend/e2e/
+```
+
+### Infrastructure Tests
+Located in `tests/backend/infrastructure/`, these test infrastructure code (caching, monitoring, configuration).
+
+```bash
+# Run infrastructure tests
+pytest tests/backend/infrastructure/
+```
+
 ### Property-Based Tests
 Located in `tests/backend/property/`, these use property-based testing to verify correctness properties.
 
@@ -51,6 +77,25 @@ Located in `tests/backend/performance/`, these test system performance and load 
 # Run performance tests
 pytest tests/backend/performance/
 ```
+
+### Django App Tests
+Located in `tests/backend/apps/`, these contain Django app-specific tests organized by app name.
+
+```bash
+# Run tests for a specific app
+pytest tests/backend/apps/users/
+
+# Run all app tests
+pytest tests/backend/apps/
+```
+
+## Frontend Tests
+
+### Integration Tests
+Located in `tests/frontend/integration/`, these verify frontend component interactions.
+
+### End-to-End Tests
+Located in `tests/frontend/e2e/`, these test complete user workflows in the browser.
 
 ## Running All Tests
 
@@ -73,11 +118,30 @@ Test configuration is managed in:
 
 ## Adding New Tests
 
-1. Choose the appropriate test type (unit, integration, property, performance)
+1. Choose the appropriate test type:
+   - **Unit tests**: Individual component testing → `tests/backend/unit/`
+   - **Integration tests**: Cross-component testing → `tests/backend/integration/` or `tests/frontend/integration/`
+   - **E2E tests**: Complete workflow testing → `tests/backend/e2e/` or `tests/frontend/e2e/`
+   - **Infrastructure tests**: Infrastructure code testing → `tests/backend/infrastructure/`
+   - **Property tests**: Property-based testing → `tests/backend/property/`
+   - **Performance tests**: Load and stress testing → `tests/backend/performance/`
+   - **Django app tests**: App-specific testing → `tests/backend/apps/<app_name>/`
 2. Create test file in the corresponding directory
 3. Follow existing naming conventions: `test_*.py`
 4. Use fixtures from `conftest.py` for common setup
 5. Run tests to verify they pass
+
+## Test Organization Strategy
+
+**Fully Centralized Tests**: All tests are organized in the top-level `tests/` directory for better discoverability, organization, and separation of concerns. This includes:
+- Django app-specific tests in `tests/backend/apps/`
+- Cross-cutting tests (integration, e2e, infrastructure, property, performance) in their respective directories
+
+This centralized approach provides:
+- Clear separation between source code and test code
+- Easier test discovery and navigation
+- Consistent test organization across the entire monorepo
+- Better support for cross-app integration testing
 
 ## Best Practices
 

@@ -1,0 +1,10 @@
+"""
+Status page app configuration.
+"""
+from django.apps import AppConfig
+
+
+class StatusConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.status'
+    verbose_name = 'Status Page'

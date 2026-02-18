@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { ImagePlus, X, Globe, BookOpen, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRecaptchaToken } from "@/hooks/useRecaptchaToken";
 
 interface WhisperComposerProps {
   placeholder?: string;
@@ -19,7 +20,7 @@ interface WhisperComposerProps {
   storyId?: string;
   highlightId?: string;
   showScopeSelector?: boolean;
-  onSubmit: (content: string, mediaFile?: File, scope?: string, storyId?: string, highlightId?: string) => Promise<void>;
+  onSubmit: (content: string, mediaFile?: File, scope?: string, storyId?: string, highlightId?: string, recaptchaToken?: string | null) => Promise<void>;
   submitting?: boolean;
 }
 
@@ -40,6 +41,7 @@ export default function WhisperComposer({
   const [selectedScope, setSelectedScope] = useState(scope);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const getRecaptchaToken = useRecaptchaToken('post_whisper');
 
   const handleMedia = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,12 +59,17 @@ export default function WhisperComposer({
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
+
+    // Get reCAPTCHA token
+    const recaptchaToken = await getRecaptchaToken();
+
     await onSubmit(
       content.trim(),
       mediaFile ?? undefined,
       selectedScope,
       storyId,
-      highlightId
+      highlightId,
+      recaptchaToken
     );
     setContent("");
     setMediaFile(null);

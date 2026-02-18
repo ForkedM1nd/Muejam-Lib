@@ -34,12 +34,12 @@ export default function WhispersPage() {
   const whispers = data?.pages.flatMap((page) => page.results) ?? [];
 
   const createMutation = useMutation({
-    mutationFn: async ({ content, mediaFile }: { content: string; mediaFile?: File }) => {
+    mutationFn: async ({ content, mediaFile, recaptchaToken }: { content: string; mediaFile?: File; recaptchaToken?: string | null }) => {
       let media_key: string | undefined;
       if (mediaFile) {
         media_key = await uploadFile(mediaFile, "whisper_media");
       }
-      return api.createWhisper({ content, scope: "GLOBAL", media_key });
+      return api.createWhisper({ content, scope: "GLOBAL", media_key, recaptcha_token: recaptchaToken });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["whispers"] });
@@ -130,8 +130,8 @@ export default function WhispersPage() {
 
       {isSignedIn && (
         <WhisperComposer
-          onSubmit={async (content, mediaFile) => {
-            await createMutation.mutateAsync({ content, mediaFile });
+          onSubmit={async (content, mediaFile, _scope, _storyId, _highlightId, recaptchaToken) => {
+            await createMutation.mutateAsync({ content, mediaFile, recaptchaToken });
           }}
           submitting={createMutation.isPending}
         />

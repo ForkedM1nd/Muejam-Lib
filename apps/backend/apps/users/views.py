@@ -6,6 +6,8 @@ from prisma import Prisma
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 from apps.core.exceptions import DuplicateResource
+from apps.core.content_sanitizer import ContentSanitizer
+from apps.core.pii_middleware import check_profile_pii
 from .serializers import (
     UserProfileReadSerializer,
     UserProfileWriteSerializer,
@@ -148,9 +150,23 @@ def me(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Check for PII in profile fields (Requirement 9.7)
+        has_pii, pii_error = check_profile_pii(
+            request.data,
+            fields=['bio', 'display_name']
+        )
+        
+        if has_pii:
+            return pii_error
+        
+        # Sanitize bio field if present (Requirement 6.8)
+        validated_data = serializer.validated_data
+        if 'bio' in validated_data and validated_data['bio']:
+            validated_data['bio'] = ContentSanitizer.sanitize_plain_text(validated_data['bio'])
+        
         # Update profile
         updated_profile = sync_update_profile(
-            request.user_profile.id, serializer.validated_data
+            request.user_profile.id, validated_data
         )
         
         if updated_profile is None:

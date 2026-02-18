@@ -1,6 +1,6 @@
 // prisma/schema.prisma
 generator client {
-  provider = "prisma-client-py"
+  provider  = "prisma-client-py"
   interface = "asyncio"
 }
 
@@ -16,52 +16,67 @@ model UserProfile {
   display_name    String
   bio             String?
   avatar_key      String?
+  age_verified    Boolean   @default(false)
+  age_verified_at DateTime?
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
-  
+
+  // Profile customization
+  banner_key      String?
+  theme_color     String?   @default("#6366f1")
+  twitter_url     String?
+  instagram_url   String?
+  website_url     String?
+  pinned_story_1  String?
+  pinned_story_2  String?
+  pinned_story_3  String?
+
   // Relations
-  stories         Story[]
-  shelves         Shelf[]
-  whispers        Whisper[]
-  highlights      Highlight[]
-  whisper_likes   WhisperLike[]
+  stories          Story[]
+  shelves          Shelf[]
+  whispers         Whisper[]
+  highlights       Highlight[]
+  whisper_likes    WhisperLike[]
   reading_progress ReadingProgress[]
-  bookmarks       Bookmark[]
-  followers       Follow[]  @relation("Following")
-  following       Follow[]  @relation("Follower")
-  blockers        Block[]   @relation("Blocked")
-  blocking        Block[]   @relation("Blocker")
-  notifications   Notification[]
-  reports_made    Report[]  @relation("Reporter")
-  reports_received Report[] @relation("Reported")
-  interests       UserInterest[]
-  
+  bookmarks        Bookmark[]
+  followers        Follow[]          @relation("Following")
+  following        Follow[]          @relation("Follower")
+  blockers         Block[]           @relation("Blocked")
+  blocking         Block[]           @relation("Blocker")
+  notifications    Notification[]
+  reports_made     Report[]          @relation("Reporter")
+  reports_received Report[]          @relation("Reported")
+  interests        UserInterest[]
+  user_consents    UserConsent[]
+  cookie_consents  CookieConsent[]
+  badges           UserBadge[]
+
   @@index([handle])
   @@index([clerk_user_id])
 }
 
 model Story {
-  id              String    @id @default(uuid())
-  slug            String    @unique
-  title           String
-  blurb           String
-  cover_key       String?
-  author_id       String
-  published       Boolean   @default(false)
-  published_at    DateTime?
-  deleted_at      DateTime?
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
-  
+  id           String    @id @default(uuid())
+  slug         String    @unique
+  title        String
+  blurb        String
+  cover_key    String?
+  author_id    String
+  published    Boolean   @default(false)
+  published_at DateTime?
+  deleted_at   DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
   // Relations
-  author          UserProfile @relation(fields: [author_id], references: [id])
-  chapters        Chapter[]
-  tags            StoryTag[]
-  shelf_items     ShelfItem[]
-  whispers        Whisper[]
-  stats           StoryStatsDaily[]
-  reports         Report[]
-  
+  author      UserProfile       @relation(fields: [author_id], references: [id])
+  chapters    Chapter[]
+  tags        StoryTag[]
+  shelf_items ShelfItem[]
+  whispers    Whisper[]
+  stats       StoryStatsDaily[]
+  reports     Report[]
+
   @@index([slug])
   @@index([author_id])
   @@index([published, deleted_at])
@@ -69,123 +84,123 @@ model Story {
 }
 
 model Chapter {
-  id              String    @id @default(uuid())
-  story_id        String
-  chapter_number  Int
-  title           String
-  content         String    @db.Text
-  published       Boolean   @default(false)
-  published_at    DateTime?
-  deleted_at      DateTime?
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
-  
+  id             String    @id @default(uuid())
+  story_id       String
+  chapter_number Int
+  title          String
+  content        String    @db.Text
+  published      Boolean   @default(false)
+  published_at   DateTime?
+  deleted_at     DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
   // Relations
-  story           Story     @relation(fields: [story_id], references: [id])
-  highlights      Highlight[]
+  story            Story             @relation(fields: [story_id], references: [id])
+  highlights       Highlight[]
   reading_progress ReadingProgress[]
-  bookmarks       Bookmark[]
-  reports         Report[]
-  
+  bookmarks        Bookmark[]
+  reports          Report[]
+
   @@unique([story_id, chapter_number])
   @@index([story_id, published])
 }
 
 model Tag {
-  id              String    @id @default(uuid())
-  name            String    @unique
-  slug            String    @unique
-  created_at      DateTime  @default(now())
-  
+  id         String   @id @default(uuid())
+  name       String   @unique
+  slug       String   @unique
+  created_at DateTime @default(now())
+
   // Relations
-  stories         StoryTag[]
-  interests       UserInterest[]
-  
+  stories   StoryTag[]
+  interests UserInterest[]
+
   @@index([slug])
 }
 
 model StoryTag {
-  story_id        String
-  tag_id          String
-  
-  story           Story     @relation(fields: [story_id], references: [id], onDelete: Cascade)
-  tag             Tag       @relation(fields: [tag_id], references: [id], onDelete: Cascade)
-  
+  story_id String
+  tag_id   String
+
+  story Story @relation(fields: [story_id], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
   @@id([story_id, tag_id])
   @@index([tag_id])
 }
 
 model Shelf {
-  id              String    @id @default(uuid())
-  user_id         String
-  name            String
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
-  
+  id         String   @id @default(uuid())
+  user_id    String
+  name       String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
   // Relations
-  user            UserProfile @relation(fields: [user_id], references: [id])
-  items           ShelfItem[]
-  
+  user  UserProfile @relation(fields: [user_id], references: [id])
+  items ShelfItem[]
+
   @@index([user_id])
 }
 
 model ShelfItem {
-  id              String    @id @default(uuid())
-  shelf_id        String
-  story_id        String
-  added_at        DateTime  @default(now())
-  
+  id       String   @id @default(uuid())
+  shelf_id String
+  story_id String
+  added_at DateTime @default(now())
+
   // Relations
-  shelf           Shelf     @relation(fields: [shelf_id], references: [id], onDelete: Cascade)
-  story           Story     @relation(fields: [story_id], references: [id])
-  
+  shelf Shelf @relation(fields: [shelf_id], references: [id], onDelete: Cascade)
+  story Story @relation(fields: [story_id], references: [id])
+
   @@unique([shelf_id, story_id])
   @@index([story_id])
 }
 
 model ReadingProgress {
-  id              String    @id @default(uuid())
-  user_id         String
-  chapter_id      String
-  offset          Int       @default(0)
-  updated_at      DateTime  @updatedAt
-  
+  id         String   @id @default(uuid())
+  user_id    String
+  chapter_id String
+  offset     Int      @default(0)
+  updated_at DateTime @updatedAt
+
   // Relations
-  user            UserProfile @relation(fields: [user_id], references: [id])
-  chapter         Chapter   @relation(fields: [chapter_id], references: [id])
-  
+  user    UserProfile @relation(fields: [user_id], references: [id])
+  chapter Chapter     @relation(fields: [chapter_id], references: [id])
+
   @@unique([user_id, chapter_id])
   @@index([chapter_id])
 }
 
 model Bookmark {
-  id              String    @id @default(uuid())
-  user_id         String
-  chapter_id      String
-  offset          Int
-  created_at      DateTime  @default(now())
-  
+  id         String   @id @default(uuid())
+  user_id    String
+  chapter_id String
+  offset     Int
+  created_at DateTime @default(now())
+
   // Relations
-  user            UserProfile @relation(fields: [user_id], references: [id])
-  chapter         Chapter   @relation(fields: [chapter_id], references: [id])
-  
+  user    UserProfile @relation(fields: [user_id], references: [id])
+  chapter Chapter     @relation(fields: [chapter_id], references: [id])
+
   @@index([user_id])
   @@index([chapter_id])
 }
 
 model Highlight {
-  id              String    @id @default(uuid())
-  user_id         String
-  chapter_id      String
-  start_offset    Int
-  end_offset      Int
-  created_at      DateTime  @default(now())
-  
+  id           String   @id @default(uuid())
+  user_id      String
+  chapter_id   String
+  start_offset Int
+  end_offset   Int
+  created_at   DateTime @default(now())
+
   // Relations
-  user            UserProfile @relation(fields: [user_id], references: [id])
-  chapter         Chapter   @relation(fields: [chapter_id], references: [id])
-  whispers        Whisper[]
-  
+  user     UserProfile @relation(fields: [user_id], references: [id])
+  chapter  Chapter     @relation(fields: [chapter_id], references: [id])
+  whispers Whisper[]
+
   @@index([user_id])
   @@index([chapter_id])
 }
@@ -197,26 +212,26 @@ enum WhisperScope {
 }
 
 model Whisper {
-  id              String    @id @default(uuid())
-  user_id         String
-  content         String
-  media_key       String?
-  scope           WhisperScope
-  story_id        String?
-  highlight_id    String?
-  parent_id       String?
-  deleted_at      DateTime?
-  created_at      DateTime  @default(now())
-  
+  id           String       @id @default(uuid())
+  user_id      String
+  content      String
+  media_key    String?
+  scope        WhisperScope
+  story_id     String?
+  highlight_id String?
+  parent_id    String?
+  deleted_at   DateTime?
+  created_at   DateTime     @default(now())
+
   // Relations
-  user            UserProfile @relation(fields: [user_id], references: [id])
-  story           Story?    @relation(fields: [story_id], references: [id])
-  highlight       Highlight? @relation(fields: [highlight_id], references: [id])
-  parent          Whisper?  @relation("WhisperReplies", fields: [parent_id], references: [id])
-  replies         Whisper[] @relation("WhisperReplies")
-  likes           WhisperLike[]
-  reports         Report[]
-  
+  user      UserProfile   @relation(fields: [user_id], references: [id])
+  story     Story?        @relation(fields: [story_id], references: [id])
+  highlight Highlight?    @relation(fields: [highlight_id], references: [id])
+  parent    Whisper?      @relation("WhisperReplies", fields: [parent_id], references: [id])
+  replies   Whisper[]     @relation("WhisperReplies")
+  likes     WhisperLike[]
+  reports   Report[]
+
   @@index([user_id])
   @@index([scope, created_at])
   @@index([story_id, created_at])
@@ -225,43 +240,43 @@ model Whisper {
 }
 
 model WhisperLike {
-  id              String    @id @default(uuid())
-  user_id         String
-  whisper_id      String
-  created_at      DateTime  @default(now())
-  
+  id         String   @id @default(uuid())
+  user_id    String
+  whisper_id String
+  created_at DateTime @default(now())
+
   // Relations
-  user            UserProfile @relation(fields: [user_id], references: [id])
-  whisper         Whisper   @relation(fields: [whisper_id], references: [id], onDelete: Cascade)
-  
+  user    UserProfile @relation(fields: [user_id], references: [id])
+  whisper Whisper     @relation(fields: [whisper_id], references: [id], onDelete: Cascade)
+
   @@unique([user_id, whisper_id])
   @@index([whisper_id])
 }
 
 model Follow {
-  id              String    @id @default(uuid())
-  follower_id     String
-  following_id    String
-  created_at      DateTime  @default(now())
-  
+  id           String   @id @default(uuid())
+  follower_id  String
+  following_id String
+  created_at   DateTime @default(now())
+
   // Relations
-  follower        UserProfile @relation("Follower", fields: [follower_id], references: [id])
-  following       UserProfile @relation("Following", fields: [following_id], references: [id])
-  
+  follower  UserProfile @relation("Follower", fields: [follower_id], references: [id])
+  following UserProfile @relation("Following", fields: [following_id], references: [id])
+
   @@unique([follower_id, following_id])
   @@index([following_id])
 }
 
 model Block {
-  id              String    @id @default(uuid())
-  blocker_id      String
-  blocked_id      String
-  created_at      DateTime  @default(now())
-  
+  id         String   @id @default(uuid())
+  blocker_id String
+  blocked_id String
+  created_at DateTime @default(now())
+
   // Relations
-  blocker         UserProfile @relation("Blocker", fields: [blocker_id], references: [id])
-  blocked         UserProfile @relation("Blocked", fields: [blocked_id], references: [id])
-  
+  blocker UserProfile @relation("Blocker", fields: [blocker_id], references: [id])
+  blocked UserProfile @relation("Blocked", fields: [blocked_id], references: [id])
+
   @@unique([blocker_id, blocked_id])
   @@index([blocked_id])
 }
@@ -272,17 +287,17 @@ enum NotificationType {
 }
 
 model Notification {
-  id              String    @id @default(uuid())
-  user_id         String
-  type            NotificationType
-  actor_id        String
-  whisper_id      String?
-  read_at         DateTime?
-  created_at      DateTime  @default(now())
-  
+  id         String           @id @default(uuid())
+  user_id    String
+  type       NotificationType
+  actor_id   String
+  whisper_id String?
+  read_at    DateTime?
+  created_at DateTime         @default(now())
+
   // Relations
-  user            UserProfile @relation(fields: [user_id], references: [id])
-  
+  user UserProfile @relation(fields: [user_id], references: [id])
+
   @@index([user_id, read_at, created_at])
 }
 
@@ -293,82 +308,702 @@ enum ReportStatus {
 }
 
 model Report {
-  id              String    @id @default(uuid())
-  reporter_id     String
+  id               String       @id @default(uuid())
+  reporter_id      String
   reported_user_id String?
-  story_id        String?
-  chapter_id      String?
-  whisper_id      String?
-  reason          String
-  status          ReportStatus @default(PENDING)
-  created_at      DateTime  @default(now())
-  
+  story_id         String?
+  chapter_id       String?
+  whisper_id       String?
+  reason           String
+  status           ReportStatus @default(PENDING)
+  created_at       DateTime     @default(now())
+
   // Relations
-  reporter        UserProfile @relation("Reporter", fields: [reporter_id], references: [id])
-  reported_user   UserProfile? @relation("Reported", fields: [reported_user_id], references: [id])
-  story           Story?    @relation(fields: [story_id], references: [id])
-  chapter         Chapter?  @relation(fields: [chapter_id], references: [id])
-  whisper         Whisper?  @relation(fields: [whisper_id], references: [id])
-  
+  reporter           UserProfile        @relation("Reporter", fields: [reporter_id], references: [id])
+  reported_user      UserProfile?       @relation("Reported", fields: [reported_user_id], references: [id])
+  story              Story?             @relation(fields: [story_id], references: [id])
+  chapter            Chapter?           @relation(fields: [chapter_id], references: [id])
+  whisper            Whisper?           @relation(fields: [whisper_id], references: [id])
+  moderation_actions ModerationAction[]
+
   @@index([reporter_id])
   @@index([status])
 }
 
-model UserInterest {
-  id              String    @id @default(uuid())
-  user_id         String
-  tag_id          String?
-  author_id       String?
-  score           Float     @default(0)
-  updated_at      DateTime  @updatedAt
-  
+enum ModerationActionType {
+  DISMISS
+  WARN
+  HIDE
+  DELETE
+  SUSPEND
+}
+
+model ModerationAction {
+  id           String               @id @default(uuid())
+  report_id    String
+  moderator_id String
+  action_type  ModerationActionType
+  reason       String               @db.Text
+  created_at   DateTime             @default(now())
+  metadata     Json?
+
   // Relations
-  user            UserProfile @relation(fields: [user_id], references: [id])
-  tag             Tag?      @relation(fields: [tag_id], references: [id])
-  
+  report Report @relation(fields: [report_id], references: [id])
+
+  @@index([report_id])
+  @@index([moderator_id])
+  @@index([created_at])
+}
+
+enum ModeratorRoleType {
+  MODERATOR
+  SENIOR_MODERATOR
+  ADMINISTRATOR
+}
+
+model ModeratorRole {
+  id          String            @id @default(uuid())
+  user_id     String            @unique
+  role        ModeratorRoleType
+  assigned_by String
+  assigned_at DateTime          @default(now())
+  is_active   Boolean           @default(true)
+
+  @@index([user_id])
+  @@index([role])
+  @@index([is_active])
+}
+
+model UserInterest {
+  id         String   @id @default(uuid())
+  user_id    String
+  tag_id     String?
+  author_id  String?
+  score      Float    @default(0)
+  updated_at DateTime @updatedAt
+
+  // Relations
+  user UserProfile @relation(fields: [user_id], references: [id])
+  tag  Tag?        @relation(fields: [tag_id], references: [id])
+
   @@unique([user_id, tag_id])
   @@unique([user_id, author_id])
   @@index([user_id])
 }
 
 model StoryStatsDaily {
-  id              String    @id @default(uuid())
-  story_id        String
-  date            DateTime  @db.Date
-  saves_count     Int       @default(0)
-  reads_count     Int       @default(0)
-  likes_count     Int       @default(0)
-  whispers_count  Int       @default(0)
-  trending_score  Float     @default(0)
-  
+  id             String   @id @default(uuid())
+  story_id       String
+  date           DateTime @db.Date
+  saves_count    Int      @default(0)
+  reads_count    Int      @default(0)
+  likes_count    Int      @default(0)
+  whispers_count Int      @default(0)
+  trending_score Float    @default(0)
+
   // Relations
-  story           Story     @relation(fields: [story_id], references: [id])
-  
+  story Story @relation(fields: [story_id], references: [id])
+
   @@unique([story_id, date])
   @@index([date, trending_score])
 }
 
 model User {
-  id                      String    @id @default(uuid())
-  email                   String    @unique
-  password_hash           String
-  previous_password_hashes String[]  @default([])
-  created_at              DateTime  @default(now())
-  updated_at              DateTime  @updatedAt
-  
+  id                       String   @id @default(uuid())
+  email                    String   @unique
+  password_hash            String
+  previous_password_hashes String[] @default([])
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+
   @@index([email])
 }
 
 model PasswordResetToken {
-  id              String    @id @default(uuid())
-  user_id         String
-  token_hash      String    @unique
-  expires_at      DateTime
-  created_at      DateTime  @default(now())
-  used_at         DateTime?
-  invalidated     Boolean   @default(false)
-  
+  id          String    @id @default(uuid())
+  user_id     String
+  token_hash  String    @unique
+  expires_at  DateTime
+  created_at  DateTime  @default(now())
+  used_at     DateTime?
+  invalidated Boolean   @default(false)
+
   @@index([user_id, created_at])
   @@index([token_hash])
   @@index([expires_at])
+}
+
+enum DocumentType {
+  TOS
+  PRIVACY
+  CONTENT_POLICY
+  DMCA
+}
+
+model LegalDocument {
+  id             String       @id @default(uuid())
+  document_type  DocumentType
+  version        String
+  content        String       @db.Text
+  effective_date DateTime
+  created_at     DateTime     @default(now())
+  is_active      Boolean      @default(false)
+
+  // Relations
+  user_consents UserConsent[]
+
+  @@index([document_type, is_active])
+  @@index([effective_date])
+}
+
+model UserConsent {
+  id           String   @id @default(uuid())
+  user_id      String
+  document_id  String
+  consented_at DateTime @default(now())
+  ip_address   String
+  user_agent   String
+
+  // Relations
+  user     UserProfile   @relation(fields: [user_id], references: [id])
+  document LegalDocument @relation(fields: [document_id], references: [id])
+
+  @@index([user_id])
+  @@index([document_id])
+  @@index([consented_at])
+}
+
+model CookieConsent {
+  id           String   @id @default(uuid())
+  user_id      String?
+  session_id   String
+  essential    Boolean  @default(true)
+  analytics    Boolean  @default(false)
+  marketing    Boolean  @default(false)
+  consented_at DateTime @default(now())
+
+  // Relations
+  user UserProfile? @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([session_id])
+  @@index([consented_at])
+}
+
+enum DMCAStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model DMCATakedown {
+  id                           String     @id @default(uuid())
+  copyright_holder             String
+  contact_info                 String
+  copyrighted_work_description String     @db.Text
+  infringing_url               String
+  good_faith_statement         Boolean    @default(false)
+  signature                    String
+  status                       DMCAStatus @default(PENDING)
+  submitted_at                 DateTime   @default(now())
+  reviewed_at                  DateTime?
+  reviewed_by                  String?
+
+  @@index([status])
+  @@index([submitted_at])
+}
+
+enum FilterType {
+  PROFANITY
+  SPAM
+  HATE_SPEECH
+}
+
+enum FilterSensitivity {
+  STRICT
+  MODERATE
+  PERMISSIVE
+}
+
+model ContentFilterConfig {
+  id          String            @id @default(uuid())
+  filter_type FilterType
+  sensitivity FilterSensitivity @default(MODERATE)
+  enabled     Boolean           @default(true)
+  whitelist   Json              @default("[]")
+  blacklist   Json              @default("[]")
+  updated_at  DateTime          @updatedAt
+  updated_by  String
+
+  @@unique([filter_type])
+  @@index([filter_type, enabled])
+}
+
+model AutomatedFlag {
+  id           String   @id @default(uuid())
+  content_type String
+  content_id   String
+  flag_type    String
+  confidence   Float
+  created_at   DateTime @default(now())
+  reviewed     Boolean  @default(false)
+
+  @@index([content_type, content_id])
+  @@index([reviewed])
+  @@index([created_at])
+}
+
+model EmailVerification {
+  id          String    @id @default(uuid())
+  user_id     String
+  email       String
+  token       String    @unique
+  created_at  DateTime  @default(now())
+  expires_at  DateTime
+  verified_at DateTime?
+
+  @@index([user_id])
+  @@index([token])
+  @@index([expires_at])
+}
+
+model AccountSuspension {
+  id           String    @id @default(uuid())
+  user_id      String
+  suspended_by String
+  reason       String    @db.Text
+  suspended_at DateTime  @default(now())
+  expires_at   DateTime?
+  is_active    Boolean   @default(true)
+
+  @@index([user_id])
+  @@index([is_active])
+  @@index([expires_at])
+}
+
+model Shadowban {
+  id         String   @id @default(uuid())
+  user_id    String
+  applied_by String
+  reason     String   @db.Text
+  applied_at DateTime @default(now())
+  is_active  Boolean  @default(true)
+
+  @@index([user_id])
+  @@index([is_active])
+}
+
+model APIKey {
+  id           String    @id @default(uuid())
+  key_hash     String    @unique
+  name         String
+  user_id      String
+  created_at   DateTime  @default(now())
+  last_used_at DateTime?
+  expires_at   DateTime
+  is_active    Boolean   @default(true)
+  permissions  Json      @default("{}")
+
+  @@index([user_id])
+  @@index([key_hash])
+  @@index([is_active, expires_at])
+}
+
+enum AuthEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  TOKEN_REFRESH
+  PASSWORD_CHANGE
+  SUSPICIOUS_ACTIVITY
+}
+
+model AuthenticationEvent {
+  id          String        @id @default(uuid())
+  user_id     String?
+  event_type  AuthEventType
+  ip_address  String
+  user_agent  String
+  location    String?
+  success     Boolean       @default(true)
+  metadata    Json?
+  created_at  DateTime      @default(now())
+
+  @@index([user_id, created_at])
+  @@index([event_type])
+  @@index([ip_address])
+  @@index([created_at])
+}
+
+model TOTPDevice {
+  id           String    @id @default(uuid())
+  user_id      String
+  secret       String
+  name         String    @default("Authenticator")
+  confirmed    Boolean   @default(false)
+  created_at   DateTime  @default(now())
+  last_used_at DateTime?
+
+  @@index([user_id])
+  @@index([confirmed])
+}
+
+model BackupCode {
+  id         String    @id @default(uuid())
+  user_id    String
+  code_hash  String    @unique
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+
+  @@index([user_id])
+  @@index([code_hash])
+}
+
+enum NSFWContentType {
+  STORY
+  CHAPTER
+  WHISPER
+  IMAGE
+}
+
+enum NSFWDetectionMethod {
+  AUTOMATIC
+  MANUAL
+  USER_MARKED
+}
+
+model NSFWFlag {
+  id                String              @id @default(uuid())
+  content_type      NSFWContentType
+  content_id        String
+  is_nsfw           Boolean             @default(false)
+  confidence        Float?
+  labels            Json?
+  detection_method  NSFWDetectionMethod
+  flagged_by        String?
+  flagged_at        DateTime            @default(now())
+  reviewed          Boolean             @default(false)
+
+  @@index([content_type, content_id])
+  @@index([is_nsfw])
+  @@index([reviewed])
+  @@index([flagged_at])
+}
+
+enum NSFWPreference {
+  SHOW_ALL
+  BLUR_NSFW
+  HIDE_NSFW
+}
+
+model ContentPreference {
+  id              String         @id @default(uuid())
+  user_id         String         @unique
+  nsfw_preference NSFWPreference @default(BLUR_NSFW)
+  updated_at      DateTime       @updatedAt
+
+  @@index([user_id])
+}
+
+enum PIIType {
+  EMAIL
+  PHONE
+  SSN
+  CREDIT_CARD
+}
+
+enum PIISensitivity {
+  STRICT
+  MODERATE
+  PERMISSIVE
+}
+
+model PIIDetectionConfig {
+  id          String          @id @default(uuid())
+  pii_type    PIIType
+  sensitivity PIISensitivity  @default(MODERATE)
+  enabled     Boolean         @default(true)
+  whitelist   Json            @default("[]")
+  pattern     String?
+  updated_at  DateTime        @updatedAt
+  updated_by  String
+
+  @@unique([pii_type])
+  @@index([pii_type, enabled])
+}
+
+enum DataExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model DataExportRequest {
+  id            String           @id @default(uuid())
+  user_id       String
+  status        DataExportStatus @default(PENDING)
+  requested_at  DateTime         @default(now())
+  completed_at  DateTime?
+  download_url  String?
+  expires_at    DateTime?
+  error_message String?          @db.Text
+
+  @@index([user_id])
+  @@index([status])
+  @@index([requested_at])
+}
+
+enum DeletionStatus {
+  PENDING
+  CANCELLED
+  COMPLETED
+}
+
+model DeletionRequest {
+  id                    String          @id @default(uuid())
+  user_id               String
+  requested_at          DateTime        @default(now())
+  scheduled_deletion_at DateTime
+  cancelled_at          DateTime?
+  completed_at          DateTime?
+  status                DeletionStatus  @default(PENDING)
+
+  @@index([user_id])
+  @@index([status])
+  @@index([scheduled_deletion_at])
+}
+
+enum VisibilityLevel {
+  PUBLIC
+  FOLLOWERS_ONLY
+  PRIVATE
+}
+
+enum CommentPermission {
+  ANYONE
+  FOLLOWERS
+  DISABLED
+}
+
+enum FollowerApproval {
+  ANYONE
+  APPROVAL_REQUIRED
+}
+
+model PrivacySettings {
+  id                          String            @id @default(uuid())
+  user_id                     String            @unique
+  profile_visibility          VisibilityLevel   @default(PUBLIC)
+  reading_history_visibility  VisibilityLevel   @default(PRIVATE)
+  analytics_opt_out           Boolean           @default(false)
+  marketing_emails            Boolean           @default(true)
+  comment_permissions         CommentPermission @default(ANYONE)
+  follower_approval_required  FollowerApproval  @default(ANYONE)
+  created_at                  DateTime          @default(now())
+  updated_at                  DateTime          @updatedAt
+
+  @@index([user_id])
+}
+
+enum AuditActionType {
+  // Authentication events
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_CHANGE
+  TWO_FA_ENABLED
+  TWO_FA_DISABLED
+  
+  // Moderation actions
+  CONTENT_TAKEDOWN
+  USER_SUSPENSION
+  REPORT_RESOLUTION
+  ROLE_ASSIGNMENT
+  
+  // Administrative actions
+  CONFIG_CHANGE
+  USER_ROLE_CHANGE
+  SYSTEM_SETTINGS_UPDATE
+  
+  // Data access
+  DATA_EXPORT_REQUEST
+  ACCOUNT_DELETION_REQUEST
+  PRIVACY_SETTINGS_CHANGE
+  
+  // Other critical actions
+  API_KEY_CREATED
+  API_KEY_REVOKED
+  CONSENT_RECORDED
+  CONSENT_WITHDRAWN
+}
+
+enum AuditResourceType {
+  USER
+  STORY
+  CHAPTER
+  WHISPER
+  REPORT
+  MODERATION_ACTION
+  PRIVACY_SETTINGS
+  API_KEY
+  SYSTEM_CONFIG
+  DATA_EXPORT
+  DELETION_REQUEST
+}
+
+enum AuditResult {
+  SUCCESS
+  FAILURE
+  PARTIAL
+}
+
+model AuditLog {
+  id            String            @id @default(uuid())
+  user_id       String?
+  action_type   AuditActionType
+  resource_type AuditResourceType?
+  resource_id   String?
+  ip_address    String
+  user_agent    String
+  result        AuditResult       @default(SUCCESS)
+  metadata      Json?
+  created_at    DateTime          @default(now())
+
+  @@index([user_id, created_at])
+  @@index([action_type, created_at])
+  @@index([resource_type, resource_id])
+  @@index([created_at])
+  @@index([ip_address, created_at])
+}
+
+model OnboardingProgress {
+  id                      String    @id @default(uuid())
+  user_id                 String    @unique
+  profile_completed       Boolean   @default(false)
+  interests_selected      Boolean   @default(false)
+  tutorial_completed      Boolean   @default(false)
+  first_story_read        Boolean   @default(false)
+  first_whisper_posted    Boolean   @default(false)
+  first_follow            Boolean   @default(false)
+  authors_followed_count  Int       @default(0)
+  onboarding_completed    Boolean   @default(false)
+  completed_at            DateTime?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+
+  @@index([user_id])
+  @@index([onboarding_completed])
+}
+
+enum HelpArticleCategory {
+  GETTING_STARTED
+  READING_STORIES
+  WRITING_CONTENT
+  ACCOUNT_SETTINGS
+  PRIVACY_SAFETY
+  TROUBLESHOOTING
+}
+
+enum HelpArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model HelpArticle {
+  id          String               @id @default(uuid())
+  title       String
+  slug        String               @unique
+  category    HelpArticleCategory
+  content     String               @db.Text
+  excerpt     String?
+  status      HelpArticleStatus    @default(DRAFT)
+  view_count  Int                  @default(0)
+  helpful_yes Int                  @default(0)
+  helpful_no  Int                  @default(0)
+  author_id   String
+  created_at  DateTime             @default(now())
+  updated_at  DateTime             @updatedAt
+  published_at DateTime?
+
+  // Relations
+  search_queries HelpSearchQuery[]
+  feedback       HelpArticleFeedback[]
+
+  @@index([category, status])
+  @@index([slug])
+  @@index([view_count])
+  @@index([published_at])
+}
+
+model HelpSearchQuery {
+  id         String   @id @default(uuid())
+  query      String
+  article_id String?
+  user_id    String?
+  clicked    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  // Relations
+  article HelpArticle? @relation(fields: [article_id], references: [id])
+
+  @@index([query])
+  @@index([created_at])
+  @@index([clicked])
+}
+
+model HelpArticleFeedback {
+  id         String   @id @default(uuid())
+  article_id String
+  user_id    String?
+  helpful    Boolean
+  comment    String?
+  created_at DateTime @default(now())
+
+  // Relations
+  article HelpArticle @relation(fields: [article_id], references: [id])
+
+  @@index([article_id])
+  @@index([created_at])
+}
+
+model SupportRequest {
+  id         String   @id @default(uuid())
+  user_id    String?
+  email      String
+  name       String
+  subject    String
+  message    String   @db.Text
+  status     String   @default("open")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([user_id])
+  @@index([status])
+  @@index([created_at])
+}
+
+enum BadgeType {
+  VERIFIED_AUTHOR
+  TOP_CONTRIBUTOR
+  EARLY_ADOPTER
+  PROLIFIC_WRITER
+  POPULAR_AUTHOR
+  COMMUNITY_CHAMPION
+}
+
+model UserBadge {
+  id         String    @id @default(uuid())
+  user_id    String
+  badge_type BadgeType
+  earned_at  DateTime  @default(now())
+  metadata   Json?
+
+  // Relations
+  user UserProfile @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, badge_type])
+  @@index([user_id])
+  @@index([badge_type])
 }

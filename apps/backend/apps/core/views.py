@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db import connection
 from django.core.cache import cache
-from datetime import datetime
+from datetime import datetime, timezone
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
@@ -64,7 +64,7 @@ def health_check(request):
     """
     health_status = {
         'status': 'healthy',
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'checks': {}
     }
     

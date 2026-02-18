@@ -1,0 +1,55 @@
+// Notification Preference and Queue Models
+// Implements Requirements 21.9, 21.10
+
+model NotificationPreference {
+  id                    String   @id @default(cuid())
+  user_id               String   @unique
+  
+  // Notification type preferences with frequency settings
+  // Frequency options: immediate, daily_digest, weekly_digest, disabled
+  welcome_email         String   @default("immediate")
+  new_comment           String   @default("immediate")
+  new_like              String   @default("daily_digest")
+  new_follower          String   @default("immediate")
+  new_content           String   @default("immediate")
+  content_takedown      String   @default("immediate")
+  security_alert        String   @default("immediate")
+  
+  // Marketing preferences
+  marketing_emails      Boolean  @default(true)
+  
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  @@index([user_id])
+}
+
+model NotificationQueue {
+  id                    String   @id @default(cuid())
+  user_id               String
+  notification_type     String   // welcome, comment, like, follower, content, takedown, security
+  
+  // Notification data (JSON)
+  data                  Json
+  
+  // Status tracking
+  status                String   @default("pending") // pending, sent, failed
+  frequency             String   // immediate, daily_digest, weekly_digest
+  
+  // Delivery tracking
+  scheduled_for         DateTime?
+  sent_at               DateTime?
+  failed_at             DateTime?
+  error_message         String?
+  retry_count           Int      @default(0)
+  
+  // Email tracking
+  email_id              String?  // Resend email ID
+  
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  @@index([user_id, status])
+  @@index([status, scheduled_for])
+  @@index([notification_type])
+}

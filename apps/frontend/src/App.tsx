@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { useEffect } from "react";
 import { setTokenGetter } from "@/lib/api";
+import { RecaptchaProvider } from "@/contexts/RecaptchaContext";
 
 import AppShell from "@/components/layout/AppShell";
 import ProtectedRoute from "@/components/shared/ProtectedRoute";
@@ -24,6 +25,12 @@ import Notifications from "./pages/Notifications";
 import ProfileSettings from "./pages/ProfileSettings";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import DMCARequest from "./pages/DMCARequest";
+import { HelpCenter } from "./pages/HelpCenter";
+import { HelpArticle } from "./pages/HelpArticle";
+import { HelpSearch } from "./pages/HelpSearch";
+import { HelpCategory } from "./pages/HelpCategory";
+import { ContactSupport } from "./pages/ContactSupport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -57,6 +64,12 @@ function AppRoutes() {
       <Route path="/write/story/:id" element={<AppShell><ProtectedRoute><StoryEditor /></ProtectedRoute></AppShell>} />
       <Route path="/notifications" element={<AppShell><ProtectedRoute><Notifications /></ProtectedRoute></AppShell>} />
       <Route path="/settings/profile" element={<AppShell><ProtectedRoute><ProfileSettings /></ProtectedRoute></AppShell>} />
+      <Route path="/dmca" element={<AppShell><DMCARequest /></AppShell>} />
+      <Route path="/help" element={<AppShell><HelpCenter /></AppShell>} />
+      <Route path="/help/search" element={<AppShell><HelpSearch /></AppShell>} />
+      <Route path="/help/category/:category" element={<AppShell><HelpCategory /></AppShell>} />
+      <Route path="/help/articles/:slug" element={<AppShell><HelpArticle /></AppShell>} />
+      <Route path="/help/contact" element={<AppShell><ContactSupport /></AppShell>} />
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/sign-up" element={<SignUp />} />
       <Route path="*" element={<AppShell><NotFound /></AppShell>} />
@@ -69,13 +82,15 @@ const App = () => {
   if (!CLERK_KEY) {
     return (
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
+        <RecaptchaProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </RecaptchaProvider>
       </QueryClientProvider>
     );
   }
@@ -83,14 +98,16 @@ const App = () => {
   return (
     <ClerkProvider publishableKey={CLERK_KEY}>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <TokenInjector />
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
+        <RecaptchaProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <TokenInjector />
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </RecaptchaProvider>
       </QueryClientProvider>
     </ClerkProvider>
   );

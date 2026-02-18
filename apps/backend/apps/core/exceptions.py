@@ -67,6 +67,13 @@ class InsufficientPermissions(APIException):
     default_code = 'insufficient_permissions'
 
 
+class CaptchaValidationError(APIException):
+    """Exception raised when reCAPTCHA validation fails."""
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = 'CAPTCHA validation failed. Please try again.'
+    default_code = 'captcha_validation_failed'
+
+
 def custom_exception_handler(exc, context):
     """
     Custom exception handler for consistent error responses.

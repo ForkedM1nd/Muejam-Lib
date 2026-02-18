@@ -135,3 +135,34 @@ def check_not_blocked(get_target_user_id):
         return wrapper
     
     return decorator
+
+
+
+def async_api_view(view_func):
+    """
+    Decorator to handle async view functions with DRF.
+    
+    Wraps an async view function to make it compatible with Django REST Framework.
+    Handles async execution and ensures proper response handling.
+    
+    Usage:
+        @api_view(['GET'])
+        @async_api_view
+        async def my_async_view(request):
+            result = await some_async_operation()
+            return Response(result)
+    """
+    import asyncio
+    from asgiref.sync import sync_to_async
+    
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        # Run the async view function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(view_func(request, *args, **kwargs))
+        finally:
+            loop.close()
+    
+    return wrapper

@@ -32,12 +32,13 @@ class WhisperCreateSerializer(serializers.Serializer):
     """
     Serializer for creating a whisper.
     
-    Accepts: content, media_key (optional), scope, story_id (optional), highlight_id (optional)
+    Accepts: content, media_key (optional), scope, story_id (optional), highlight_id (optional), mark_as_nsfw (optional)
     
     Requirements:
         - 6.1: Create global whisper
         - 6.2: Create story-linked whisper
         - 6.3: Create highlight-linked whisper
+        - 8.3: Allow content creators to manually mark their content as NSFW
     """
     content = serializers.CharField(
         required=True,
@@ -65,6 +66,11 @@ class WhisperCreateSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         help_text="Highlight ID (required if scope is HIGHLIGHT)"
+    )
+    mark_as_nsfw = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Mark this whisper as NSFW (Not Safe For Work)"
     )
     
     def validate_content(self, value):

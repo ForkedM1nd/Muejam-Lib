@@ -4,18 +4,33 @@ A minimal digital library platform for serial stories with an integrated micro-p
 
 ## Project Structure
 
-This is a monorepo containing multiple applications and shared packages:
+This is a monorepo containing multiple applications, shared packages, documentation, and infrastructure:
 
 ```
 muejam-library/
-├── apps/              # Applications
+├── apps/              # Deployable applications
 │   ├── backend/       # Django REST API
-│   └── frontend/      # Vite React application
-├── packages/          # Shared libraries (future)
-├── tools/             # Build tools and scripts
-├── docs/              # Documentation
-└── tests/             # Integration tests
+│   └── frontend/      # React application
+├── packages/          # Shared libraries (future use)
+├── docs/              # All documentation
+│   ├── architecture/  # System design
+│   ├── features/      # Feature documentation
+│   ├── development/   # Developer guides
+│   └── deployment/    # Deployment guides
+├── tests/             # Centralized test suites
+│   ├── backend/       # Backend integration tests
+│   └── frontend/      # Frontend integration tests
+├── scripts/           # Automation scripts
+│   ├── database/      # Database utilities
+│   ├── deployment/    # Deployment scripts
+│   └── verification/  # Verification scripts
+├── infra/             # Infrastructure as code
+│   ├── terraform/     # Terraform configurations
+│   └── iam-policies/  # IAM policies
+└── tools/             # Development tools
 ```
+
+For detailed structure documentation, see [Monorepo Structure](docs/architecture/monorepo-structure.md).
 
 ## Quick Start
 
@@ -38,44 +53,73 @@ muejam-library/
    ```
 
 3. Access the application:
-   - Frontend: http://localhost:5173
+   - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000/api
-   - API Documentation: http://localhost:8000/api/docs
+   - API Documentation: http://localhost:8000/api/schema/swagger-ui/
 
 ### Development Setup
 
 For detailed development setup instructions, see:
-- [Quickstart Guide](docs/getting-started/quickstart.md)
-- [Development Guide](docs/getting-started/development.md)
+- [Development Setup Guide](docs/development/setup.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
 
 ## Features
 
 - **Serial Fiction Library**: Browse, read, and manage serial stories
 - **Whispers**: Micro-posting system for short updates and thoughts
-- **User Authentication**: Secure registration and login with JWT tokens
+- **User Authentication**: Secure authentication with Clerk
+- **Content Moderation**: Automated and manual content moderation
+- **GDPR Compliance**: Data export, deletion, and privacy controls
+- **Two-Factor Authentication**: Enhanced security with TOTP
 - **Responsive Design**: Works on desktop and mobile devices
 - **RESTful API**: Clean API design with comprehensive documentation
 
 ## Technology Stack
 
 ### Backend
-- Django 5.1 with Django REST Framework
-- PostgreSQL database
+- Django 5.0.1 with Django REST Framework
+- PostgreSQL 15 database
 - Prisma ORM
-- JWT authentication
+- Valkey (Redis-compatible) for caching
+- Celery for background tasks
+- Clerk for authentication
 
 ### Frontend
 - React 18 with TypeScript
 - Vite build tool
 - TanStack Query for data fetching
 - React Router for navigation
-- Tailwind CSS for styling
+- Tailwind CSS + shadcn/ui for styling
+
+### Infrastructure
+- Docker & Docker Compose
+- AWS (ECS, RDS, S3, CloudFront)
+- Terraform for IaC
+- GitHub Actions for CI/CD
 
 ## Documentation
 
-- [Documentation Index](docs/README.md)
-- [API Documentation](docs/architecture/api.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
+### Getting Started
+- [Development Setup](docs/development/setup.md)
+- [Coding Conventions](docs/development/conventions.md)
+- [Testing Guide](docs/development/testing.md)
+- [Development Workflows](docs/development/workflows.md)
+- [Troubleshooting](docs/development/troubleshooting.md)
+
+### Architecture
+- [Monorepo Structure](docs/architecture/monorepo-structure.md)
+- [Infrastructure Architecture](docs/architecture/infrastructure.md)
+
+### Features
+- [Authentication](docs/features/authentication/)
+- [Moderation](docs/features/moderation/)
+- [GDPR Compliance](docs/features/gdpr/)
+- [Security Features](docs/features/security/)
+
+### Deployment
+- [Migration Guide](docs/deployment/migration-guide.md)
+- [Deployment Verification](docs/deployment/verification.md)
+- [CI/CD Pipeline](docs/deployment/ci-cd.md)
 
 ## Development
 
@@ -86,6 +130,8 @@ cd apps/backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your configuration
 python manage.py migrate
 python manage.py runserver
 ```
@@ -95,6 +141,8 @@ python manage.py runserver
 ```bash
 cd apps/frontend
 npm install
+cp .env.example .env.local
+# Edit .env.local with your configuration
 npm run dev
 ```
 
@@ -103,7 +151,7 @@ npm run dev
 Backend tests:
 ```bash
 cd apps/backend
-pytest
+python -m pytest
 ```
 
 Frontend tests:
@@ -115,6 +163,12 @@ npm test
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+Key points:
+- Follow our [coding conventions](docs/development/conventions.md)
+- Write tests for new features
+- Update documentation as needed
+- Submit pull requests with clear descriptions
 
 ## License
 

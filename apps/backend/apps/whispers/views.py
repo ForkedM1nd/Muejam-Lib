@@ -1,11 +1,11 @@
 """Views for whispers micro-posting system."""
 import logging
+import asyncio
 from datetime import datetime
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from prisma import Prisma
-import bleach
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
@@ -15,41 +15,14 @@ from .serializers import (
     WhisperReplySerializer,
     WhisperLikeSerializer,
 )
-from apps.core.rate_limiting import rate_limit
+from apps.core.rate_limiting import rate_limit, require_captcha
+from apps.core.content_sanitizer import ContentSanitizer
+from apps.core.pii_middleware import detect_pii_in_content
 from apps.social.utils import sync_get_blocked_user_ids
 from apps.notifications.views import sync_create_notification
+from apps.moderation.content_filter_integration import ContentFilterIntegration
 
 logger = logging.getLogger(__name__)
-
-
-def sanitize_whisper_content(content: str) -> str:
-    """
-    Sanitize whisper content to prevent XSS attacks.
-    
-    Args:
-        content: Raw whisper content
-        
-    Returns:
-        Sanitized content safe for rendering
-        
-    Requirements:
-        - 6.10: Sanitize whisper content for XSS prevention
-    """
-    # Define allowed tags and attributes (more restrictive than story content)
-    allowed_tags = ['p', 'br', 'strong', 'em', 'a']
-    allowed_attributes = {
-        'a': ['href', 'title'],
-    }
-    
-    # Sanitize content
-    sanitized = bleach.clean(
-        content,
-        tags=allowed_tags,
-        attributes=allowed_attributes,
-        strip=True
-    )
-    
-    return sanitized
 
 
 @extend_schema(
@@ -122,7 +95,9 @@ def sanitize_whisper_content(content: str) -> str:
     ]
 )
 @api_view(['GET', 'POST'])
+@require_captcha  # Validate reCAPTCHA token for POST requests (Requirement 5.4)
 @rate_limit('whisper_create', 10, 60)  # 10 whispers per minute
+@detect_pii_in_content(content_fields=['content'])  # Detect PII in whisper content (Requirements 9.1, 9.2, 9.3, 9.4)
 def whispers(request):
     """
     List whispers or create a new whisper.
@@ -151,7 +126,7 @@ def _create_whisper(request):
         
     Returns:
         - 201: Whisper created successfully
-        - 400: Invalid input
+        - 400: Invalid input or content blocked by filters
         - 401: Not authenticated
         - 404: Referenced story or highlight not found
         - 429: Rate limit exceeded
@@ -162,6 +137,10 @@ def _create_whisper(request):
         - 6.3: Create highlight-linked whisper
         - 6.4: Enforce rate limit (10 per minute)
         - 6.10: Sanitize content for XSS prevention
+        - 4.1: Filter profanity
+        - 4.2: Block spam patterns
+        - 4.3: Return appropriate errors for blocked content
+        - 4.4: Create high-priority reports for hate speech
     """
     # Check authentication
     user_id = getattr(request, 'clerk_user_id', None)
@@ -194,14 +173,44 @@ def _create_whisper(request):
     
     validated_data = serializer.validated_data
     
-    # Sanitize content
-    sanitized_content = sanitize_whisper_content(validated_data['content'])
+    # Sanitize content using centralized ContentSanitizer (Requirement 6.8)
+    sanitized_content = ContentSanitizer.sanitize_simple_content(validated_data['content'])
     
     # Query database
     db = Prisma()
     
     try:
         db.connect()
+        
+        # Run content filters (Requirement 4.1, 4.2, 4.3, 4.4)
+        filter_integration = ContentFilterIntegration(db)
+        
+        # Use asyncio to run the async filter method
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            filter_result = loop.run_until_complete(
+                filter_integration.filter_and_validate_content(
+                    content=sanitized_content,
+                    content_type='whisper'
+                )
+            )
+        finally:
+            loop.close()
+        
+        # Block content if filters detected issues (Requirement 4.3)
+        if filter_result['blocked']:
+            db.disconnect()
+            return Response(
+                {
+                    'error': {
+                        'code': 'CONTENT_BLOCKED',
+                        'message': filter_result['error_message'],
+                        'flags': filter_result['flags']
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Validate story_id if provided
         if validated_data.get('story_id'):
@@ -244,6 +253,43 @@ def _create_whisper(request):
                 'highlight_id': validated_data.get('highlight_id'),
             }
         )
+        
+        # Handle manual NSFW marking (Requirement 8.3)
+        if validated_data.get('mark_as_nsfw', False):
+            from apps.moderation.nsfw_service import get_nsfw_service
+            from prisma.enums import NSFWContentType
+            
+            nsfw_service = get_nsfw_service()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    nsfw_service.mark_content_as_nsfw(
+                        content_type=NSFWContentType.WHISPER,
+                        content_id=whisper.id,
+                        user_id=user_profile.id,
+                        is_manual=False  # USER_MARKED
+                    )
+                )
+            finally:
+                loop.close()
+        
+        # Handle automated actions (e.g., create reports for hate speech)
+        # Requirement 4.4: Create high-priority reports for hate speech
+        if filter_result.get('auto_actions'):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    filter_integration.handle_auto_actions(
+                        content_type='whisper',
+                        content_id=whisper.id,
+                        auto_actions=filter_result['auto_actions'],
+                        filter_details=filter_result['details']
+                    )
+                )
+            finally:
+                loop.close()
         
         db.disconnect()
         
@@ -475,7 +521,9 @@ def delete_whisper(request, whisper_id):
 # Whisper Replies
 
 @api_view(['GET', 'POST'])
+@require_captcha  # Validate reCAPTCHA token for POST requests (Requirement 5.4)
 @rate_limit('whisper_reply', 20, 60)  # 20 replies per minute
+@detect_pii_in_content(content_fields=['content'])  # Detect PII in reply content (Requirements 9.1, 9.2, 9.3, 9.4)
 def whisper_replies(request, whisper_id):
     """
     List replies or create a reply to a whisper.
@@ -541,8 +589,8 @@ def _create_reply(request, whisper_id):
     
     validated_data = serializer.validated_data
     
-    # Sanitize content
-    sanitized_content = sanitize_whisper_content(validated_data['content'])
+    # Sanitize content using centralized ContentSanitizer (Requirement 6.8)
+    sanitized_content = ContentSanitizer.sanitize_simple_content(validated_data['content'])
     
     # Query database
     db = Prisma()

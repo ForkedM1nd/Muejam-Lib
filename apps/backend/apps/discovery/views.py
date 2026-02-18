@@ -161,11 +161,12 @@ def discover_feed(request):
         )
     
     # For You feed requires authentication
-    if tab == 'for-you' and not hasattr(request, 'user_profile'):
-        return Response(
-            {'error': 'Authentication required for For You feed'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+    if tab == 'for-you':
+        if not hasattr(request, 'user_profile') or not request.user_profile:
+            return Response(
+                {'error': 'Authentication required for For You feed'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
     
     # Generate cache key
     cache_key = CacheManager.make_key(
@@ -408,3 +409,194 @@ async def fetch_for_you_feed(request, tag_slug=None, search_query=None):
         'data': stories,
         'next_cursor': None  # Simplified for now
     }
+
+
+
+# New discovery endpoints for Task 67
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def trending_stories_v2(request):
+    """
+    GET /v1/discovery/trending - Get trending stories
+    
+    Requirements:
+        - 25.1, 25.2: Trending feed based on engagement and recency
+    
+    Query params:
+        - limit: Number of stories to return (default: 20)
+        - days: Number of days to consider (default: 7)
+    """
+    from .discovery_service import DiscoveryService
+    from apps.stories.serializers import StoryListSerializer
+    
+    limit = int(request.query_params.get('limit', 20))
+    days = int(request.query_params.get('days', 7))
+    
+    stories = asyncio.run(DiscoveryService.get_trending_stories(limit=limit, days=days))
+    
+    serializer = StoryListSerializer(stories, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def stories_by_genre(request, genre):
+    """
+    GET /v1/discovery/genre/{genre} - Get stories by genre with filters
+    
+    Requirements:
+        - 25.3: Genre-based browsing
+        - 25.4: Filtering by status, word count, update frequency
+    """
+    from .discovery_service import DiscoveryService
+    from apps.stories.serializers import StoryListSerializer
+    
+    limit = int(request.query_params.get('limit', 20))
+    offset = int(request.query_params.get('offset', 0))
+    
+    filters = {}
+    if 'status' in request.query_params:
+        filters['status'] = request.query_params['status']
+    
+    stories, total = asyncio.run(DiscoveryService.get_stories_by_genre(
+        genre=genre,
+        limit=limit,
+        offset=offset,
+        filters=filters
+    ))
+    
+    serializer = StoryListSerializer(stories, many=True)
+    return Response({
+        'results': serializer.data,
+        'total': total,
+        'limit': limit,
+        'offset': offset
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def recommended_stories(request):
+    """
+    GET /v1/discovery/recommended - Get recommended stories for current user
+    
+    Requirements:
+        - 25.5: Recommendations based on reading history and followed authors
+    """
+    from .discovery_service import DiscoveryService
+    from apps.stories.serializers import StoryListSerializer
+    
+    if not request.user_profile:
+        return Response(
+            {'error': {'code': 'UNAUTHORIZED', 'message': 'Authentication required'}},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    limit = int(request.query_params.get('limit', 10))
+    
+    stories = asyncio.run(DiscoveryService.get_recommended_stories(
+        user_id=request.user_profile.id,
+        limit=limit
+    ))
+    
+    serializer = StoryListSerializer(stories, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def similar_stories(request, story_id):
+    """
+    GET /v1/discovery/similar/{story_id} - Get similar stories
+    
+    Requirements:
+        - 25.6: Similar stories based on genre, tags, and reader overlap
+    """
+    from .discovery_service import DiscoveryService
+    from apps.stories.serializers import StoryListSerializer
+    
+    limit = int(request.query_params.get('limit', 5))
+    
+    stories = asyncio.run(DiscoveryService.get_similar_stories(
+        story_id=story_id,
+        limit=limit
+    ))
+    
+    serializer = StoryListSerializer(stories, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def new_and_noteworthy(request):
+    """
+    GET /v1/discovery/new-and-noteworthy - Get new and noteworthy stories
+    
+    Requirements:
+        - 25.7: New and noteworthy featuring recent stories with quality signals
+    """
+    from .discovery_service import DiscoveryService
+    from apps.stories.serializers import StoryListSerializer
+    
+    limit = int(request.query_params.get('limit', 10))
+    days = int(request.query_params.get('days', 30))
+    
+    stories = asyncio.run(DiscoveryService.get_new_and_noteworthy(limit=limit, days=days))
+    
+    serializer = StoryListSerializer(stories, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def staff_picks(request):
+    """
+    GET /v1/discovery/staff-picks - Get staff-curated stories
+    
+    Requirements:
+        - 25.10: Staff picks curated by moderators
+    """
+    from .discovery_service import DiscoveryService
+    from apps.stories.serializers import StoryListSerializer
+    
+    limit = int(request.query_params.get('limit', 10))
+    
+    stories = asyncio.run(DiscoveryService.get_staff_picks(limit=limit))
+    
+    serializer = StoryListSerializer(stories, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def rising_authors(request):
+    """
+    GET /v1/discovery/rising-authors - Get rising authors
+    
+    Requirements:
+        - 25.12: Rising authors featuring new authors with growing followings
+    """
+    from .discovery_service import DiscoveryService
+    
+    limit = int(request.query_params.get('limit', 10))
+    days = int(request.query_params.get('days', 30))
+    
+    authors = asyncio.run(DiscoveryService.get_rising_authors(limit=limit, days=days))
+    
+    # Format response
+    author_data = [
+        {
+            'id': item['author'].id,
+            'handle': item['author'].handle,
+            'display_name': item['author'].display_name,
+            'bio': item['author'].bio,
+            'avatar_key': item['author'].avatar_key,
+            'follower_count': item['follower_count'],
+            'story_count': item['story_count'],
+            'created_at': item['author'].created_at
+        }
+        for item in authors
+    ]
+    
+    return Response(author_data)

@@ -1,11 +1,11 @@
 """Views for story and chapter management."""
 import logging
+import asyncio
 from datetime import datetime
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from prisma import Prisma
-import bleach
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
@@ -20,55 +20,13 @@ from .serializers import (
     ChapterUpdateSerializer,
     generate_slug,
 )
-from apps.core.rate_limiting import rate_limit
+from apps.core.rate_limiting import rate_limit, require_captcha
+from apps.core.content_sanitizer import ContentSanitizer
+from apps.core.pii_middleware import detect_pii_in_content
 from apps.social.utils import sync_get_blocked_user_ids
+from apps.moderation.content_filter_integration import ContentFilterIntegration
 
 logger = logging.getLogger(__name__)
-
-
-def sanitize_markdown(content: str) -> str:
-    """
-    Sanitize markdown content to prevent XSS attacks.
-    
-    Allows safe HTML tags and attributes while removing dangerous content.
-    
-    Args:
-        content: Raw markdown/HTML content
-        
-    Returns:
-        Sanitized content safe for rendering
-        
-    Requirements:
-        - 5.10: Sanitize markdown content to prevent XSS attacks
-    """
-    # Define allowed tags and attributes
-    allowed_tags = [
-        'p', 'br', 'strong', 'em', 'u', 's', 'blockquote', 'code', 'pre',
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li',
-        'a', 'img',
-        'table', 'thead', 'tbody', 'tr', 'th', 'td',
-        'hr', 'div', 'span'
-    ]
-    
-    allowed_attributes = {
-        'a': ['href', 'title'],
-        'img': ['src', 'alt', 'title'],
-        'code': ['class'],
-        'pre': ['class'],
-        'div': ['class'],
-        'span': ['class'],
-    }
-    
-    # Sanitize content
-    sanitized = bleach.clean(
-        content,
-        tags=allowed_tags,
-        attributes=allowed_attributes,
-        strip=True
-    )
-    
-    return sanitized
 
 
 @extend_schema(
@@ -138,6 +96,8 @@ def sanitize_markdown(content: str) -> str:
     ]
 )
 @api_view(['GET', 'POST'])
+@require_captcha  # Validate reCAPTCHA token for POST requests (Requirement 5.4)
+@detect_pii_in_content(content_fields=['title', 'blurb'])  # Detect PII in story content (Requirements 9.1, 9.2, 9.3, 9.4)
 def stories_list_create(request):
     """
     List stories or create a new story draft.
@@ -164,12 +124,16 @@ def _create_story(request):
         
     Returns:
         - 201: Story created successfully
-        - 400: Invalid input
+        - 400: Invalid input or content blocked by filters
         - 401: Not authenticated
         - 409: Slug already exists
         
     Requirements:
         - 5.1: Create story draft with published=false
+        - 4.1: Filter profanity
+        - 4.2: Block spam patterns
+        - 4.3: Return appropriate errors for blocked content
+        - 4.4: Create high-priority reports for hate speech
     """
     # Check authentication
     user_id = getattr(request, 'clerk_user_id', None)
@@ -202,8 +166,8 @@ def _create_story(request):
     
     validated_data = serializer.validated_data
     
-    # Sanitize blurb
-    sanitized_blurb = sanitize_markdown(validated_data['blurb'])
+    # Sanitize blurb using centralized ContentSanitizer (Requirement 6.8)
+    sanitized_blurb = ContentSanitizer.sanitize_rich_content(validated_data['blurb'])
     
     # Generate slug from title
     base_slug = generate_slug(validated_data['title'])
@@ -214,6 +178,63 @@ def _create_story(request):
     
     try:
         db.connect()
+        
+        # Run content filters on title and blurb (Requirement 4.1, 4.2, 4.3, 4.4)
+        filter_integration = ContentFilterIntegration(db)
+        
+        # Filter title
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            title_filter_result = loop.run_until_complete(
+                filter_integration.filter_and_validate_content(
+                    content=validated_data['title'],
+                    content_type='story'
+                )
+            )
+        finally:
+            loop.close()
+        
+        # Block if title is problematic
+        if title_filter_result['blocked']:
+            db.disconnect()
+            return Response(
+                {
+                    'error': {
+                        'code': 'CONTENT_BLOCKED',
+                        'message': f"Story title blocked: {title_filter_result['error_message']}",
+                        'flags': title_filter_result['flags']
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Filter blurb
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            blurb_filter_result = loop.run_until_complete(
+                filter_integration.filter_and_validate_content(
+                    content=sanitized_blurb,
+                    content_type='story'
+                )
+            )
+        finally:
+            loop.close()
+        
+        # Block if blurb is problematic
+        if blurb_filter_result['blocked']:
+            db.disconnect()
+            return Response(
+                {
+                    'error': {
+                        'code': 'CONTENT_BLOCKED',
+                        'message': f"Story description blocked: {blurb_filter_result['error_message']}",
+                        'flags': blurb_filter_result['flags']
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Ensure slug uniqueness by appending numbers if needed
         counter = 1
@@ -235,6 +256,58 @@ def _create_story(request):
                 'published': False,
             }
         )
+        
+        # Handle manual NSFW marking (Requirement 8.3)
+        if validated_data.get('mark_as_nsfw', False):
+            from apps.moderation.nsfw_service import get_nsfw_service
+            from prisma.enums import NSFWContentType
+            
+            nsfw_service = get_nsfw_service()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    nsfw_service.mark_content_as_nsfw(
+                        content_type=NSFWContentType.STORY,
+                        content_id=story.id,
+                        user_id=user_profile.id,
+                        is_manual=False  # USER_MARKED
+                    )
+                )
+            finally:
+                loop.close()
+        
+        # Handle automated actions for title
+        if title_filter_result.get('auto_actions'):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    filter_integration.handle_auto_actions(
+                        content_type='story',
+                        content_id=story.id,
+                        auto_actions=title_filter_result['auto_actions'],
+                        filter_details=title_filter_result['details']
+                    )
+                )
+            finally:
+                loop.close()
+        
+        # Handle automated actions for blurb
+        if blurb_filter_result.get('auto_actions'):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    filter_integration.handle_auto_actions(
+                        content_type='story',
+                        content_id=story.id,
+                        auto_actions=blurb_filter_result['auto_actions'],
+                        filter_details=blurb_filter_result['details']
+                    )
+                )
+            finally:
+                loop.close()
         
         db.disconnect()
         
@@ -426,6 +499,8 @@ def get_story_by_slug(request, slug):
 
 
 @api_view(['PUT'])
+@require_captcha  # Validate reCAPTCHA token (Requirement 5.4)
+@detect_pii_in_content(content_fields=['title', 'blurb'])  # Detect PII in story content (Requirements 9.1, 9.2, 9.3, 9.4)
 def update_story(request, story_id):
     """
     Update a story draft.
@@ -439,13 +514,14 @@ def update_story(request, story_id):
         
     Returns:
         - 200: Story updated successfully
-        - 400: Invalid input
+        - 400: Invalid input or PII detected
         - 401: Not authenticated
         - 403: Not authorized (not the author)
         - 404: Story not found
         
     Requirements:
         - 5.5: Update draft without affecting publication status
+        - 9.1-9.4: PII detection and protection
     """
     # Check authentication
     user_id = getattr(request, 'clerk_user_id', None)
@@ -530,7 +606,7 @@ def update_story(request, story_id):
             update_data['slug'] = slug
         
         if 'blurb' in validated_data:
-            update_data['blurb'] = sanitize_markdown(validated_data['blurb'])
+            update_data['blurb'] = ContentSanitizer.sanitize_rich_content(validated_data['blurb'])
         
         if 'cover_key' in validated_data:
             update_data['cover_key'] = validated_data['cover_key']
@@ -540,6 +616,39 @@ def update_story(request, story_id):
             where={'id': story_id},
             data=update_data
         )
+        
+        # Handle manual NSFW marking (Requirement 8.3)
+        if 'mark_as_nsfw' in validated_data:
+            from apps.moderation.nsfw_service import get_nsfw_service
+            from prisma.enums import NSFWContentType
+            
+            nsfw_service = get_nsfw_service()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                if validated_data['mark_as_nsfw']:
+                    # Mark as NSFW
+                    loop.run_until_complete(
+                        nsfw_service.mark_content_as_nsfw(
+                            content_type=NSFWContentType.STORY,
+                            content_id=story_id,
+                            user_id=user_profile.id,
+                            is_manual=False  # USER_MARKED
+                        )
+                    )
+                else:
+                    # Remove NSFW flag if user unmarked it
+                    loop.run_until_complete(
+                        nsfw_service.create_nsfw_flag(
+                            content_type=NSFWContentType.STORY,
+                            content_id=story_id,
+                            is_nsfw=False,
+                            detection_method='USER_MARKED',
+                            flagged_by=user_profile.id
+                        )
+                    )
+            finally:
+                loop.close()
         
         db.disconnect()
         
@@ -652,6 +761,7 @@ def delete_story(request, story_id):
 
 
 @api_view(['POST'])
+@require_captcha  # Validate reCAPTCHA token (Requirement 5.4)
 @rate_limit('story_publish', 5, 3600)  # 5 publishes per hour
 def publish_story(request, story_id):
     """
@@ -900,6 +1010,8 @@ def get_chapter(request, chapter_id):
 
 
 @api_view(['POST'])
+@require_captcha  # Validate reCAPTCHA token (Requirement 5.4)
+@detect_pii_in_content(content_fields=['title', 'content'])  # Detect PII in chapter content (Requirements 9.1, 9.2, 9.3, 9.4)
 def create_chapter(request, story_id):
     """
     Create a new chapter draft.
@@ -913,7 +1025,7 @@ def create_chapter(request, story_id):
         
     Returns:
         - 201: Chapter created successfully
-        - 400: Invalid input
+        - 400: Invalid input, PII detected, or content blocked by filters
         - 401: Not authenticated
         - 403: Not authorized (not the story author)
         - 404: Story not found
@@ -921,6 +1033,11 @@ def create_chapter(request, story_id):
         
     Requirements:
         - 5.2: Create chapter draft with published=false
+        - 4.1: Filter profanity
+        - 4.2: Block spam patterns
+        - 4.3: Return appropriate errors for blocked content
+        - 4.4: Create high-priority reports for hate speech
+        - 9.1-9.4: PII detection and protection
     """
     # Check authentication
     user_id = getattr(request, 'clerk_user_id', None)
@@ -953,8 +1070,8 @@ def create_chapter(request, story_id):
     
     validated_data = serializer.validated_data
     
-    # Sanitize content
-    sanitized_content = sanitize_markdown(validated_data['content'])
+    # Sanitize content using centralized ContentSanitizer (Requirement 6.8)
+    sanitized_content = ContentSanitizer.sanitize_rich_content(validated_data['content'])
     
     # Query database
     db = Prisma()
@@ -1011,6 +1128,63 @@ def create_chapter(request, story_id):
                 status=status.HTTP_409_CONFLICT
             )
         
+        # Run content filters on title and content (Requirement 4.1, 4.2, 4.3, 4.4)
+        filter_integration = ContentFilterIntegration(db)
+        
+        # Filter title
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            title_filter_result = loop.run_until_complete(
+                filter_integration.filter_and_validate_content(
+                    content=validated_data['title'],
+                    content_type='chapter'
+                )
+            )
+        finally:
+            loop.close()
+        
+        # Block if title is problematic
+        if title_filter_result['blocked']:
+            db.disconnect()
+            return Response(
+                {
+                    'error': {
+                        'code': 'CONTENT_BLOCKED',
+                        'message': f"Chapter title blocked: {title_filter_result['error_message']}",
+                        'flags': title_filter_result['flags']
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Filter content
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            content_filter_result = loop.run_until_complete(
+                filter_integration.filter_and_validate_content(
+                    content=sanitized_content,
+                    content_type='chapter'
+                )
+            )
+        finally:
+            loop.close()
+        
+        # Block if content is problematic
+        if content_filter_result['blocked']:
+            db.disconnect()
+            return Response(
+                {
+                    'error': {
+                        'code': 'CONTENT_BLOCKED',
+                        'message': f"Chapter content blocked: {content_filter_result['error_message']}",
+                        'flags': content_filter_result['flags']
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         # Create chapter
         chapter = db.chapter.create(
             data={
@@ -1021,6 +1195,58 @@ def create_chapter(request, story_id):
                 'published': False,
             }
         )
+        
+        # Handle manual NSFW marking (Requirement 8.3)
+        if validated_data.get('mark_as_nsfw', False):
+            from apps.moderation.nsfw_service import get_nsfw_service
+            from prisma.enums import NSFWContentType
+            
+            nsfw_service = get_nsfw_service()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    nsfw_service.mark_content_as_nsfw(
+                        content_type=NSFWContentType.CHAPTER,
+                        content_id=chapter.id,
+                        user_id=user_profile.id,
+                        is_manual=False  # USER_MARKED
+                    )
+                )
+            finally:
+                loop.close()
+        
+        # Handle automated actions for title
+        if title_filter_result.get('auto_actions'):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    filter_integration.handle_auto_actions(
+                        content_type='chapter',
+                        content_id=chapter.id,
+                        auto_actions=title_filter_result['auto_actions'],
+                        filter_details=title_filter_result['details']
+                    )
+                )
+            finally:
+                loop.close()
+        
+        # Handle automated actions for content
+        if content_filter_result.get('auto_actions'):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    filter_integration.handle_auto_actions(
+                        content_type='chapter',
+                        content_id=chapter.id,
+                        auto_actions=content_filter_result['auto_actions'],
+                        filter_details=content_filter_result['details']
+                    )
+                )
+            finally:
+                loop.close()
         
         db.disconnect()
         
@@ -1047,6 +1273,8 @@ def create_chapter(request, story_id):
 
 
 @api_view(['PUT'])
+@require_captcha  # Validate reCAPTCHA token (Requirement 5.4)
+@detect_pii_in_content(content_fields=['title', 'content'])  # Detect PII in chapter content (Requirements 9.1, 9.2, 9.3, 9.4)
 def update_chapter(request, chapter_id):
     """
     Update a chapter draft.
@@ -1059,13 +1287,14 @@ def update_chapter(request, chapter_id):
         
     Returns:
         - 200: Chapter updated successfully
-        - 400: Invalid input
+        - 400: Invalid input or PII detected
         - 401: Not authenticated
         - 403: Not authorized (not the story author)
         - 404: Chapter not found
         
     Requirements:
         - 5.4: Update draft without affecting publication status
+        - 9.1-9.4: PII detection and protection
     """
     # Check authentication
     user_id = getattr(request, 'clerk_user_id', None)
@@ -1142,13 +1371,46 @@ def update_chapter(request, chapter_id):
             update_data['title'] = validated_data['title']
         
         if 'content' in validated_data:
-            update_data['content'] = sanitize_markdown(validated_data['content'])
+            update_data['content'] = ContentSanitizer.sanitize_rich_content(validated_data['content'])
         
         # Update chapter
         updated_chapter = db.chapter.update(
             where={'id': chapter_id},
             data=update_data
         )
+        
+        # Handle manual NSFW marking (Requirement 8.3)
+        if 'mark_as_nsfw' in validated_data:
+            from apps.moderation.nsfw_service import get_nsfw_service
+            from prisma.enums import NSFWContentType
+            
+            nsfw_service = get_nsfw_service()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                if validated_data['mark_as_nsfw']:
+                    # Mark as NSFW
+                    loop.run_until_complete(
+                        nsfw_service.mark_content_as_nsfw(
+                            content_type=NSFWContentType.CHAPTER,
+                            content_id=chapter_id,
+                            user_id=user_profile.id,
+                            is_manual=False  # USER_MARKED
+                        )
+                    )
+                else:
+                    # Remove NSFW flag if user unmarked it
+                    loop.run_until_complete(
+                        nsfw_service.create_nsfw_flag(
+                            content_type=NSFWContentType.CHAPTER,
+                            content_id=chapter_id,
+                            is_nsfw=False,
+                            detection_method='USER_MARKED',
+                            flagged_by=user_profile.id
+                        )
+                    )
+            finally:
+                loop.close()
         
         db.disconnect()
         
@@ -1264,6 +1526,7 @@ def delete_chapter(request, chapter_id):
 
 
 @api_view(['POST'])
+@require_captcha  # Validate reCAPTCHA token (Requirement 5.4)
 @rate_limit('chapter_publish', 5, 3600)  # 5 publishes per hour
 def publish_chapter(request, chapter_id):
     """

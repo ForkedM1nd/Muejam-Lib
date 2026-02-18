@@ -1,411 +1,342 @@
-"""Views for search and autocomplete."""
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+"""
+Search API Views
+
+This module provides REST API endpoints for full-text search functionality.
+
+Requirements: 35.3, 35.4, 35.5, 35.6, 35.8, 35.10
+"""
+
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from prisma import Prisma
+from rest_framework.permissions import AllowAny
 from datetime import datetime
-from apps.core.pagination import CursorPagination
-from apps.core.cache import CacheManager
-from apps.stories.serializers import StoryListSerializer
-import asyncio
+
+from infrastructure.search_service import search_service, SearchFilters
+from apps.core.rate_limiting import rate_limit
 
 
-def get_blocked_user_ids(request):
+class SearchStoriesView(APIView):
     """
-    Get list of blocked user IDs for the current user.
+    Search stories with full-text search and filters.
     
-    Args:
-        request: DRF request object
+    GET /api/search/stories?q=query&genre=Fantasy&page=1
+    
+    Query Parameters:
+    - q: Search query (required)
+    - genre: Filter by genre (optional)
+    - completion_status: Filter by completion status (optional)
+    - min_word_count: Minimum word count (optional)
+    - max_word_count: Maximum word count (optional)
+    - updated_after: Filter by update date (ISO format, optional)
+    - updated_before: Filter by update date (ISO format, optional)
+    - page: Page number (default: 1)
+    
+    Requirements: 35.3, 35.4, 35.5, 35.8
+    """
+    
+    permission_classes = [AllowAny]
+    
+    @rate_limit('search_stories', 100, 60)
+    def get(self, request):
+        # Get query parameter
+        query = request.query_params.get('q', '').strip()
         
-    Returns:
-        List of blocked user IDs
-    """
-    if not hasattr(request, 'user_profile') or not request.user_profile:
-        return []
-    
-    async def fetch_blocked():
-        db = Prisma()
-        await db.connect()
+        if not query:
+            return Response(
+                {'error': 'Query parameter "q" is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get page number
         try:
-            blocks = await db.block.find_many(
-                where={'blocker_id': request.user_profile.id},
-                select={'blocked_id': True}
+            page = int(request.query_params.get('page', 1))
+            if page < 1:
+                page = 1
+        except ValueError:
+            page = 1
+        
+        # Build filters
+        filters = SearchFilters()
+        
+        if request.query_params.get('genre'):
+            filters.genre = request.query_params.get('genre')
+        
+        if request.query_params.get('completion_status'):
+            filters.completion_status = request.query_params.get('completion_status')
+        
+        if request.query_params.get('min_word_count'):
+            try:
+                filters.min_word_count = int(request.query_params.get('min_word_count'))
+            except ValueError:
+                pass
+        
+        if request.query_params.get('max_word_count'):
+            try:
+                filters.max_word_count = int(request.query_params.get('max_word_count'))
+            except ValueError:
+                pass
+        
+        if request.query_params.get('updated_after'):
+            try:
+                filters.updated_after = datetime.fromisoformat(
+                    request.query_params.get('updated_after')
+                )
+            except ValueError:
+                pass
+        
+        if request.query_params.get('updated_before'):
+            try:
+                filters.updated_before = datetime.fromisoformat(
+                    request.query_params.get('updated_before')
+                )
+            except ValueError:
+                pass
+        
+        # Get user ID if authenticated
+        user_id = request.user.id if request.user.is_authenticated else None
+        
+        # Perform search
+        try:
+            results = search_service.search_stories(
+                query=query,
+                filters=filters,
+                page=page,
+                user_id=user_id
             )
-            return [b.blocked_id for b in blocks]
-        finally:
-            await db.disconnect()
-    
-    return asyncio.run(fetch_blocked())
+            
+            return Response(results, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()  # Print full traceback to console
+            return Response(
+                {'error': f'Search failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def search(request):
+class SearchAuthorsView(APIView):
     """
-    Full-text search across stories, authors, and tags.
+    Search authors with full-text search.
+    
+    GET /api/search/authors?q=query&page=1
     
     Query Parameters:
-        - q: Search query (required)
-        - cursor: Pagination cursor (optional)
-        - page_size: Number of results per page (default: 20, max: 100)
-        
-    Returns:
-        Paginated list of stories matching the search query
-        
-    Requirements:
-        - 9.1: Search across story title, blurb, author name, tags
-        - 9.5: Rank results by relevance and trending score
-        - 9.6: Exclude soft-deleted and blocked content
-        - 9.7: Use PostgreSQL full-text search
+    - q: Search query (required)
+    - page: Page number (default: 1)
+    
+    Requirements: 35.3, 35.4, 35.8
     """
-    query = request.query_params.get('q', '').strip()
     
-    if not query:
-        return Response(
-            {'error': 'Search query parameter "q" is required'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    permission_classes = [AllowAny]
     
-    # Get blocked user IDs
-    blocked_ids = get_blocked_user_ids(request)
-    
-    # Fetch search results
-    response_data = asyncio.run(fetch_search_results(query, blocked_ids, request))
-    
-    return Response(response_data)
-
-
-async def fetch_search_results(query, blocked_ids, request):
-    """
-    Fetch search results using PostgreSQL full-text search.
-    
-    Requirements:
-        - 9.1: Search across title, blurb, author name, tags
-        - 9.5: Rank by relevance and trending score
-        - 9.6: Exclude deleted and blocked content
-    """
-    db = Prisma()
-    await db.connect()
-    
-    try:
-        # Build where clause
-        where_clause = {
-            'published': True,
-            'deleted_at': None
-        }
+    @rate_limit('search_authors', 100, 60)
+    def get(self, request):
+        # Get query parameter
+        query = request.query_params.get('q', '').strip()
         
-        if blocked_ids:
-            where_clause['author_id'] = {'not_in': blocked_ids}
+        if not query:
+            return Response(
+                {'error': 'Query parameter "q" is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        # Search across title and blurb using case-insensitive contains
-        # Note: For production, you'd want to set up PostgreSQL full-text search indexes
-        # and use to_tsvector/to_tsquery for better performance
-        where_clause['OR'] = [
-            {'title': {'contains': query, 'mode': 'insensitive'}},
-            {'blurb': {'contains': query, 'mode': 'insensitive'}}
-        ]
+        # Get page number
+        try:
+            page = int(request.query_params.get('page', 1))
+            if page < 1:
+                page = 1
+        except ValueError:
+            page = 1
         
-        # Get today's date for stats (convert to datetime for Prisma)
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        # Get user ID if authenticated
+        user_id = request.user.id if request.user.is_authenticated else None
         
-        # Fetch stories with stats and author info
-        stories = await db.story.find_many(
-            where=where_clause,
-            include={
-                'author': True,
-                'tags': {
-                    'include': {
-                        'tag': True
-                    }
-                },
-                'stats': {
-                    'where': {'date': today},
-                    'take': 1
-                }
-            },
-            take=100  # Get more for ranking
-        )
-        
-        # Also search by tag name
-        tag_matches = await db.tag.find_many(
-            where={
-                'name': {'contains': query, 'mode': 'insensitive'}
-            }
-        )
-        
-        if tag_matches:
-            tag_ids = [tag.id for tag in tag_matches]
-            tag_stories = await db.story.find_many(
-                where={
-                    'published': True,
-                    'deleted_at': None,
-                    'author_id': {'not_in': blocked_ids} if blocked_ids else {},
-                    'tags': {
-                        'some': {
-                            'tag_id': {'in': tag_ids}
-                        }
-                    }
-                },
-                include={
-                    'author': True,
-                    'tags': {
-                        'include': {
-                            'tag': True
-                        }
-                    },
-                    'stats': {
-                        'where': {'date': today},
-                        'take': 1
-                    }
-                },
-                take=50
+        # Perform search
+        try:
+            results = search_service.search_authors(
+                query=query,
+                page=page,
+                user_id=user_id
             )
             
-            # Merge results (avoid duplicates)
-            story_ids = {s.id for s in stories}
-            for story in tag_stories:
-                if story.id not in story_ids:
-                    stories.append(story)
-                    story_ids.add(story.id)
-        
-        # Also search by author name
-        author_matches = await db.userprofile.find_many(
-            where={
-                'OR': [
-                    {'display_name': {'contains': query, 'mode': 'insensitive'}},
-                    {'handle': {'contains': query, 'mode': 'insensitive'}}
-                ]
-            }
-        )
-        
-        if author_matches:
-            author_ids = [author.id for author in author_matches]
-            author_stories = await db.story.find_many(
-                where={
-                    'published': True,
-                    'deleted_at': None,
-                    'author_id': {'in': author_ids, 'not_in': blocked_ids} if blocked_ids else {'in': author_ids}
-                },
-                include={
-                    'author': True,
-                    'tags': {
-                        'include': {
-                            'tag': True
-                        }
-                    },
-                    'stats': {
-                        'where': {'date': today},
-                        'take': 1
-                    }
-                },
-                take=50
+            return Response(results, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Search failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-            
-            # Merge results (avoid duplicates)
-            story_ids = {s.id for s in stories}
-            for story in author_stories:
-                if story.id not in story_ids:
-                    stories.append(story)
-                    story_ids.add(story.id)
-        
-        # Rank results by relevance and trending score
-        scored_stories = []
-        query_lower = query.lower()
-        
-        for story in stories:
-            # Calculate relevance score
-            relevance = 0
-            
-            # Title match (highest weight)
-            if query_lower in story.title.lower():
-                relevance += 10
-                if story.title.lower().startswith(query_lower):
-                    relevance += 5  # Bonus for prefix match
-            
-            # Blurb match
-            if query_lower in story.blurb.lower():
-                relevance += 3
-            
-            # Author match
-            if query_lower in story.author.display_name.lower():
-                relevance += 5
-            if query_lower in story.author.handle.lower():
-                relevance += 5
-            
-            # Tag match
-            for story_tag in story.tags:
-                if query_lower in story_tag.tag.name.lower():
-                    relevance += 4
-            
-            # Get trending score
-            trending_score = story.stats[0].trending_score if story.stats else 0
-            
-            # Combined score: 70% relevance, 30% trending
-            final_score = (0.7 * relevance) + (0.3 * trending_score)
-            
-            scored_stories.append((final_score, story))
-        
-        # Sort by score descending
-        scored_stories.sort(key=lambda x: x[0], reverse=True)
-        
-        # Apply pagination
-        page_size = min(int(request.query_params.get('page_size', 20)), 100)
-        paginated_stories = [story for score, story in scored_stories[:page_size]]
-        
-        # Serialize
-        serializer = StoryListSerializer(paginated_stories, many=True)
-        
-        return {
-            'data': serializer.data,
-            'next_cursor': None  # Simplified for now
-        }
-        
-    finally:
-        await db.disconnect()
 
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def suggest(request):
+class AutocompleteView(APIView):
     """
-    Autocomplete suggestions for search.
+    Get autocomplete suggestions for search query.
+    
+    GET /api/search/autocomplete?q=query&limit=10
     
     Query Parameters:
-        - q: Search query (required)
-        - limit: Number of suggestions (default: 10, max: 20)
-        
-    Returns:
-        Suggestions for stories, tags, and authors
-        
-    Requirements:
-        - 9.2: Return suggestions for stories, tags, authors
-        - 9.3: Cache suggestions with TTL
-        - 9.4: Navigate to corresponding content
-        - 21.5: Cache with TTL 10-30 minutes
+    - q: Partial search query (required)
+    - limit: Maximum number of suggestions (default: 10)
+    
+    Requirements: 35.6
     """
-    query = request.query_params.get('q', '').strip()
     
-    if not query:
-        return Response(
-            {'error': 'Search query parameter "q" is required'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    permission_classes = [AllowAny]
     
-    # Generate cache key
-    cache_key = CacheManager.make_key(
-        'search_suggest',
-        q=query,
-        limit=request.query_params.get('limit', 10)
-    )
-    
-    # Try to get from cache
-    cached_response = CacheManager.get_or_set(
-        cache_key,
-        lambda: None,
-        CacheManager.TTL_CONFIG['search_suggest']
-    )
-    
-    if cached_response is not None:
-        return Response(cached_response)
-    
-    # Get blocked user IDs
-    blocked_ids = get_blocked_user_ids(request)
-    
-    # Fetch suggestions
-    response_data = asyncio.run(fetch_suggestions(query, blocked_ids, request))
-    
-    # Cache the response
-    CacheManager.get_or_set(
-        cache_key,
-        lambda: response_data,
-        CacheManager.TTL_CONFIG['search_suggest']
-    )
-    
-    return Response(response_data)
+    @rate_limit('autocomplete', 200, 60)
+    def get(self, request):
+        # Get query parameter
+        query = request.query_params.get('q', '').strip()
+        
+        if not query:
+            return Response(
+                {'error': 'Query parameter "q" is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get limit
+        try:
+            limit = int(request.query_params.get('limit', 10))
+            if limit < 1:
+                limit = 10
+            elif limit > 50:
+                limit = 50
+        except ValueError:
+            limit = 10
+        
+        # Get suggestions
+        try:
+            suggestions = search_service.autocomplete(query=query, limit=limit)
+            
+            return Response(
+                {'suggestions': suggestions},
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Autocomplete failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
-async def fetch_suggestions(query, blocked_ids, request):
+class PopularSearchesView(APIView):
     """
-    Fetch autocomplete suggestions.
+    Get popular search queries.
     
-    Requirements:
-        - 9.2: Suggestions for stories, tags, authors
-        - 9.3: Cache with TTL 10-30 minutes
+    GET /api/search/popular?days=7&limit=20
+    
+    Query Parameters:
+    - days: Number of days to look back (default: 7)
+    - limit: Maximum number of results (default: 20)
+    
+    Requirements: 35.10
     """
-    db = Prisma()
-    await db.connect()
     
-    try:
-        limit = min(int(request.query_params.get('limit', 10)), 20)
-        suggestions = {
-            'stories': [],
-            'tags': [],
-            'authors': []
-        }
+    permission_classes = [AllowAny]
+    
+    @rate_limit('search_tags', 100, 60)
+    def get(self, request):
+        # Get parameters
+        try:
+            days = int(request.query_params.get('days', 7))
+            if days < 1:
+                days = 7
+            elif days > 90:
+                days = 90
+        except ValueError:
+            days = 7
         
-        # Story suggestions
-        stories = await db.story.find_many(
-            where={
-                'published': True,
-                'deleted_at': None,
-                'author_id': {'not_in': blocked_ids} if blocked_ids else {},
-                'title': {'contains': query, 'mode': 'insensitive'}
-            },
-            take=limit
-        )
+        try:
+            limit = int(request.query_params.get('limit', 20))
+            if limit < 1:
+                limit = 20
+            elif limit > 100:
+                limit = 100
+        except ValueError:
+            limit = 20
         
-        suggestions['stories'] = [
-            {
-                'id': story.id,
-                'slug': story.slug,
-                'title': story.title,
-                'type': 'story'
-            }
-            for story in stories
-        ]
+        # Get popular searches
+        try:
+            popular = search_service.get_popular_searches(days=days, limit=limit)
+            
+            return Response(
+                {'popular_searches': popular},
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to get popular searches: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class TrackSearchClickView(APIView):
+    """
+    Track when a user clicks on a search result.
+    
+    POST /api/search/track-click
+    
+    Request Body:
+    {
+        "query": "search query",
+        "result_id": 123,
+        "result_type": "story"
+    }
+    
+    Requirements: 35.10
+    """
+    
+    permission_classes = [AllowAny]
+    
+    @rate_limit('track_search', 100, 60)
+    def post(self, request):
+        # Get parameters
+        query = request.data.get('query', '').strip()
+        result_id = request.data.get('result_id')
+        result_type = request.data.get('result_type', '').strip()
         
-        # Tag suggestions
-        tags = await db.tag.find_many(
-            where={
-                'name': {'contains': query, 'mode': 'insensitive'}
-            },
-            take=limit
-        )
+        # Validate parameters
+        if not query:
+            return Response(
+                {'error': 'Query is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        suggestions['tags'] = [
-            {
-                'id': tag.id,
-                'slug': tag.slug,
-                'name': tag.name,
-                'type': 'tag'
-            }
-            for tag in tags
-        ]
+        if not result_id:
+            return Response(
+                {'error': 'Result ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        # Author suggestions
-        authors = await db.userprofile.find_many(
-            where={
-                'id': {'not_in': blocked_ids} if blocked_ids else {},
-                'OR': [
-                    {'display_name': {'contains': query, 'mode': 'insensitive'}},
-                    {'handle': {'contains': query, 'mode': 'insensitive'}}
-                ]
-            },
-            take=limit
-        )
+        if result_type not in ['story', 'author', 'tag']:
+            return Response(
+                {'error': 'Invalid result type'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        suggestions['authors'] = [
-            {
-                'id': author.id,
-                'handle': author.handle,
-                'display_name': author.display_name,
-                'type': 'author'
-            }
-            for author in authors
-        ]
+        # Get user ID if authenticated
+        user_id = request.user.id if request.user.is_authenticated else None
         
-        return suggestions
-        
-    finally:
-        await db.disconnect()
+        # Track click
+        try:
+            search_service.track_click(
+                query=query,
+                result_id=result_id,
+                result_type=result_type,
+                user_id=user_id
+            )
+            
+            return Response(
+                {'success': True},
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to track click: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

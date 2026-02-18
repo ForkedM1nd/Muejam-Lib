@@ -4,7 +4,7 @@ Unit tests for TokenService.
 Tests token generation, validation, and lifecycle management.
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, Mock
 from apps.users.password_reset.services.token_service import TokenService
 from apps.users.password_reset.types import Token, TokenData
@@ -54,11 +54,11 @@ class TestTokenServiceGeneration:
     async def test_generate_token_sets_correct_expiration(self, token_service):
         """Test that token expiration is set to 1 hour from creation."""
         user_id = "test-user-123"
-        before_generation = datetime.utcnow()
+        before_generation = datetime.now(timezone.utc)
         
         result = await token_service.generate_token(user_id)
         
-        after_generation = datetime.utcnow()
+        after_generation = datetime.now(timezone.utc)
         expected_expiration = before_generation + timedelta(hours=TOKEN_EXPIRATION_HOURS)
         
         # Allow 1 second tolerance for test execution time
@@ -191,8 +191,8 @@ class TestTokenServiceValidation:
             id="token-id-1",
             user_id=user_id,
             token_hash=token_service._hash_token(token),
-            expires_at=datetime.utcnow() + timedelta(hours=1),
-            created_at=datetime.utcnow(),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            created_at=datetime.now(timezone.utc),
             used_at=None,
             invalidated=False
         )
@@ -226,8 +226,8 @@ class TestTokenServiceValidation:
             id="token-id-2",
             user_id="user-789",
             token_hash=token_service._hash_token(token),
-            expires_at=datetime.utcnow() - timedelta(hours=1),  # Expired 1 hour ago
-            created_at=datetime.utcnow() - timedelta(hours=2),
+            expires_at=datetime.now(timezone.utc) - timedelta(hours=1),  # Expired 1 hour ago
+            created_at=datetime.now(timezone.utc) - timedelta(hours=2),
             used_at=None,
             invalidated=False
         )
@@ -249,9 +249,9 @@ class TestTokenServiceValidation:
             id="token-id-3",
             user_id="user-101",
             token_hash=token_service._hash_token(token),
-            expires_at=datetime.utcnow() + timedelta(hours=1),
-            created_at=datetime.utcnow(),
-            used_at=datetime.utcnow() - timedelta(minutes=10),  # Used 10 minutes ago
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            created_at=datetime.now(timezone.utc),
+            used_at=datetime.now(timezone.utc) - timedelta(minutes=10),  # Used 10 minutes ago
             invalidated=False
         )
         mock_token_repository.find_by_token.return_value = token_record
@@ -272,8 +272,8 @@ class TestTokenServiceValidation:
             id="token-id-4",
             user_id="user-202",
             token_hash=token_service._hash_token(token),
-            expires_at=datetime.utcnow() + timedelta(hours=1),
-            created_at=datetime.utcnow(),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            created_at=datetime.now(timezone.utc),
             used_at=None,
             invalidated=True  # Manually invalidated
         )
@@ -326,8 +326,8 @@ class TestTokenServiceInvalidation:
             id="token-id-5",
             user_id="user-303",
             token_hash=token_service._hash_token(token),
-            expires_at=datetime.utcnow() + timedelta(hours=1),
-            created_at=datetime.utcnow(),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            created_at=datetime.now(timezone.utc),
             used_at=None,
             invalidated=False
         )
@@ -371,19 +371,20 @@ class TestTokenServiceInvalidation:
             id="token-id-6",
             user_id="user-505",
             token_hash=token_service._hash_token(token),
-            expires_at=datetime.utcnow() + timedelta(hours=1),
-            created_at=datetime.utcnow(),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            created_at=datetime.now(timezone.utc),
             used_at=None,
             invalidated=False
         )
         mock_token_repository.find_by_token.return_value = token_record
         
-        before_invalidation = datetime.utcnow()
+        before_invalidation = datetime.now(timezone.utc)
         await token_service.invalidate_token(token)
-        after_invalidation = datetime.utcnow()
+        after_invalidation = datetime.now(timezone.utc)
         
         updated_token = mock_token_repository.update.call_args[0][0]
         
         # Verify used_at is between before and after timestamps
         assert updated_token.used_at >= before_invalidation
         assert updated_token.used_at <= after_invalidation
+
