@@ -73,6 +73,23 @@ cp .env.example .env
 
 Edit `.env` and configure the following required variables:
 
+**CRITICAL: Generate a Secure SECRET_KEY**
+
+The SECRET_KEY is required for Django's cryptographic signing. Generate one using:
+
+```bash
+# Recommended method - Django's built-in generator
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+
+# Alternative - Python secrets module
+python -c 'import secrets; print(secrets.token_urlsafe(50))'
+
+# Alternative - OpenSSL
+openssl rand -base64 64
+```
+
+Copy the generated key and paste it into your `.env` file:
+
 ```env
 # Database
 DATABASE_URL=postgresql://muejam_user:muejam_password@localhost:5432/muejam
@@ -81,7 +98,7 @@ DATABASE_URL=postgresql://muejam_user:muejam_password@localhost:5432/muejam
 VALKEY_URL=redis://localhost:6379/0
 
 # Django
-SECRET_KEY=your-secret-key-here
+SECRET_KEY=<paste-your-generated-key-here>  # REQUIRED - Generate using command above
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
@@ -95,6 +112,12 @@ AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 AWS_STORAGE_BUCKET_NAME=your-bucket-name
 AWS_S3_REGION_NAME=us-east-1
 ```
+
+**Important Notes:**
+- Never use the example value `your-secret-key-here-change-in-production`
+- Never commit your actual SECRET_KEY to version control
+- Generate a different SECRET_KEY for each environment (dev, staging, production)
+- The application will fail to start if SECRET_KEY is missing or insecure
 
 #### Setup Database
 

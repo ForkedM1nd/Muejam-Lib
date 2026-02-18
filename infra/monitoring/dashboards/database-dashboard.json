@@ -1,0 +1,108 @@
+{
+    "name": "MueJam - Database Performance",
+    "description": "Database query performance and connection pool monitoring",
+    "widgets": [
+        {
+            "title": "Query Duration (P95)",
+            "type": "timeseries",
+            "metric": "database.query.duration",
+            "aggregation": "p95",
+            "unit": "milliseconds",
+            "alert_threshold": 100
+        },
+        {
+            "title": "Query Duration (P99)",
+            "type": "timeseries",
+            "metric": "database.query.duration",
+            "aggregation": "p99",
+            "unit": "milliseconds",
+            "alert_threshold": 500
+        },
+        {
+            "title": "Slow Queries (>100ms)",
+            "type": "timeseries",
+            "metric": "database.query.slow",
+            "aggregation": "count",
+            "unit": "queries",
+            "alert_threshold": 10
+        },
+        {
+            "title": "Query Rate",
+            "type": "timeseries",
+            "metric": "database.query.rate",
+            "aggregation": "sum",
+            "unit": "queries/second"
+        },
+        {
+            "title": "Connection Pool Utilization",
+            "type": "timeseries",
+            "metric": "database.pool.utilization",
+            "aggregation": "avg",
+            "unit": "percent",
+            "warning_threshold": 70,
+            "critical_threshold": 80
+        },
+        {
+            "title": "Active Connections",
+            "type": "timeseries",
+            "metric": "database.connections.active",
+            "aggregation": "avg",
+            "unit": "connections"
+        },
+        {
+            "title": "Connection Errors",
+            "type": "timeseries",
+            "metric": "database.connections.errors",
+            "aggregation": "sum",
+            "unit": "errors"
+        },
+        {
+            "title": "Transaction Duration",
+            "type": "timeseries",
+            "metric": "database.transaction.duration",
+            "aggregation": "p95",
+            "unit": "milliseconds"
+        },
+        {
+            "title": "Top 10 Slowest Queries",
+            "type": "top_list",
+            "metric": "database.query.duration",
+            "aggregation": "p95",
+            "group_by": "query_type",
+            "limit": 10,
+            "unit": "milliseconds"
+        },
+        {
+            "title": "Queries by Table",
+            "type": "pie_chart",
+            "metric": "database.query.count",
+            "aggregation": "sum",
+            "group_by": "table"
+        },
+        {
+            "title": "Query Duration Distribution",
+            "type": "histogram",
+            "metric": "database.query.duration",
+            "buckets": [
+                10,
+                50,
+                100,
+                500,
+                1000,
+                5000
+            ],
+            "unit": "milliseconds"
+        },
+        {
+            "title": "Connection Pool Status",
+            "type": "status",
+            "checks": [
+                "pool_utilization",
+                "connection_errors",
+                "slow_queries"
+            ]
+        }
+    ],
+    "refresh_interval": "30s",
+    "time_range": "1h"
+}

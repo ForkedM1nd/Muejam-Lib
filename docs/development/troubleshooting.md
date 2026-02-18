@@ -4,6 +4,75 @@ Common issues and solutions for MueJam Library development.
 
 ## Backend Issues
 
+### SECRET_KEY Configuration Errors
+
+**Problem**: `ImproperlyConfigured: SECRET_KEY environment variable must be set`
+
+**Solutions**:
+```bash
+# Generate a secure SECRET_KEY
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+
+# Add to .env file
+echo "SECRET_KEY=<paste-generated-key-here>" >> apps/backend/.env
+
+# Verify it's set
+grep SECRET_KEY apps/backend/.env
+
+# Test the application starts
+python manage.py check
+```
+
+**Problem**: `ImproperlyConfigured: SECRET_KEY is too short (X characters)`
+
+**Solutions**:
+```bash
+# Generate a new SECRET_KEY (Django's generator creates 50+ character keys)
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+
+# Replace the old key in .env
+# Open apps/backend/.env and update SECRET_KEY line
+```
+
+**Problem**: `ImproperlyConfigured: SECRET_KEY appears to be an example value`
+
+**Solutions**:
+```bash
+# You're using the example value from .env.example
+# Generate a real SECRET_KEY
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+
+# Update .env with the generated key
+# Never use: 'your-secret-key-here', 'change-this', 'django-insecure-*', etc.
+```
+
+**Problem**: Application works locally but fails in production with SECRET_KEY error
+
+**Solutions**:
+```bash
+# For production, store SECRET_KEY in AWS Secrets Manager
+aws secretsmanager create-secret \
+  --name production/django/secret-key \
+  --secret-string '{"SECRET_KEY":"<your-generated-key>"}'
+
+# Or set as environment variable in your deployment platform
+# Heroku:
+heroku config:set SECRET_KEY=<your-generated-key>
+
+# AWS ECS: Add to task definition environment variables
+# Docker: Pass as environment variable in docker-compose.yml or docker run
+
+# Verify it's set in production
+# SSH to production server and check:
+echo $SECRET_KEY
+```
+
+**Important Notes:**
+- Never commit SECRET_KEY to version control
+- Use different SECRET_KEY for each environment (dev, staging, production)
+- Rotate SECRET_KEY periodically (recommended: annually)
+- If you change SECRET_KEY, all users will be logged out (sessions invalidated)
+
 ### Database Connection Errors
 
 **Problem**: `django.db.utils.OperationalError: could not connect to server`

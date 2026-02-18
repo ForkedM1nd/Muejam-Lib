@@ -258,7 +258,7 @@ def block(request, id):
         )
     
     if request.method == 'POST':
-        # Block user
+        # Block user (atomic operation - removes follows AND creates block)
         result = sync_block_user(request.user_profile.id, id)
         
         if result is None:

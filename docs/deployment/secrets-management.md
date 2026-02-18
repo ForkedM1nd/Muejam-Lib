@@ -47,6 +47,88 @@ The platform uses AWS Secrets Manager for secure storage and management of sensi
 
 ## Setup
 
+### 0. Django SECRET_KEY Configuration
+
+The Django SECRET_KEY is a critical security component used for:
+- Session signing and validation
+- CSRF token generation and validation
+- Password reset token generation
+- Cryptographic signing of cookies and data
+
+**Security Requirements:**
+- Must be at least 50 characters long
+- Must be cryptographically random
+- Must be unique per environment
+- Must never be committed to version control
+- Should be rotated periodically (recommended: annually)
+
+**Generation Methods:**
+
+```bash
+# Method 1: Django's built-in generator (RECOMMENDED)
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+
+# Method 2: Python secrets module
+python -c 'import secrets; print(secrets.token_urlsafe(50))'
+
+# Method 3: OpenSSL
+openssl rand -base64 64
+```
+
+**Local Development:**
+1. Generate a SECRET_KEY using one of the methods above
+2. Add it to your `.env` file:
+   ```env
+   SECRET_KEY=<your-generated-key>
+   ```
+3. Never commit the `.env` file to version control
+
+**Production Deployment:**
+1. Generate a unique SECRET_KEY for production
+2. Store it in AWS Secrets Manager:
+   ```bash
+   aws secretsmanager create-secret \
+     --name production/django/secret-key \
+     --secret-string '{"SECRET_KEY":"<your-generated-key>"}'
+   ```
+3. Configure the application to load from Secrets Manager (see below)
+
+**Validation:**
+
+The application automatically validates SECRET_KEY on startup:
+- Checks if SECRET_KEY is set
+- Validates minimum length (50 characters)
+- Rejects insecure patterns (e.g., 'django-insecure', 'change-this', 'example')
+- Fails with clear error message if validation fails
+
+See `apps/backend/config/secure_settings.py` for implementation details.
+
+**Error Messages:**
+
+If SECRET_KEY is not set:
+```
+ImproperlyConfigured: SECRET_KEY environment variable must be set.
+Generate a secure key with:
+  python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+Then set it in your .env file or environment:
+  SECRET_KEY=<generated_key>
+```
+
+If SECRET_KEY is too short:
+```
+ImproperlyConfigured: SECRET_KEY is too short (X characters).
+It should be at least 50 characters for security.
+Generate a secure key with:
+  python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+```
+
+If SECRET_KEY contains insecure patterns:
+```
+ImproperlyConfigured: SECRET_KEY appears to be an example value (contains 'pattern').
+Generate a secure key with:
+  python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+```
+
 ### 1. AWS Secrets Manager Configuration
 
 Create secrets in AWS Secrets Manager with the following naming convention:

@@ -19,6 +19,142 @@ info:
   license:
     name: Proprietary
 paths:
+  /v1/admin/audit-logs/:
+    get:
+      operationId: admin_audit_logs_retrieve
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/admin/audit-logs/suspicious-patterns/:
+    get:
+      operationId: admin_audit_logs_suspicious_patterns_retrieve
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/admin/audit-logs/trigger-alert/:
+    post:
+      operationId: admin_audit_logs_trigger_alert_create
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/admin/dashboard:
+    get:
+      operationId: admin_dashboard_retrieve
+      description: |-
+        Get complete dashboard data.
+
+        Returns:
+            - system_health: System health indicators
+            - real_time_metrics: Real-time platform metrics
+            - business_metrics: Business metrics (30 days)
+            - moderation_metrics: Content moderation metrics
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/admin/health:
+    get:
+      operationId: admin_health_retrieve
+      description: |-
+        Get system health indicators.
+
+        Returns:
+            - database_status: Database health status
+            - cache_status: Cache health status
+            - external_services: External service statuses
+            - disk_space: Disk usage percentage
+            - memory_usage: Memory usage percentage
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/admin/metrics/business:
+    get:
+      operationId: admin_metrics_business_retrieve
+      description: |-
+        Get business metrics.
+
+        Query Parameters:
+            days: Number of days to look back (default 30)
+
+        Returns:
+            - new_signups: User signup metrics
+            - stories_published: Story publication metrics
+            - whispers_posted: Whisper posting metrics
+            - engagement_rates: Engagement metrics
+            - user_retention: Retention metrics
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/admin/metrics/moderation:
+    get:
+      operationId: admin_metrics_moderation_retrieve
+      description: |-
+        Get moderation metrics.
+
+        Returns:
+            - pending_reports: Count of pending reports
+            - reports_resolved_today: Count of reports resolved today
+            - average_resolution_time: Average resolution time in hours
+            - actions_by_type: Breakdown of moderation actions
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/admin/metrics/real-time:
+    get:
+      operationId: admin_metrics_real_time_retrieve
+      description: |-
+        Get real-time metrics.
+
+        Returns:
+            - active_users: Count of active users
+            - requests_per_minute: Current request rate
+            - error_rate: Current error rate
+            - api_response_times: Response time percentiles
+      tags:
+      - admin
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
   /v1/analytics/dashboard/:
     get:
       operationId: analytics_dashboard_retrieve
@@ -2710,6 +2846,196 @@ paths:
         Requirements: 35.10
       tags:
       - search
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/status/:
+    get:
+      operationId: status_retrieve
+      description: |-
+        Get current platform status.
+
+        Returns:
+            - components: List of component statuses
+            - overall_status: Overall platform status
+            - incidents: Recent incidents
+            - maintenance: Scheduled maintenance
+            - last_updated: Timestamp
+      tags:
+      - status
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/status/components/{component_id}:
+    get:
+      operationId: status_components_retrieve
+      description: |-
+        Get detailed component status including uptime.
+
+        Returns:
+            - component: Component details
+            - uptime: Uptime percentages for 30, 60, 90 days
+      parameters:
+      - in: path
+        name: component_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - status
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/status/health-check:
+    post:
+      operationId: status_health_check_create
+      description: |-
+        Trigger manual health check.
+
+        Returns:
+            Health check results
+      tags:
+      - status
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/status/incidents:
+    get:
+      operationId: status_incidents_retrieve
+      description: |-
+        Get incident history.
+
+        Query Parameters:
+            days: Number of days to look back (default 90)
+
+        Returns:
+            List of incidents with details
+      tags:
+      - status
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/status/incidents/{incident_id}/resolve:
+    post:
+      operationId: status_incidents_resolve_create
+      description: |-
+        Resolve an incident.
+
+        Request Body:
+            - root_cause: Root cause description
+            - resolution: Resolution description
+
+        Returns:
+            Success message
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - status
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/status/incidents/{incident_id}/updates:
+    post:
+      operationId: status_incidents_updates_create
+      description: |-
+        Add an update to an incident.
+
+        Request Body:
+            - message: Update message
+            - status: New incident status (optional)
+            - estimated_resolution: ETA for resolution (optional)
+
+        Returns:
+            Created update data
+      parameters:
+      - in: path
+        name: incident_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - status
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/status/incidents/create:
+    post:
+      operationId: status_incidents_create_create
+      description: |-
+        Create a new incident.
+
+        Request Body:
+            - title: Incident title
+            - description: Incident description
+            - severity: Severity level (minor, major, critical)
+            - affected_components: List of component IDs
+
+        Returns:
+            Created incident data
+      tags:
+      - status
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          description: No response body
+  /v1/status/maintenance:
+    get:
+      operationId: status_maintenance_retrieve
+      description: |-
+        Get scheduled maintenance windows.
+
+        Returns:
+            List of scheduled maintenance windows
+      tags:
+      - status
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/status/rss:
+    get:
+      operationId: status_rss_retrieve
+      description: |-
+        Generate RSS feed for status updates.
+
+        Returns:
+            RSS feed XML
+      tags:
+      - status
       security:
       - cookieAuth: []
       - basicAuth: []

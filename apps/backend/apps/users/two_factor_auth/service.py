@@ -330,6 +330,31 @@ class TwoFactorAuthService:
         finally:
             await self.prisma.disconnect()
     
+    def has_2fa_enabled_sync(self, user_id: str) -> bool:
+        """
+        Synchronous version of has_2fa_enabled.
+        
+        This replaces the async version to avoid the nest_asyncio anti-pattern
+        that was causing performance issues and potential deadlocks.
+        
+        Args:
+            user_id: The user's ID
+            
+        Returns:
+            True if user has a confirmed TOTP device, False otherwise
+        """
+        self.prisma.connect()
+        try:
+            device = self.prisma.totpdevice.find_first(
+                where={
+                    'user_id': user_id,
+                    'confirmed': True
+                }
+            )
+            return device is not None
+        finally:
+            self.prisma.disconnect()
+    
     async def has_2fa_enabled(self, user_id: str) -> bool:
         """
         Check if a user has 2FA enabled.
@@ -351,6 +376,32 @@ class TwoFactorAuthService:
             return device is not None
         finally:
             await self.prisma.disconnect()
+
+    def has_2fa_enabled_sync(self, user_id: str) -> bool:
+        """
+        Synchronous version of has_2fa_enabled.
+
+        This replaces the async version to avoid the nest_asyncio anti-pattern
+        that was causing performance issues and potential deadlocks.
+
+        Args:
+            user_id: The user's ID
+
+        Returns:
+            True if user has a confirmed TOTP device, False otherwise
+        """
+        self.prisma.connect()
+        try:
+            device = self.prisma.totpdevice.find_first(
+                where={
+                    'user_id': user_id,
+                    'confirmed': True
+                }
+            )
+            return device is not None
+        finally:
+            self.prisma.disconnect()
+
     
     async def disable_2fa(self, user_id: str) -> bool:
         """

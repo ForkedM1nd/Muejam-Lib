@@ -17,7 +17,7 @@ import re
 import logging
 import json
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 
 
@@ -124,7 +124,7 @@ class JSONFormatter(logging.Formatter):
         """
         # Base log entry (Requirement 15.2)
         log_entry = {
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
             'level': record.levelname,
             'service': self.service_name,
             'message': record.getMessage(),

@@ -25,8 +25,12 @@ from apps.core.content_sanitizer import ContentSanitizer
 from apps.core.pii_middleware import detect_pii_in_content
 from apps.social.utils import sync_get_blocked_user_ids
 from apps.moderation.content_filter_integration import ContentFilterIntegration
+from infrastructure.cache_manager import CacheManager
 
 logger = logging.getLogger(__name__)
+
+# Initialize cache manager
+cache_manager = CacheManager()
 
 
 @extend_schema(
@@ -441,6 +445,28 @@ def get_story_by_slug(request, slug):
         - 5.1: Get story by slug
         - 3.9: Hide content from blocked authors
     """
+    # Check cache first
+    cache_key = f'story_metadata:{slug}'
+    cached_story = cache_manager.get(cache_key)
+    
+    if cached_story is not None:
+        # Check if author is blocked by current user
+        user_profile = getattr(request, 'user_profile', None)
+        if user_profile:
+            blocked_ids = sync_get_blocked_user_ids(user_profile.id)
+            if cached_story.get('author_id') in blocked_ids:
+                return Response(
+                    {
+                        'error': {
+                            'code': 'FORBIDDEN',
+                            'message': 'Access denied',
+                        }
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        return Response({'data': cached_story})
+    
     db = Prisma()
     
     try:
@@ -481,8 +507,13 @@ def get_story_by_slug(request, slug):
         
         # Serialize response
         serializer = StoryDetailSerializer(story)
+        story_data = serializer.data
         
-        return Response({'data': serializer.data})
+        # Cache the story metadata
+        ttl = cache_manager.get_ttl_for_type('story_metadata')
+        cache_manager.set(cache_key, story_data, ttl=ttl, tags=[f'story:{story.id}', f'author:{story.author_id}'])
+        
+        return Response({'data': story_data})
         
     except Exception as e:
         logger.error(f"Error getting story: {e}")

@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .s3 import S3UploadManager
+from .serializers import PresignUploadRequestSerializer
 
 
 @api_view(['POST'])
@@ -27,21 +28,20 @@ def presign_upload(request):
         - 14.5: Validate file type (JPEG, PNG, WebP, GIF)
         - 14.7: Generate unique object keys using UUID
     """
-    upload_type = request.data.get('type')
-    content_type = request.data.get('content_type')
-    
-    # Validate required fields
-    if not upload_type:
+    # Validate input with serializer
+    serializer = PresignUploadRequestSerializer(data=request.data)
+    if not serializer.is_valid():
         return Response(
-            {'error': 'Upload type is required'},
+            {
+                'error': 'Validation failed',
+                'details': serializer.errors
+            },
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    if not content_type:
-        return Response(
-            {'error': 'Content type is required'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    validated_data = serializer.validated_data
+    upload_type = validated_data['type']
+    content_type = validated_data['content_type']
     
     # Generate presigned URL
     try:

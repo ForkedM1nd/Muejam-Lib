@@ -1,0 +1,104 @@
+{
+    "name": "MueJam - System Overview",
+    "description": "High-level overview of system health and performance",
+    "widgets": [
+        {
+            "title": "Request Rate",
+            "type": "timeseries",
+            "metric": "api.requests.rate",
+            "aggregation": "sum",
+            "unit": "requests/second"
+        },
+        {
+            "title": "Error Rate",
+            "type": "timeseries",
+            "metric": "api.errors.rate",
+            "aggregation": "sum",
+            "unit": "errors/second",
+            "alert_threshold": 10
+        },
+        {
+            "title": "Response Time (P95)",
+            "type": "timeseries",
+            "metric": "api.response_time",
+            "aggregation": "p95",
+            "unit": "milliseconds",
+            "alert_threshold": 500
+        },
+        {
+            "title": "Response Time (P99)",
+            "type": "timeseries",
+            "metric": "api.response_time",
+            "aggregation": "p99",
+            "unit": "milliseconds",
+            "alert_threshold": 1000
+        },
+        {
+            "title": "Active Users",
+            "type": "query_value",
+            "metric": "users.active",
+            "aggregation": "count",
+            "unit": "users"
+        },
+        {
+            "title": "Database Connection Pool",
+            "type": "gauge",
+            "metric": "database.pool.utilization",
+            "aggregation": "avg",
+            "unit": "percent",
+            "warning_threshold": 70,
+            "critical_threshold": 80
+        },
+        {
+            "title": "Cache Hit Rate",
+            "type": "gauge",
+            "metric": "cache.hit_rate",
+            "aggregation": "avg",
+            "unit": "percent",
+            "warning_threshold": 80
+        },
+        {
+            "title": "Celery Queue Length",
+            "type": "timeseries",
+            "metric": "celery.queue.length",
+            "aggregation": "avg",
+            "unit": "tasks"
+        },
+        {
+            "title": "Top 10 Slowest Endpoints",
+            "type": "top_list",
+            "metric": "api.endpoint.duration",
+            "aggregation": "p95",
+            "group_by": "endpoint",
+            "limit": 10,
+            "unit": "milliseconds"
+        },
+        {
+            "title": "Error Rate by Endpoint",
+            "type": "top_list",
+            "metric": "api.endpoint.errors",
+            "aggregation": "sum",
+            "group_by": "endpoint",
+            "limit": 10,
+            "unit": "errors"
+        },
+        {
+            "title": "Response Time Distribution",
+            "type": "heatmap",
+            "metric": "api.response_time",
+            "unit": "milliseconds"
+        },
+        {
+            "title": "System Health",
+            "type": "status",
+            "checks": [
+                "database_connectivity",
+                "cache_connectivity",
+                "disk_space",
+                "celery_workers"
+            ]
+        }
+    ],
+    "refresh_interval": "30s",
+    "time_range": "1h"
+}

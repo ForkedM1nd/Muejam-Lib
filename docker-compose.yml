@@ -18,6 +18,39 @@ services:
       timeout: 5s
       retries: 5
 
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: muejam-pgbouncer
+    environment:
+      # Database connection settings
+      - DATABASES_HOST=postgres
+      - DATABASES_PORT=5432
+      - DATABASES_USER=muejam_user
+      - DATABASES_PASSWORD=muejam_password
+      - DATABASES_DBNAME=muejam
+      # Pool configuration
+      - POOL_MODE=transaction  # transaction pooling for better concurrency
+      - MAX_CLIENT_CONN=1000   # maximum client connections
+      - DEFAULT_POOL_SIZE=25   # connections per database
+      - MIN_POOL_SIZE=10       # minimum pool size
+      - RESERVE_POOL_SIZE=5    # reserve connections for emergencies
+      - MAX_DB_CONNECTIONS=50  # max connections to PostgreSQL
+      # Timeouts
+      - SERVER_IDLE_TIMEOUT=600     # 10 minutes
+      - SERVER_CONNECT_TIMEOUT=15   # 15 seconds
+      - QUERY_TIMEOUT=30            # 30 seconds
+      - CLIENT_IDLE_TIMEOUT=0       # no client timeout
+    ports:
+      - "6432:6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "psql", "-h", "localhost", "-p", "6432", "-U", "muejam_user", "-d", "muejam", "-c", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   valkey:
     image: valkey/valkey:7-alpine
     container_name: muejam-valkey
@@ -45,6 +78,8 @@ services:
       - ./apps/backend/.env
     depends_on:
       postgres:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       valkey:
         condition: service_healthy

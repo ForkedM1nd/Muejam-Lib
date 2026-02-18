@@ -14,19 +14,14 @@ logger = logging.getLogger(__name__)
 
 
 def sync_has_2fa_enabled(user_id: str) -> bool:
-    """Synchronous wrapper for checking if user has 2FA enabled."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    """
+    Synchronous version of checking if user has 2FA enabled.
     
+    This replaces the async version to avoid the nest_asyncio anti-pattern
+    that was causing performance issues and potential deadlocks.
+    """
     service = TwoFactorAuthService()
-    return loop.run_until_complete(service.has_2fa_enabled(user_id))
+    return service.has_2fa_enabled_sync(user_id)
 
 
 class TwoFactorAuthMiddleware:

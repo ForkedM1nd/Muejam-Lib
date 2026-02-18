@@ -1,0 +1,312 @@
+# Celery Worker Deployment Configuration
+# 
+# This file contains deployment configurations for Celery workers.
+# Supports Docker Compose, Kubernetes, and systemd deployments.
+
+---
+# Docker Compose Configuration
+# File: docker-compose.celery.yml
+version: '3.8'
+
+services:
+  celery-worker:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile
+    command: celery -A config worker --loglevel=info --concurrency=4
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - DATABASE_URL=${DATABASE_URL}
+      - VALKEY_URL=${VALKEY_URL}
+    volumes:
+      - ../../apps/backend:/app
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  celery-beat:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile
+    command: celery -A config beat --loglevel=info
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - DATABASE_URL=${DATABASE_URL}
+    volumes:
+      - ../../apps/backend:/app
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  celery-flower:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile
+    command: celery -A config flower --port=5555
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - celery-worker
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+---
+# Kubernetes Deployment Configuration
+# File: k8s-celery-worker.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: muejam
+  labels:
+    app: celery-worker
+    component: background-tasks
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: muejam/backend:latest
+        command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=4"]
+        env:
+        - name: DJANGO_SETTINGS_MODULE
+          value: "config.settings"
+        - name: CELERY_BROKER_URL
+          valueFrom:
+            secretKeyRef:
+              name: celery-secrets
+              key: broker-url
+        - name: CELERY_RESULT_BACKEND
+          valueFrom:
+            secretKeyRef:
+              name: celery-secrets
+              key: result-backend
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - celery
+            - -A
+            - config
+            - inspect
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          timeoutSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - celery
+            - -A
+            - config
+            - inspect
+            - active
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 10
+
+---
+# Horizontal Pod Autoscaler for Kubernetes
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: celery-worker-hpa
+  namespace: muejam
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: celery-worker
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 30
+      selectPolicy: Max
+
+---
+# Systemd Service Configuration
+# File: /etc/systemd/system/celery-worker@.service
+[Unit]
+Description=Celery Worker %i
+After=network.target redis.target postgresql.target
+
+[Service]
+Type=forking
+User=celery
+Group=celery
+WorkingDirectory=/opt/muejam/backend
+Environment="DJANGO_SETTINGS_MODULE=config.settings"
+EnvironmentFile=/etc/celery/celery.conf
+ExecStart=/opt/muejam/venv/bin/celery -A config worker \
+    --loglevel=info \
+    --concurrency=4 \
+    --pidfile=/var/run/celery/worker-%i.pid \
+    --logfile=/var/log/celery/worker-%i.log \
+    --hostname=worker-%i@%%h
+ExecStop=/opt/muejam/venv/bin/celery -A config control shutdown
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10s
+
+# Resource limits
+LimitNOFILE=65536
+CPUQuota=100%
+MemoryLimit=512M
+
+[Install]
+WantedBy=multi-user.target
+
+---
+# Systemd Service for Celery Beat
+# File: /etc/systemd/system/celery-beat.service
+[Unit]
+Description=Celery Beat Scheduler
+After=network.target redis.target postgresql.target
+
+[Service]
+Type=simple
+User=celery
+Group=celery
+WorkingDirectory=/opt/muejam/backend
+Environment="DJANGO_SETTINGS_MODULE=config.settings"
+EnvironmentFile=/etc/celery/celery.conf
+ExecStart=/opt/muejam/venv/bin/celery -A config beat \
+    --loglevel=info \
+    --pidfile=/var/run/celery/beat.pid \
+    --logfile=/var/log/celery/beat.log
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+
+---
+# Environment Configuration
+# File: /etc/celery/celery.conf
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+DATABASE_URL=postgresql://user:password@localhost:5432/muejam
+VALKEY_URL=redis://localhost:6379/0
+
+# Worker Configuration
+CELERYD_NODES="worker1 worker2"
+CELERYD_OPTS="--time-limit=300 --concurrency=4"
+CELERYD_LOG_LEVEL=INFO
+CELERYD_PID_FILE="/var/run/celery/%n.pid"
+CELERYD_LOG_FILE="/var/log/celery/%n%I.log"
+
+# Beat Configuration
+CELERYBEAT_PID_FILE="/var/run/celery/beat.pid"
+CELERYBEAT_LOG_FILE="/var/log/celery/beat.log"
+CELERYBEAT_LOG_LEVEL=INFO
+
+---
+# Supervisor Configuration (Alternative to systemd)
+# File: /etc/supervisor/conf.d/celery.conf
+[program:celery-worker]
+command=/opt/muejam/venv/bin/celery -A config worker --loglevel=info --concurrency=4
+directory=/opt/muejam/backend
+user=celery
+numprocs=2
+process_name=%(program_name)s_%(process_num)02d
+stdout_logfile=/var/log/celery/worker.log
+stderr_logfile=/var/log/celery/worker.err
+autostart=true
+autorestart=true
+startsecs=10
+stopwaitsecs=600
+stopasgroup=true
+killasgroup=true
+priority=998
+
+[program:celery-beat]
+command=/opt/muejam/venv/bin/celery -A config beat --loglevel=info
+directory=/opt/muejam/backend
+user=celery
+numprocs=1
+stdout_logfile=/var/log/celery/beat.log
+stderr_logfile=/var/log/celery/beat.err
+autostart=true
+autorestart=true
+startsecs=10
+stopwaitsecs=60
+priority=999
+
+[group:celery]
+programs=celery-worker,celery-beat
+priority=999

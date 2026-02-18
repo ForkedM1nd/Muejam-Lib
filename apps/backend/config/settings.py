@@ -9,21 +9,30 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Build paths inside the project
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 # Validate configuration on startup (Requirements 30.9, 30.10, 30.11)
 # This ensures all required environment variables are present before the app starts
 if os.getenv('SKIP_CONFIG_VALIDATION', 'False') != 'True':
-    from infrastructure.config_validator import validate_config_on_startup
+    from config.secure_settings import validate_config_on_startup
     try:
         validate_config_on_startup()
     except Exception as e:
         # Re-raise to prevent app from starting with invalid configuration
         raise
+    
+    # Validate HTTPS configuration (Requirement 6.4)
+    from infrastructure.https_enforcement import validate_https_configuration
+    try:
+        validate_https_configuration()
+    except Exception as e:
+        # Re-raise to prevent app from starting with invalid HTTPS configuration
+        raise
 
-# Build paths inside the project
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
+# SECURITY: Get SECRET_KEY with validation (no insecure defaults)
+from config.secure_settings import SecureConfig
+SECRET_KEY = SecureConfig.get_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
@@ -45,6 +54,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     
     # Local apps
+    'infrastructure',  # Infrastructure and monitoring
     'apps.users',
     'apps.stories',
     'apps.library',
@@ -66,6 +76,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'infrastructure.https_enforcement.HTTPSEnforcementMiddleware',  # HTTPS enforcement (Requirement 6.4)
+    'infrastructure.apm_middleware.APMMiddleware',  # APM performance tracking (Requirement 14.2)
+    'infrastructure.rate_limit_middleware.RateLimitMiddleware',  # Rate limiting after SecurityMiddleware
+    # 'infrastructure.timeout_middleware.TimeoutMiddleware',  # Disabled on Windows - SIGALRM not available
     'csp.middleware.CSPMiddleware',  # Content Security Policy middleware
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -79,6 +93,9 @@ MIDDLEWARE = [
     'apps.users.two_factor_auth.middleware.TwoFactorAuthMiddleware',  # 2FA enforcement
     'infrastructure.logging_middleware.RequestLoggingMiddleware',  # Request logging (Requirement 15.3)
 ]
+
+# Request timeout configuration (seconds)
+REQUEST_TIMEOUT = int(os.getenv('REQUEST_TIMEOUT', '30'))
 
 ROOT_URLCONF = 'config.urls'
 
@@ -100,21 +117,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database - Primary Connection
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DATABASE_URL', '').split('/')[-1] or 'muejam',
-        'USER': os.getenv('DATABASE_URL', '').split('://')[1].split(':')[0] if '://' in os.getenv('DATABASE_URL', '') else 'muejam_user',
-        'PASSWORD': os.getenv('DATABASE_URL', '').split(':')[2].split('@')[0] if '@' in os.getenv('DATABASE_URL', '') else 'muejam_password',
-        'HOST': os.getenv('DATABASE_URL', '').split('@')[1].split(':')[0] if '@' in os.getenv('DATABASE_URL', '') else 'localhost',
-        'PORT': os.getenv('DATABASE_URL', '').split(':')[-1].split('/')[0] if '/' in os.getenv('DATABASE_URL', '') else '5432',
-        'OPTIONS': {
-            'connect_timeout': 10,
-            'options': '-c statement_timeout=30000',  # 30 second query timeout
-        },
-    }
-}
+# Database - Primary Connection with Connection Pooling
+# Use centralized database configuration with proper connection pooling
+from config.database import get_database_settings
+
+DATABASES = get_database_settings()
 
 # Read Replicas Configuration
 # Configure read replica connections for workload isolation and high availability
@@ -290,9 +297,43 @@ CSP_FRAME_ANCESTORS = ("'none'",)  # Prevent framing (same as X-Frame-Options: D
 CSP_BASE_URI = ("'self'",)  # Restrict base tag URLs
 CSP_FORM_ACTION = ("'self'",)  # Restrict form submission targets
 
+# Secrets Manager Integration (Requirements 1.9, 30.2)
+# Load secrets from AWS Secrets Manager in production, fall back to env vars in development
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+USE_SECRETS_MANAGER = os.getenv('USE_SECRETS_MANAGER', 'False') == 'True'
+
+def get_secret_value(secret_name: str, key: str, fallback_env_var: str, default: str = '') -> str:
+    """
+    Get secret value from Secrets Manager in production, environment variable in development.
+    
+    Args:
+        secret_name: Name of the secret in Secrets Manager (e.g., 'api-keys/clerk')
+        key: Key within the secret (e.g., 'secret_key')
+        fallback_env_var: Environment variable to use as fallback
+        default: Default value if neither source is available
+    
+    Returns:
+        Secret value from Secrets Manager or environment variable
+    """
+    if USE_SECRETS_MANAGER and ENVIRONMENT == 'production':
+        try:
+            from infrastructure.secrets_manager import get_secrets_manager
+            secrets_manager = get_secrets_manager()
+            secret_data = secrets_manager.get_secret(secret_name)
+            return secret_data.get(key, os.getenv(fallback_env_var, default))
+        except Exception as e:
+            # Log error but fall back to environment variable
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to retrieve secret '{secret_name}': {e}. Falling back to environment variable.")
+            return os.getenv(fallback_env_var, default)
+    else:
+        # Development: use environment variables
+        return os.getenv(fallback_env_var, default)
+
 # Clerk Authentication
-CLERK_SECRET_KEY = os.getenv('CLERK_SECRET_KEY', '')
-CLERK_PUBLISHABLE_KEY = os.getenv('CLERK_PUBLISHABLE_KEY', '')
+CLERK_SECRET_KEY = get_secret_value('api-keys/clerk', 'secret_key', 'CLERK_SECRET_KEY', '')
+CLERK_PUBLISHABLE_KEY = get_secret_value('api-keys/clerk', 'publishable_key', 'CLERK_PUBLISHABLE_KEY', '')
 
 # Valkey/Redis Configuration
 # Multi-layer caching with L1 (in-memory) and L2 (Redis/Valkey)
@@ -378,13 +419,13 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 
 # AWS S3 Configuration
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+AWS_ACCESS_KEY_ID = get_secret_value('api-keys/aws', 'access_key_id', 'AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = get_secret_value('api-keys/aws', 'secret_access_key', 'AWS_SECRET_ACCESS_KEY', '')
 AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
 AWS_S3_BUCKET = os.getenv('AWS_S3_BUCKET', 'muejam-media')
 
 # Resend Email Configuration
-RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+RESEND_API_KEY = get_secret_value('api-keys/resend', 'api_key', 'RESEND_API_KEY', '')
 
 # Sentry Error Tracking Configuration (Requirements 13.1, 13.2, 13.6)
 # Get your DSN from: https://sentry.io/settings/projects/
@@ -437,12 +478,12 @@ if APM_ENABLED:
 # Google Safe Browsing API Configuration
 # Used for URL validation in content moderation (Requirements 4.6, 4.7)
 # Get your API key from: https://developers.google.com/safe-browsing/v4/get-started
-GOOGLE_SAFE_BROWSING_API_KEY = os.getenv('GOOGLE_SAFE_BROWSING_API_KEY', '')
+GOOGLE_SAFE_BROWSING_API_KEY = get_secret_value('api-keys/google', 'safe_browsing_api_key', 'GOOGLE_SAFE_BROWSING_API_KEY', '')
 
 # Google reCAPTCHA v3 Configuration
 # Used for bot protection on signup, login, and content submission (Requirements 5.4, 5.5)
 # Get your keys from: https://www.google.com/recaptcha/admin
-RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY', '')
+RECAPTCHA_SECRET_KEY = get_secret_value('api-keys/google', 'recaptcha_secret_key', 'RECAPTCHA_SECRET_KEY', '')
 RECAPTCHA_SCORE_THRESHOLD = float(os.getenv('RECAPTCHA_SCORE_THRESHOLD', '0.5'))
 
 # Frontend URL

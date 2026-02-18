@@ -14,7 +14,7 @@ Features:
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 import boto3
@@ -230,7 +230,7 @@ class SecretsManager:
             
             # Update password in secret
             current_secret['password'] = new_password
-            current_secret['rotated_at'] = datetime.utcnow().isoformat()
+            current_secret['rotated_at'] = datetime.now(timezone.utc).isoformat()
             
             # Save updated secret
             self.update_secret(secret_name, current_secret)
@@ -270,7 +270,7 @@ class SecretsManager:
             # Store old key for rollback
             current_secret['previous_key'] = current_secret.get('api_key', '')
             current_secret['api_key'] = new_api_key
-            current_secret['rotated_at'] = datetime.utcnow().isoformat()
+            current_secret['rotated_at'] = datetime.now(timezone.utc).isoformat()
             
             # Save updated secret
             self.update_secret(secret_name, current_secret)
@@ -322,7 +322,7 @@ class SecretsManager:
                     'secret_name': secret_name,
                     'action': action,
                     'error': error,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
             )
         except Exception as e:
@@ -343,7 +343,7 @@ class SecretsManager:
                     'alert_type': 'unauthorized_secret_access',
                     'secret_name': secret_name,
                     'environment': self.environment,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
             )
             

@@ -8,43 +8,100 @@ from drf_spectacular.types import OpenApiTypes
 from apps.core.exceptions import DuplicateResource
 from apps.core.content_sanitizer import ContentSanitizer
 from apps.core.pii_middleware import check_profile_pii
+from infrastructure.cache_manager import CacheManager
 from .serializers import (
     UserProfileReadSerializer,
     UserProfileWriteSerializer,
     PublicUserProfileSerializer
 )
 
+# Initialize cache manager
+cache_manager = CacheManager()
+
 
 def sync_update_profile(user_id: str, update_data: dict):
-    """Synchronous wrapper for update_profile."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # If loop is running, we need to use a different approach
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    """
+    Synchronous version of update_profile.
     
-    return loop.run_until_complete(update_profile(user_id, update_data))
+    This replaces the async version to avoid the nest_asyncio anti-pattern
+    that was causing performance issues and potential deadlocks.
+    """
+    db = Prisma()
+    db.connect()
+    
+    try:
+        # Check handle uniqueness if handle is being updated
+        if 'handle' in update_data:
+            existing = db.userprofile.find_unique(
+                where={'handle': update_data['handle']}
+            )
+            
+            # If handle exists and belongs to different user, reject
+            if existing and existing.id != user_id:
+                return None
+        
+        # Update profile
+        updated_profile = db.userprofile.update(
+            where={'id': user_id},
+            data=update_data
+        )
+        
+        # Invalidate cache for this user
+        cache_manager.invalidate(f'user_profile:{user_id}')
+        cache_manager.invalidate(f'user_profile_by_handle:{updated_profile.handle}')
+        
+        return updated_profile
+        
+    finally:
+        db.disconnect()
 
 
 def sync_get_profile_by_handle(handle: str):
-    """Synchronous wrapper for get_profile_by_handle."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # If loop is running, we need to use a different approach
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    """
+    Synchronous version of get_profile_by_handle.
     
-    return loop.run_until_complete(get_profile_by_handle(handle))
+    This replaces the async version to avoid the nest_asyncio anti-pattern
+    that was causing performance issues and potential deadlocks.
+    """
+    # Check cache first
+    cache_key = f'user_profile_by_handle:{handle}'
+    cached_profile = cache_manager.get(cache_key)
+    
+    if cached_profile is not None:
+        # Return cached profile (need to convert dict back to Prisma model)
+        return type('UserProfile', (), cached_profile)
+    
+    db = Prisma()
+    db.connect()
+    
+    try:
+        profile = db.userprofile.find_unique(
+            where={'handle': handle}
+        )
+        
+        # Cache the profile if found
+        if profile:
+            # Convert to dict for caching
+            profile_dict = {
+                'id': profile.id,
+                'clerk_user_id': profile.clerk_user_id,
+                'handle': profile.handle,
+                'display_name': profile.display_name,
+                'bio': profile.bio,
+                'avatar_key': profile.avatar_key,
+                'created_at': profile.created_at.isoformat() if profile.created_at else None,
+                'updated_at': profile.updated_at.isoformat() if profile.updated_at else None,
+            }
+            
+            ttl = cache_manager.get_ttl_for_type('user_profile')
+            cache_manager.set(cache_key, profile_dict, ttl=ttl, tags=[f'user:{profile.id}'])
+        
+        return profile
+        
+    except Exception:
+        return None
+    finally:
+        db.disconnect()
 
 
 @api_view(['GET'])
@@ -243,71 +300,3 @@ def user_by_handle(request, handle):
     serializer = PublicUserProfileSerializer(profile)
     return Response(serializer.data)
 
-
-async def update_profile(user_id: str, update_data: dict):
-    """
-    Update user profile with validated data.
-    
-    Args:
-        user_id: ID of the user profile to update
-        update_data: Dictionary of fields to update
-        
-    Returns:
-        Updated UserProfile or None if handle is taken
-        
-    Requirements:
-        - 1.3: Validate handle uniqueness before update
-    """
-    db = Prisma()
-    await db.connect()
-    
-    try:
-        # Check handle uniqueness if handle is being updated
-        if 'handle' in update_data:
-            existing = await db.userprofile.find_unique(
-                where={'handle': update_data['handle']}
-            )
-            
-            # If handle exists and belongs to different user, reject
-            if existing and existing.id != user_id:
-                await db.disconnect()
-                return None
-        
-        # Update profile
-        updated_profile = await db.userprofile.update(
-            where={'id': user_id},
-            data=update_data
-        )
-        
-        await db.disconnect()
-        return updated_profile
-        
-    except Exception as e:
-        await db.disconnect()
-        raise e
-
-
-async def get_profile_by_handle(handle: str):
-    """
-    Fetch user profile by handle.
-    
-    Args:
-        handle: User handle to search for
-        
-    Returns:
-        UserProfile or None if not found
-    """
-    db = Prisma()
-    await db.connect()
-    
-    try:
-        profile = await db.userprofile.find_unique(
-            where={'handle': handle}
-        )
-        
-        await db.disconnect()
-        return profile
-        
-    except Exception:
-        await db.disconnect()
-        return None

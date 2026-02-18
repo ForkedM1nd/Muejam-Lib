@@ -7,7 +7,8 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from apps.stories import views as story_views
 from apps.highlights import views as highlight_views
-from infrastructure.metrics_views import metrics_view, metrics_json_view, health_check_view
+from infrastructure.metrics_views import metrics_view, metrics_json_view
+from infrastructure.health_check_views import health_check_view, readiness_check_view, liveness_check_view
 
 urlpatterns = [
     path('django-admin/', admin.site.urls),  # Changed from 'admin/' to avoid namespace conflict
@@ -16,6 +17,8 @@ urlpatterns = [
     path('metrics', metrics_view, name='metrics'),
     path('metrics/json', metrics_json_view, name='metrics-json'),
     path('health', health_check_view, name='health-check'),
+    path('health/ready', readiness_check_view, name='readiness-check'),
+    path('health/live', liveness_check_view, name='liveness-check'),
     
     # API v1 endpoints
     path('v1/', include([

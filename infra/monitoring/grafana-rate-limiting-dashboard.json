@@ -1,0 +1,366 @@
+{
+    "dashboard": {
+        "title": "Rate Limiting Monitoring",
+        "tags": [
+            "rate-limiting",
+            "security",
+            "performance"
+        ],
+        "timezone": "browser",
+        "panels": [
+            {
+                "id": 1,
+                "title": "Rate Limit Hit Rate",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(http_requests_total{status=\"429\"}[5m]) / rate(http_requests_total[5m]) * 100",
+                        "legendFormat": "Rate Limit Hit Rate (%)"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "label": "Percentage",
+                        "format": "percent"
+                    }
+                ],
+                "alert": {
+                    "name": "High Rate Limit Hit Rate",
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    10
+                                ],
+                                "type": "gt"
+                            },
+                            "query": {
+                                "params": [
+                                    "A",
+                                    "5m",
+                                    "now"
+                                ]
+                            }
+                        }
+                    ],
+                    "message": "Rate limit hit rate is above 10% - possible attack or misconfiguration"
+                }
+            },
+            {
+                "id": 2,
+                "title": "Rate Limited Requests (429 Responses)",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(http_requests_total{status=\"429\"}[5m])",
+                        "legendFormat": "429 Responses/sec"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "label": "Requests/sec",
+                        "format": "reqps"
+                    }
+                ]
+            },
+            {
+                "id": 3,
+                "title": "Top Rate Limited Users",
+                "type": "table",
+                "targets": [
+                    {
+                        "expr": "topk(20, sum by (user_id) (rate(http_requests_total{status=\"429\"}[1h])))",
+                        "format": "table"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {
+                            "excludeByName": {},
+                            "indexByName": {},
+                            "renameByName": {
+                                "user_id": "User ID",
+                                "Value": "429 Responses/hour"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "id": 4,
+                "title": "Top Rate Limited Endpoints",
+                "type": "table",
+                "targets": [
+                    {
+                        "expr": "topk(20, sum by (path) (rate(http_requests_total{status=\"429\"}[1h])))",
+                        "format": "table"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {
+                            "renameByName": {
+                                "path": "Endpoint",
+                                "Value": "429 Responses/hour"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "id": 5,
+                "title": "Redis Connection Status",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "redis_up",
+                        "legendFormat": "Redis Status"
+                    }
+                ],
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "textMode": "value_and_name"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "value": 0,
+                                    "color": "red"
+                                },
+                                {
+                                    "value": 1,
+                                    "color": "green"
+                                }
+                            ]
+                        },
+                        "mappings": [
+                            {
+                                "type": "value",
+                                "options": {
+                                    "0": {
+                                        "text": "DOWN"
+                                    },
+                                    "1": {
+                                        "text": "UP"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "alert": {
+                    "name": "Redis Down - Rate Limiting Disabled",
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    1
+                                ],
+                                "type": "lt"
+                            }
+                        }
+                    ],
+                    "message": "CRITICAL: Redis is down - rate limiting is disabled!"
+                }
+            },
+            {
+                "id": 6,
+                "title": "Redis Response Time",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.50, rate(redis_command_duration_seconds_bucket[5m]))",
+                        "legendFormat": "P50"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.95, rate(redis_command_duration_seconds_bucket[5m]))",
+                        "legendFormat": "P95"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.99, rate(redis_command_duration_seconds_bucket[5m]))",
+                        "legendFormat": "P99"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "label": "Latency",
+                        "format": "ms"
+                    }
+                ]
+            },
+            {
+                "id": 7,
+                "title": "Rate Limit Check Duration",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.50, rate(rate_limit_check_duration_seconds_bucket[5m]))",
+                        "legendFormat": "P50"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.95, rate(rate_limit_check_duration_seconds_bucket[5m]))",
+                        "legendFormat": "P95"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.99, rate(rate_limit_check_duration_seconds_bucket[5m]))",
+                        "legendFormat": "P99"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "label": "Duration",
+                        "format": "ms"
+                    }
+                ]
+            },
+            {
+                "id": 8,
+                "title": "Unique Rate Limited Users (Last Hour)",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "count(count by (user_id) (rate(http_requests_total{status=\"429\"}[1h]) > 0))",
+                        "legendFormat": "Unique Users"
+                    }
+                ],
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "area",
+                    "textMode": "value_and_name"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "value": 0,
+                                    "color": "green"
+                                },
+                                {
+                                    "value": 10,
+                                    "color": "yellow"
+                                },
+                                {
+                                    "value": 50,
+                                    "color": "red"
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 9,
+                "title": "Admin Request Rate",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "sum by (user_id) (rate(http_requests_total{is_admin=\"true\"}[5m]))",
+                        "legendFormat": "{{user_id}}"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "label": "Requests/sec",
+                        "format": "reqps"
+                    }
+                ],
+                "alert": {
+                    "name": "Suspicious Admin Activity",
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    16.67
+                                ],
+                                "type": "gt"
+                            }
+                        }
+                    ],
+                    "message": "Admin user exceeding 1000 requests/minute - investigate for abuse"
+                }
+            },
+            {
+                "id": 10,
+                "title": "Rate Limit Events Timeline",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "sum(rate(http_requests_total{status=\"429\"}[1m]))",
+                        "legendFormat": "Rate Limited Requests"
+                    },
+                    {
+                        "expr": "sum(rate(http_requests_total[1m]))",
+                        "legendFormat": "Total Requests"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "label": "Requests/sec",
+                        "format": "reqps"
+                    }
+                ]
+            },
+            {
+                "id": 11,
+                "title": "Rate Limit Headers Sent",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "sum(rate(http_responses_with_rate_limit_headers_total[5m]))",
+                        "legendFormat": "Responses with Rate Limit Headers"
+                    }
+                ],
+                "options": {
+                    "colorMode": "value",
+                    "graphMode": "area",
+                    "textMode": "value_and_name"
+                }
+            },
+            {
+                "id": 12,
+                "title": "Redis Memory Usage",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "redis_memory_used_bytes / redis_memory_max_bytes * 100",
+                        "legendFormat": "Memory Usage (%)"
+                    }
+                ],
+                "yaxes": [
+                    {
+                        "label": "Percentage",
+                        "format": "percent",
+                        "max": 100
+                    }
+                ],
+                "alert": {
+                    "name": "Redis High Memory Usage",
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    80
+                                ],
+                                "type": "gt"
+                            }
+                        }
+                    ],
+                    "message": "Redis memory usage above 80% - consider scaling"
+                }
+            }
+        ],
+        "refresh": "30s",
+        "time": {
+            "from": "now-6h",
+            "to": "now"
+        }
+    }
+}

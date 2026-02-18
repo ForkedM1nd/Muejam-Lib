@@ -58,6 +58,14 @@ This document provides a comprehensive checklist for deploying the MueJam Librar
   - [ ] No secrets in version control
   - [ ] Different credentials for production vs staging
 
+- [ ] **SECRET_KEY Configuration** (CRITICAL)
+  - [ ] Unique SECRET_KEY generated for production (minimum 50 characters)
+  - [ ] SECRET_KEY stored in AWS Secrets Manager or secure environment variable
+  - [ ] SECRET_KEY is NOT the example value from .env.example
+  - [ ] SECRET_KEY is NOT committed to version control
+  - [ ] SECRET_KEY validation passes: `python manage.py check`
+  - [ ] Different SECRET_KEY used for each environment (dev, staging, production)
+
 - [ ] **Feature Flags**
   - [ ] New features behind feature flags (if applicable)
   - [ ] Feature flag configuration reviewed

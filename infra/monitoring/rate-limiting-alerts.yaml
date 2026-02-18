@@ -1,0 +1,288 @@
+# Rate Limiting Alert Rules
+# 
+# This file contains alert rules for monitoring rate limiting effectiveness.
+# Compatible with Prometheus Alertmanager, Grafana Alerts, and similar systems.
+#
+# Severity Levels:
+# - critical: Immediate action required (page on-call)
+# - warning: Investigation needed (notify team)
+# - info: Informational (log/track)
+
+groups:
+  - name: rate_limiting_critical
+    interval: 30s
+    rules:
+      - alert: RateLimitingRedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: rate_limiting
+          impact: high
+        annotations:
+          summary: "CRITICAL: Rate limiting Redis is down"
+          description: "Redis connection failed. Rate limiting is DISABLED. All requests are being allowed."
+          impact: "Rate limiting is not functioning. System is vulnerable to abuse and DDoS attacks."
+          action: |
+            1. Check Redis server status: systemctl status redis
+            2. Check Redis logs: journalctl -u redis -n 100
+            3. Restart Redis if needed: systemctl restart redis
+            4. Verify connection: redis-cli PING
+            5. Check application logs for Redis errors
+          runbook: "https://docs.example.com/runbooks/redis-down"
+          dashboard: "https://grafana.example.com/d/rate-limiting"
+
+      - alert: RateLimitingVeryHighHitRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status="429"}[5m])) 
+            / 
+            sum(rate(http_requests_total[5m]))
+          ) * 100 > 10
+        for: 5m
+        labels:
+          severity: critical
+          component: rate_limiting
+          impact: high
+        annotations:
+          summary: "CRITICAL: Very high rate limit hit rate (>10%)"
+          description: "{{ $value | humanizePercentage }} of requests are being rate limited."
+          impact: "Possible DDoS attack or misconfigured rate limits affecting legitimate users."
+          action: |
+            1. Check if attack: Review top rate-limited IPs/users
+            2. Check logs: grep "Rate limit exceeded" /var/log/app.log | tail -100
+            3. Identify pattern: Single user or distributed?
+            4. If attack: Block IPs, consider temporary limit increase
+            5. If legitimate traffic: Increase rate limits
+            6. Monitor dashboard: Check rate limiting metrics
+          query: |
+            # Top rate-limited users
+            grep "Rate limit exceeded" /var/log/app.log | grep -oP "user_id: \K[^,]+" | sort | uniq -c | sort -rn | head -20
+          dashboard: "https://grafana.example.com/d/rate-limiting"
+
+  - name: rate_limiting_warnings
+    interval: 1m
+    rules:
+      - alert: RateLimitingHighHitRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status="429"}[5m])) 
+            / 
+            sum(rate(http_requests_total[5m]))
+          ) * 100 > 5
+        for: 15m
+        labels:
+          severity: warning
+          component: rate_limiting
+          impact: medium
+        annotations:
+          summary: "WARNING: Elevated rate limit hit rate (>5%)"
+          description: "{{ $value | humanizePercentage }} of requests are being rate limited for 15+ minutes."
+          impact: "Elevated rate limiting may indicate attack or restrictive limits."
+          action: |
+            1. Monitor trend: Is it increasing or stable?
+            2. Review top rate-limited users and endpoints
+            3. Check if legitimate users are affected
+            4. Consider adjusting limits if needed
+          dashboard: "https://grafana.example.com/d/rate-limiting"
+
+      - alert: RateLimitingManyUsersAffected
+        expr: |
+          count(
+            count by (user_id) (
+              rate(http_requests_total{status="429"}[1h]) > 0
+            )
+          ) > 50
+        for: 10m
+        labels:
+          severity: warning
+          component: rate_limiting
+          impact: medium
+        annotations:
+          summary: "WARNING: Many users hitting rate limits"
+          description: "{{ $value }} unique users have been rate limited in the last hour."
+          impact: "Rate limits may be too restrictive or there's a distributed attack."
+          action: |
+            1. Review if limits are appropriate
+            2. Check if users are legitimate or bots
+            3. Analyze request patterns
+            4. Consider adjusting limits if legitimate traffic
+          dashboard: "https://grafana.example.com/d/rate-limiting"
+
+      - alert: RateLimitingSuspiciousAdminActivity
+        expr: |
+          sum by (user_id) (
+            rate(http_requests_total{is_admin="true"}[1m])
+          ) > 16.67
+        for: 5m
+        labels:
+          severity: warning
+          component: rate_limiting
+          impact: medium
+        annotations:
+          summary: "WARNING: Admin user {{ $labels.user_id }} exceeding 1000 req/min"
+          description: "Admin user {{ $labels.user_id }} is making {{ $value }} requests/second ({{ $value | humanize }}*60 = {{ $value | humanize | multiply 60 }} req/min)."
+          impact: "Possible compromised admin account or misconfigured automation."
+          action: |
+            1. Identify admin user: Check user_id {{ $labels.user_id }}
+            2. Review recent admin activity
+            3. Check if legitimate automation or abuse
+            4. Contact admin user if suspicious
+            5. Consider revoking admin access if compromised
+          dashboard: "https://grafana.example.com/d/rate-limiting"
+
+      - alert: RateLimitingRedisHighMemory
+        expr: |
+          (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: rate_limiting
+          impact: medium
+        annotations:
+          summary: "WARNING: Redis memory usage high (>80%)"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}."
+          impact: "Redis may run out of memory, causing rate limiting to fail."
+          action: |
+            1. Check Redis memory: redis-cli INFO memory
+            2. Check for memory leaks or excessive keys
+            3. Consider increasing Redis memory limit
+            4. Review rate limit key TTLs
+            5. Consider scaling Redis
+          dashboard: "https://grafana.example.com/d/redis"
+
+      - alert: RateLimitingRedisSlowResponses
+        expr: |
+          histogram_quantile(0.95, rate(redis_command_duration_seconds_bucket[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: rate_limiting
+          impact: low
+        annotations:
+          summary: "WARNING: Redis P95 latency high (>100ms)"
+          description: "Redis P95 response time is {{ $value | humanizeDuration }}."
+          impact: "Slow Redis responses may impact request latency."
+          action: |
+            1. Check Redis CPU usage
+            2. Check Redis network latency
+            3. Review slow Redis commands: redis-cli SLOWLOG GET 10
+            4. Consider scaling Redis
+          dashboard: "https://grafana.example.com/d/redis"
+
+  - name: rate_limiting_info
+    interval: 5m
+    rules:
+      - alert: RateLimitingEndpointFrequentlyLimited
+        expr: |
+          topk(5, 
+            sum by (path) (
+              rate(http_requests_total{status="429"}[1h])
+            )
+          ) > 1
+        for: 30m
+        labels:
+          severity: info
+          component: rate_limiting
+          impact: low
+        annotations:
+          summary: "INFO: Endpoint {{ $labels.path }} frequently rate limited"
+          description: "Endpoint {{ $labels.path }} has {{ $value }} rate limit events/second."
+          impact: "This endpoint may need different rate limits or optimization."
+          action: |
+            1. Review if endpoint needs higher limits
+            2. Check if endpoint can be optimized
+            3. Consider per-endpoint rate limits
+            4. Monitor user feedback
+          dashboard: "https://grafana.example.com/d/rate-limiting"
+
+      - alert: RateLimitingNewPattern
+        expr: |
+          (
+            sum(rate(http_requests_total{status="429"}[1h])) 
+            / 
+            sum(rate(http_requests_total{status="429"}[1h] offset 24h))
+          ) > 2
+        for: 30m
+        labels:
+          severity: info
+          component: rate_limiting
+          impact: low
+        annotations:
+          summary: "INFO: Rate limiting pattern changed significantly"
+          description: "Rate limit events are {{ $value }}x higher than 24 hours ago."
+          impact: "Traffic pattern change detected - may be normal or indicate issue."
+          action: |
+            1. Review recent changes (deployments, marketing campaigns)
+            2. Check if traffic increase is expected
+            3. Monitor for continued growth
+            4. Adjust limits if needed
+          dashboard: "https://grafana.example.com/d/rate-limiting"
+
+# Alert routing configuration (for Alertmanager)
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'pagerduty'
+      continue: true
+    - match:
+        severity: warning
+      receiver: 'slack'
+    - match:
+        severity: info
+      receiver: 'slack-info'
+
+receivers:
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook'
+
+  - name: 'pagerduty'
+    pagerduty_configs:
+      - service_key: '<PAGERDUTY_SERVICE_KEY>'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        details:
+          summary: '{{ .CommonAnnotations.summary }}'
+          description: '{{ .CommonAnnotations.description }}'
+          impact: '{{ .CommonAnnotations.impact }}'
+          action: '{{ .CommonAnnotations.action }}'
+          dashboard: '{{ .CommonAnnotations.dashboard }}'
+
+  - name: 'slack'
+    slack_configs:
+      - api_url: '<SLACK_WEBHOOK_URL>'
+        channel: '#alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Impact:* {{ .CommonAnnotations.impact }}
+          *Action:* {{ .CommonAnnotations.action }}
+          *Dashboard:* {{ .CommonAnnotations.dashboard }}
+
+  - name: 'slack-info'
+    slack_configs:
+      - api_url: '<SLACK_WEBHOOK_URL>'
+        channel: '#monitoring-info'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.summary }}'
+
+# Inhibition rules (suppress alerts when higher severity alert is firing)
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['component']
+  
+  - source_match:
+      alertname: 'RateLimitingRedisDown'
+    target_match_re:
+      alertname: 'RateLimiting.*'
+    equal: ['component']

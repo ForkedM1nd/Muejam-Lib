@@ -125,13 +125,24 @@ For detailed development setup instructions, see:
 
 ### Backend Development
 
+**Important: Generate a SECRET_KEY first!**
+
+Before running the backend, you must generate a secure SECRET_KEY:
+
+```bash
+# Generate SECRET_KEY
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+```
+
+Copy the output and add it to your `.env` file.
+
 ```bash
 cd apps/backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env and paste your generated SECRET_KEY
 python manage.py migrate
 python manage.py runserver
 ```

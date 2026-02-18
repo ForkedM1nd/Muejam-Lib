@@ -12,6 +12,7 @@ from apps.core.cache import CacheManager
 from apps.stories.serializers import StoryListSerializer
 from .trending import TrendingCalculator
 from .personalization import PersonalizationEngine
+from .serializers import DiscoverFeedQuerySerializer, GenreQuerySerializer, SimilarStoriesQuerySerializer
 import asyncio
 
 
@@ -148,17 +149,22 @@ def discover_feed(request):
         - 2.11: Search with query text
         - 21.2: Cache with TTL 3-5 minutes
     """
-    tab = request.query_params.get('tab', 'trending')
-    tag_slug = request.query_params.get('tag')
-    search_query = request.query_params.get('q')
-    cursor = request.query_params.get('cursor')
-    
-    # Validate tab parameter
-    if tab not in ['trending', 'new', 'for-you']:
+    # Validate query parameters with serializer
+    serializer = DiscoverFeedQuerySerializer(data=request.query_params)
+    if not serializer.is_valid():
         return Response(
-            {'error': 'Invalid tab parameter. Must be one of: trending, new, for-you'},
+            {
+                'error': 'Invalid query parameters',
+                'details': serializer.errors
+            },
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+    validated_data = serializer.validated_data
+    tab = validated_data.get('tab', 'trending')
+    tag_slug = validated_data.get('tag')
+    search_query = validated_data.get('q')
+    cursor = validated_data.get('cursor')
     
     # For You feed requires authentication
     if tab == 'for-you':
