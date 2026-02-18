@@ -329,7 +329,7 @@ The custom exception handler (`apps.core.exceptions.custom_exception_handler`) p
 
 ## Testing Validation
 
-All serializers have comprehensive test coverage in `tests/backend/apps/`:
+All serializers have comprehensive test coverage in `apps/backend/tests/apps`:
 
 - Valid input tests
 - Invalid input tests
@@ -351,7 +351,7 @@ When adding new endpoints:
 2. Define all fields with appropriate validators
 3. Add custom `validate_<field>()` methods if needed
 4. Use the serializer in your view
-5. Add tests in `tests/backend/apps/<app>_serializer_tests.py`
+5. Add tests in `apps/backend/tests/apps/<app>_serializer_tests.py`
 6. Document the validation rules in this file
 
 Example:

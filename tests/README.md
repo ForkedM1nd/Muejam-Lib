@@ -27,7 +27,7 @@ tests/
 ## Backend Tests
 
 ### Unit Tests
-Located in `tests/backend/unit/`, these test individual components in isolation.
+Located in `apps/backend/tests/unit`, these test individual components in isolation.
 
 ```bash
 # Run all backend unit tests
@@ -39,7 +39,7 @@ pytest tests/backend/unit/
 ```
 
 ### Integration Tests
-Located in `tests/backend/integration/`, these verify interactions between components.
+Located in `apps/backend/tests/integration`, these verify interactions between components.
 
 ```bash
 # Run backend integration tests
@@ -47,7 +47,7 @@ pytest tests/backend/integration/
 ```
 
 ### End-to-End Tests
-Located in `tests/backend/e2e/`, these test complete user workflows and API interactions.
+Located in `apps/backend/tests/e2e`, these test complete user workflows and API interactions.
 
 ```bash
 # Run backend e2e tests
@@ -55,7 +55,7 @@ pytest tests/backend/e2e/
 ```
 
 ### Infrastructure Tests
-Located in `tests/backend/infrastructure/`, these test infrastructure code (caching, monitoring, configuration).
+Located in `apps/backend/tests/infrastructure`, these test infrastructure code (caching, monitoring, configuration).
 
 ```bash
 # Run infrastructure tests
@@ -63,7 +63,7 @@ pytest tests/backend/infrastructure/
 ```
 
 ### Property-Based Tests
-Located in `tests/backend/property/`, these use property-based testing to verify correctness properties.
+Located in `apps/backend/tests/property`, these use property-based testing to verify correctness properties.
 
 ```bash
 # Run property-based tests
@@ -71,7 +71,7 @@ pytest tests/backend/property/
 ```
 
 ### Performance Tests
-Located in `tests/backend/performance/`, these test system performance and load handling.
+Located in `apps/backend/tests/performance`, these test system performance and load handling.
 
 ```bash
 # Run performance tests
@@ -79,7 +79,7 @@ pytest tests/backend/performance/
 ```
 
 ### Django App Tests
-Located in `tests/backend/apps/`, these contain Django app-specific tests organized by app name.
+Located in `apps/backend/tests/apps`, these contain Django app-specific tests organized by app name.
 
 ```bash
 # Run tests for a specific app
@@ -113,19 +113,19 @@ pytest tests/backend/unit/test_cache_manager.py
 ## Test Configuration
 
 Test configuration is managed in:
-- `tests/backend/conftest.py` - Pytest fixtures and configuration
+- `apps/backend/tests/conftest.py` - Pytest fixtures and configuration
 - `apps/backend/pytest.ini` - Pytest settings
 
 ## Adding New Tests
 
 1. Choose the appropriate test type:
-   - **Unit tests**: Individual component testing → `tests/backend/unit/`
-   - **Integration tests**: Cross-component testing → `tests/backend/integration/` or `tests/frontend/integration/`
-   - **E2E tests**: Complete workflow testing → `tests/backend/e2e/` or `tests/frontend/e2e/`
-   - **Infrastructure tests**: Infrastructure code testing → `tests/backend/infrastructure/`
-   - **Property tests**: Property-based testing → `tests/backend/property/`
-   - **Performance tests**: Load and stress testing → `tests/backend/performance/`
-   - **Django app tests**: App-specific testing → `tests/backend/apps/<app_name>/`
+   - **Unit tests**: Individual component testing → `apps/backend/tests/unit`
+   - **Integration tests**: Cross-component testing → `apps/backend/tests/integration` or `tests/frontend/integration/`
+   - **E2E tests**: Complete workflow testing → `apps/backend/tests/e2e` or `tests/frontend/e2e/`
+   - **Infrastructure tests**: Infrastructure code testing → `apps/backend/tests/infrastructure`
+   - **Property tests**: Property-based testing → `apps/backend/tests/property`
+   - **Performance tests**: Load and stress testing → `apps/backend/tests/performance`
+   - **Django app tests**: App-specific testing → `apps/backend/tests/apps/<app_name>`
 2. Create test file in the corresponding directory
 3. Follow existing naming conventions: `test_*.py`
 4. Use fixtures from `conftest.py` for common setup
@@ -134,7 +134,7 @@ Test configuration is managed in:
 ## Test Organization Strategy
 
 **Fully Centralized Tests**: All tests are organized in the top-level `tests/` directory for better discoverability, organization, and separation of concerns. This includes:
-- Django app-specific tests in `tests/backend/apps/`
+- Django app-specific tests in `apps/backend/tests/apps`
 - Cross-cutting tests (integration, e2e, infrastructure, property, performance) in their respective directories
 
 This centralized approach provides:

@@ -91,9 +91,9 @@ All feature and technical documentation moved to `docs/` with clear hierarchy:
 - `apps/backend/apps/status/README.md` → `docs/features/status/overview.md`
 
 **Backend & Deployment**:
-- `apps/backend/docs/DEPLOYMENT_CHECKLIST.md` → `docs/deployment/checklist.md`
-- `apps/backend/docs/rate-limiting-setup.md` → `docs/backend/rate-limiting.md`
-- `apps/backend/docs/SECRETS_MANAGEMENT.md` → `docs/deployment/secrets-management.md`
+- `docs/backend/DEPLOYMENT_CHECKLIST.md` → `docs/deployment/checklist.md`
+- `docs/backend/rate-limiting-setup.md` → `docs/backend/rate-limiting.md`
+- `docs/backend/SECRETS_MANAGEMENT.md` → `docs/deployment/secrets-management.md`
 
 **Architecture** (9 infrastructure docs):
 - `apps/backend/infrastructure/README_ALERTING.md` → `docs/architecture/alerting.md`
@@ -152,9 +152,9 @@ All feature and technical documentation moved to `docs/` with clear hierarchy:
 ### Phase 5: Tests Organized
 
 **Infrastructure Tests**:
-- `apps/backend/infrastructure/tests/test_config_validator.py` → `tests/backend/infrastructure/test_config_validator.py`
-- `apps/backend/infrastructure/tests/test_secrets_manager.py` → `tests/backend/infrastructure/test_secrets_manager.py`
-- `apps/backend/infrastructure/tests/test_audit_log_integration.py` → `tests/backend/infrastructure/test_audit_log_integration.py`
+- `apps/backend/infrastructure/tests/test_config_validator.py` → `apps/backend/tests/infrastructure/test_config_validator.py`
+- `apps/backend/infrastructure/tests/test_secrets_manager.py` → `apps/backend/tests/infrastructure/test_secrets_manager.py`
+- `apps/backend/infrastructure/tests/test_audit_log_integration.py` → `apps/backend/tests/infrastructure/test_audit_log_integration.py`
 
 **Moderation Tests** (moved to colocated directory):
 - `apps/backend/apps/moderation/test_content_filter_integration.py` → `apps/backend/apps/moderation/tests/test_content_filter_integration.py`
@@ -247,7 +247,7 @@ testpaths = apps ../../tests/backend
 
 This configuration allows pytest to discover:
 - Colocated tests in Django apps (`apps/`)
-- Centralized tests in `tests/backend/`
+- Centralized tests in `apps/backend/tests`
 
 ### docker-compose.yml
 

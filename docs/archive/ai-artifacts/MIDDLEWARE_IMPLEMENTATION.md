@@ -52,7 +52,7 @@ Positioned after `ClerkAuthMiddleware` to ensure user authentication is complete
 
 ### 4. Comprehensive Unit Tests
 
-**File**: `tests/backend/apps/test_email_verification_middleware.py`
+**File**: `apps/backend/tests/apps/test_email_verification_middleware.py`
 
 Created 11 unit tests covering:
 - ✅ Non-POST requests are allowed
@@ -162,7 +162,7 @@ Potential improvements for future iterations:
 - ✅ `apps/backend/apps/users/email_verification/middleware.py` (created)
 - ✅ `apps/backend/apps/users/email_verification/service.py` (modified - added sync method)
 - ✅ `apps/backend/config/settings.py` (modified - added middleware)
-- ✅ `tests/backend/apps/test_email_verification_middleware.py` (created)
+- ✅ `apps/backend/tests/apps/test_email_verification_middleware.py` (created)
 - ✅ `apps/backend/apps/users/email_verification/MIDDLEWARE_IMPLEMENTATION.md` (created)
 
 ## Conclusion

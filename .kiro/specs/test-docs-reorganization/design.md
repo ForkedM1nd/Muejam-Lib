@@ -3,8 +3,8 @@
 ## Overview
 
 This design outlines the approach for reorganizing the MueJam Library project structure by:
-1. Moving all backend tests from `tests/backend/` to `apps/backend/tests/`
-2. Moving all backend documentation from `apps/backend/docs/` to `docs/backend/`
+1. Moving all backend tests from `apps/backend/tests` to `apps/backend/tests/`
+2. Moving all backend documentation from `docs/backend` to `docs/backend/`
 3. Cleaning up Python cache files, temporary directories, and log files
 4. Updating all import statements and references to reflect new locations
 5. Committing all changes to version control

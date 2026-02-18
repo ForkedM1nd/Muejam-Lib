@@ -155,7 +155,7 @@ enum DMCAStatus {
 
 ## Testing
 
-Unit tests are provided in `tests/backend/apps/legal_tests.py`:
+Unit tests are provided in `apps/backend/tests/apps/legal_tests.py`:
 
 - `DMCATakedownTests`: Tests for endpoint validation and authentication
 - `DMCATakedownIntegrationTests`: Tests for the complete workflow

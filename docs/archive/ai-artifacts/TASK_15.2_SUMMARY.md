@@ -139,7 +139,7 @@ Successfully created and applied migration adding both tables to the database.
 
 ### 6. Comprehensive Testing
 
-#### Account Suspension Tests (`tests/backend/unit/test_account_suspension.py`)
+#### Account Suspension Tests (`apps/backend/tests/unit/test_account_suspension.py`)
 
 **8 tests covering:**
 - ✅ Temporary suspension creation
@@ -152,7 +152,7 @@ Successfully created and applied migration adding both tables to the database.
 
 **All tests passing: 8/8**
 
-#### Shadowban Tests (`tests/backend/unit/test_shadowban.py`)
+#### Shadowban Tests (`apps/backend/tests/unit/test_shadowban.py`)
 
 **13 tests covering:**
 - ✅ Shadowban application
@@ -249,8 +249,8 @@ await shadowban_service.apply_shadowban(
 1. `apps/backend/infrastructure/account_suspension.py` - Account suspension service
 2. `apps/backend/infrastructure/shadowban.py` - Shadowban service
 3. `apps/backend/infrastructure/content_filter_utils.py` - Content filtering utilities
-4. `tests/backend/unit/test_account_suspension.py` - Account suspension tests
-5. `tests/backend/unit/test_shadowban.py` - Shadowban tests
+4. `apps/backend/tests/unit/test_account_suspension.py` - Account suspension tests
+5. `apps/backend/tests/unit/test_shadowban.py` - Shadowban tests
 6. `apps/backend/TASK_15.2_SUMMARY.md` - This summary document
 
 ### Modified Files:

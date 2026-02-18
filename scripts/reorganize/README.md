@@ -6,8 +6,8 @@ This script reorganizes the MueJam Library project structure by moving backend t
 
 The reorganization script performs the following operations:
 
-1. **Moves Backend Tests**: Relocates all backend tests from `tests/backend/` to `apps/backend/tests/`
-2. **Moves Backend Documentation**: Relocates all backend documentation from `apps/backend/docs/` to `docs/backend/`
+1. **Moves Backend Tests**: Relocates all backend tests from `apps/backend/tests` to `apps/backend/tests/`
+2. **Moves Backend Documentation**: Relocates all backend documentation from `docs/backend` to `docs/backend/`
 3. **Updates Import Statements**: Automatically updates all Python import statements to reflect new file locations
 4. **Updates Documentation References**: Updates all file path references in markdown files
 5. **Updates Test Configuration**: Updates pytest.ini and other test configuration files

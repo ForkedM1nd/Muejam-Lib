@@ -206,7 +206,7 @@ PGBOUNCER_URL=postgresql://user:password@pgbouncer:6432/database
 2. `apps/backend/infrastructure/connection_pool_monitor.py` - Monitoring system
 3. `apps/backend/infrastructure/management/commands/monitor_connection_pool.py` - Management command
 4. `apps/backend/tests/test_connection_pooling.py` - Test suite
-5. `apps/backend/docs/CONNECTION_POOLING.md` - Documentation
+5. `docs/backend/CONNECTION_POOLING.md` - Documentation
 
 ### Modified Files
 1. `apps/backend/config/settings.py` - Updated to use new database config

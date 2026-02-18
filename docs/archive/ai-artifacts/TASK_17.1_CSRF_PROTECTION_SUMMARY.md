@@ -55,7 +55,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 - **Activity Tracking**: Session updated on every request to track last activity
 
 ### 4. Comprehensive Test Suite
-Created `tests/backend/apps/test_csrf_protection.py` with 21 tests covering:
+Created `apps/backend/tests/apps/test_csrf_protection.py` with 21 tests covering:
 
 #### Test Categories:
 1. **CSRF Middleware Tests** (2 tests)
@@ -142,7 +142,7 @@ The frontend needs to:
 
 ## Files Modified
 1. `apps/backend/config/settings.py` - Added CSRF and session cookie configuration
-2. `tests/backend/apps/test_csrf_protection.py` - Created comprehensive test suite
+2. `apps/backend/tests/apps/test_csrf_protection.py` - Created comprehensive test suite
 
 ## Verification Steps
 1. ✅ CSRF middleware enabled and correctly ordered

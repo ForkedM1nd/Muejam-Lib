@@ -143,19 +143,19 @@ This implementation plan outlines the steps to reorganize the MueJam Library pro
 
 - [x] 8. Implement backend test move operation
   - In `reorganize.py`, implement `move_backend_tests()` function
-  - Move all contents from `tests/backend/` to `apps/backend/tests/`
+  - Move all contents from `apps/backend/tests` to `apps/backend/tests/`
   - Preserve directory structure within backend tests
   - Update all import statements in moved test files
   - Update conftest.py references
-  - Remove empty `tests/backend/` directory after move
+  - Remove empty `apps/backend/tests` directory after move
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 4.1, 4.2, 4.3, 5.1_
 
 - [x] 9. Implement backend documentation move operation
   - In `reorganize.py`, implement `move_backend_docs()` function
   - Create `docs/backend/` directory if it doesn't exist
-  - Move all files from `apps/backend/docs/` to `docs/backend/`
+  - Move all files from `docs/backend` to `docs/backend/`
   - Update relative path references in moved documentation
-  - Remove empty `apps/backend/docs/` directory after move
+  - Remove empty `docs/backend` directory after move
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 5.2_
 
 - [x] 10. Implement test configuration updates

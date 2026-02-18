@@ -8,7 +8,7 @@ This document specifies the requirements for reorganizing the test and documenta
 
 - **Root_Tests_Directory**: The `tests/` directory at the project root level
 - **Backend_Tests_Directory**: The `apps/backend/tests/` directory within the backend application
-- **Backend_Docs_Directory**: The `apps/backend/docs/` directory within the backend application
+- **Backend_Docs_Directory**: The `docs/backend` directory within the backend application
 - **Root_Docs_Directory**: The `docs/` directory at the project root level
 - **Test_File**: Any file with test code, including Python test files, test configuration files, and test documentation
 - **Documentation_File**: Any markdown or text file containing project documentation
@@ -24,7 +24,7 @@ This document specifies the requirements for reorganizing the test and documenta
 
 #### Acceptance Criteria
 
-1. THE File_System SHALL move all contents from `tests/backend/` to `apps/backend/tests/`
+1. THE File_System SHALL move all contents from `apps/backend/tests` to `apps/backend/tests/`
 2. WHEN moving test files, THE File_System SHALL preserve the directory structure within the backend tests folder
 3. WHEN moving test files, THE File_System SHALL update all Import_Statements to reflect the new file locations
 4. WHEN the move is complete, THE Root_Tests_Directory SHALL contain only frontend tests
@@ -36,7 +36,7 @@ This document specifies the requirements for reorganizing the test and documenta
 
 #### Acceptance Criteria
 
-1. THE File_System SHALL move all files from `apps/backend/docs/` to `docs/backend/`
+1. THE File_System SHALL move all files from `docs/backend` to `docs/backend/`
 2. WHEN moving documentation files, THE File_System SHALL create the `docs/backend/` directory if it does not exist
 3. WHEN the move is complete, THE Backend_Docs_Directory SHALL be empty or removed
 4. THE File_System SHALL preserve all markdown formatting and content during the move
@@ -70,8 +70,8 @@ This document specifies the requirements for reorganizing the test and documenta
 
 #### Acceptance Criteria
 
-1. WHEN all backend tests are moved, THE File_System SHALL remove the empty `tests/backend/` directory
-2. WHEN all documentation is moved, THE File_System SHALL remove the empty `apps/backend/docs/` directory
+1. WHEN all backend tests are moved, THE File_System SHALL remove the empty `apps/backend/tests` directory
+2. WHEN all documentation is moved, THE File_System SHALL remove the empty `docs/backend` directory
 3. IF the `tests/` directory contains only empty subdirectories, THEN THE File_System SHALL remove the `tests/` directory
 4. THE File_System SHALL preserve the `tests/` directory if it contains frontend tests or other content
 5. THE File_System SHALL not remove directories that contain .gitkeep or other placeholder files

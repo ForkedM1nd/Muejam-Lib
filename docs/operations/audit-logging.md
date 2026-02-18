@@ -472,6 +472,6 @@ python manage.py archive_audit_logs --older-than 365 --destination s3://audit-ar
 
 - Audit Log Service: `apps/backend/apps/admin/audit_log_service.py`
 - Prisma Schema: `apps/backend/prisma/schema.prisma`
-- Tests: `tests/backend/infrastructure/test_audit_log_integration.py`
+- Tests: `apps/backend/tests/infrastructure/test_audit_log_integration.py`
 - GDPR Compliance: `docs/legal/gdpr-compliance.md`
 - SOC 2 Compliance: `docs/legal/soc2-compliance.md`

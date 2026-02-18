@@ -88,7 +88,7 @@ X-RateLimit-Reset: 1704067200
 ## Testing
 
 ### Unit Tests
-Created/updated tests in `tests/backend/unit/test_middleware.py`:
+Created/updated tests in `apps/backend/tests/unit/test_middleware.py`:
 
 1. ✅ `test_process_request_allows_request_within_limit` - Verifies requests within limit are allowed
 2. ✅ `test_process_request_blocks_request_over_limit` - Verifies 429 response when rate limited
@@ -98,7 +98,7 @@ Created/updated tests in `tests/backend/unit/test_middleware.py`:
 6. ✅ `test_rate_limit_headers_format` - Verifies header format correctness
 
 ### Integration Tests
-Created comprehensive integration tests in `tests/backend/integration/test_rate_limit_response.py`:
+Created comprehensive integration tests in `apps/backend/tests/integration/test_rate_limit_response.py`:
 
 1. ✅ `test_429_status_code_when_rate_limited` - Validates Requirement 5.9, 34.6
 2. ✅ `test_retry_after_header_when_rate_limited` - Validates Requirement 5.9, 34.6

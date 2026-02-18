@@ -93,7 +93,7 @@ Unverified users receive:
 - ✅ `apps/backend/apps/users/email_verification/middleware.py` (created)
 - ✅ `apps/backend/apps/users/email_verification/service.py` (modified)
 - ✅ `apps/backend/config/settings.py` (modified)
-- ✅ `tests/backend/apps/test_email_verification_middleware.py` (created)
+- ✅ `apps/backend/tests/apps/test_email_verification_middleware.py` (created)
 - ✅ `apps/backend/apps/users/email_verification/README.md` (updated)
 - ✅ `apps/backend/apps/users/email_verification/MIDDLEWARE_IMPLEMENTATION.md` (created)
 - ✅ `apps/backend/apps/users/email_verification/TASK_12.2_SUMMARY.md` (created)

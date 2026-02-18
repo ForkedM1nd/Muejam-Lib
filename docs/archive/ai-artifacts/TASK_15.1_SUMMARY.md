@@ -20,7 +20,7 @@ Create SuspiciousActivityDetector service to identify potential abuse patterns:
    - Activity summary generation
    - Content hashing for duplicate detection
 
-2. **`tests/backend/unit/test_suspicious_activity_detector.py`**
+2. **`apps/backend/tests/unit/test_suspicious_activity_detector.py`**
    - Comprehensive unit test suite
    - 15 test cases covering all detection patterns
    - Tests for edge cases and custom configurations
@@ -254,7 +254,7 @@ This completes task 15.1. The next task in the spec is:
 ## Files Added
 
 1. `apps/backend/infrastructure/suspicious_activity_detector.py` (467 lines)
-2. `tests/backend/unit/test_suspicious_activity_detector.py` (437 lines)
+2. `apps/backend/tests/unit/test_suspicious_activity_detector.py` (437 lines)
 3. `apps/backend/infrastructure/SUSPICIOUS_ACTIVITY_DETECTOR_USAGE.md` (documentation)
 4. `apps/backend/TASK_15.1_SUMMARY.md` (this file)
 
