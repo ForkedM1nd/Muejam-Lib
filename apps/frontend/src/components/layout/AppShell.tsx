@@ -1,20 +1,35 @@
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { UserButton } from "@clerk/clerk-react";
-import { Search, Menu, X, Bell, Moon, Sun } from "lucide-react";
+import { Search, Menu, X, Bell, Moon, Sun, User, Settings, LogOut, Bookmark } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useSafeAuth } from "@/hooks/useSafeAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useDebounce } from "@/hooks/useDebounce";
+import { getTotalNewMatches } from "@/lib/savedSearches";
+import { useSavedSearchNotifications } from "@/hooks/useSavedSearchNotifications";
+import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
 
 const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? "";
 
 const NAV_LINKS = [
   { to: "/discover", label: "Discover" },
+  { to: "/activity", label: "Activity", auth: true },
   { to: "/library", label: "Library", auth: true },
+  { to: "/highlights", label: "Highlights", auth: true },
   { to: "/write", label: "Write", auth: true },
   { to: "/whispers", label: "Whispers" },
 ];
@@ -23,14 +38,33 @@ function SearchBar() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(-1);
+  const [newMatchesCount, setNewMatchesCount] = useState(0);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Check for new matches in saved searches
+  useSavedSearchNotifications();
+
+  // Update new matches count periodically
+  useEffect(() => {
+    const updateCount = () => {
+      setNewMatchesCount(getTotalNewMatches());
+    };
+
+    updateCount();
+    const interval = setInterval(updateCount, 30000); // Update every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Debounce the query to reduce API calls
+  const debouncedQuery = useDebounce(query, 300);
+
   const { data: suggestions } = useQuery({
-    queryKey: ["search-suggest", query],
-    queryFn: () => api.searchSuggest(query),
-    enabled: query.length >= 2,
+    queryKey: ["search-suggest", debouncedQuery],
+    queryFn: () => api.searchSuggest(debouncedQuery),
+    enabled: debouncedQuery.length >= 2,
     staleTime: 30_000,
   });
 
@@ -81,6 +115,23 @@ function SearchBar() {
           placeholder="Search stories, authors, tags…"
           className="w-full h-9 pl-9 pr-3 rounded-full border border-input bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
+        {newMatchesCount > 0 && (
+          <Link
+            to="/search"
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+            title={`${newMatchesCount} new matches in saved searches`}
+          >
+            <div className="relative">
+              <Bookmark className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+              <Badge
+                variant="destructive"
+                className="absolute -top-2 -right-2 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center"
+              >
+                {newMatchesCount > 9 ? "9+" : newMatchesCount}
+              </Badge>
+            </div>
+          </Link>
+        )}
       </div>
       {open && allItems.length > 0 && (
         <div className="absolute top-full mt-1 w-full bg-popover border border-border rounded-lg shadow-lg z-50 py-1 overflow-hidden">
@@ -138,8 +189,13 @@ function SearchBar() {
 
 function AuthButtons() {
   const { isSignedIn } = useSafeAuth();
+  const { signOut } = useAuthContext();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   if (!CLERK_KEY) {
     return <Button size="sm" variant="outline" disabled>Auth not configured</Button>;
@@ -156,7 +212,24 @@ function AuthButtons() {
             <Bell className="h-4 w-4" />
           </Button>
         </Link>
-        <UserButton afterSignOutUrl="/" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <User className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </>
     );
   }
@@ -208,6 +281,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
+            <ConnectionStatus />
             <SearchBar />
             <AuthButtons />
           </div>

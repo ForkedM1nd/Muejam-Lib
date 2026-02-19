@@ -9,6 +9,7 @@ import WhisperCard from "@/components/shared/WhisperCard";
 import WhisperComposer from "@/components/shared/WhisperComposer";
 import { PageSkeleton, ChapterListSkeleton } from "@/components/shared/Skeletons";
 import EmptyState from "@/components/shared/EmptyState";
+import { SimilarStories } from "@/components/discovery";
 import { BookOpen, Bookmark, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -190,9 +191,9 @@ export default function StoryPage() {
           />
         )}
 
-        {whispers?.results && whispers.results.length > 0 ? (
+        {whispers?.results && whispers.results.filter((w) => !w.author.is_blocked).length > 0 ? (
           <div className="space-y-0 divide-y divide-border">
-            {whispers.results.map((whisper) => (
+            {whispers.results.filter((w) => !w.author.is_blocked).map((whisper) => (
               <WhisperCard
                 key={whisper.id}
                 whisper={whisper}
@@ -209,6 +210,14 @@ export default function StoryPage() {
             description="Be the first to share a thought about this story."
           />
         )}
+      </section>
+
+      {/* Similar Stories */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-medium" style={{ fontFamily: "var(--font-display)" }}>
+          Similar Stories
+        </h2>
+        <SimilarStories storyId={story.id} />
       </section>
     </div>
   );

@@ -5,12 +5,25 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
+
+const SUPPORT_CATEGORIES = [
+    { value: 'ACCOUNT', label: 'Account & Login Issues' },
+    { value: 'TECHNICAL', label: 'Technical Problems' },
+    { value: 'CONTENT', label: 'Content & Stories' },
+    { value: 'BILLING', label: 'Billing & Payments' },
+    { value: 'PRIVACY', label: 'Privacy & Data' },
+    { value: 'MODERATION', label: 'Moderation & Reports' },
+    { value: 'FEATURE', label: 'Feature Request' },
+    { value: 'OTHER', label: 'Other' },
+];
 
 export function ContactSupport() {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        category: '',
         subject: '',
         message: '',
     });
@@ -22,7 +35,7 @@ export function ContactSupport() {
         e.preventDefault();
         setError('');
 
-        if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+        if (!formData.name || !formData.email || !formData.category || !formData.subject || !formData.message) {
             setError('Please fill in all fields');
             return;
         }
@@ -39,7 +52,7 @@ export function ContactSupport() {
 
             if (response.ok) {
                 setSubmitted(true);
-                setFormData({ name: '', email: '', subject: '', message: '' });
+                setFormData({ name: '', email: '', category: '', subject: '', message: '' });
             } else {
                 const data = await response.json();
                 setError(data.error || 'Failed to submit support request');
@@ -121,6 +134,25 @@ export function ContactSupport() {
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 required
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="category">Category</Label>
+                            <Select
+                                value={formData.category}
+                                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                            >
+                                <SelectTrigger id="category">
+                                    <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {SUPPORT_CATEGORIES.map((category) => (
+                                        <SelectItem key={category.value} value={category.value}>
+                                            {category.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div className="space-y-2">

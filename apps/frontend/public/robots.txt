@@ -1,14 +1,11 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# MueJam Library - Robots.txt
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /settings
+Disallow: /moderation
+Disallow: /analytics
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://muejam.com/sitemap.xml

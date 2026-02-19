@@ -138,6 +138,8 @@ npm run build:dev
 | `npm run dev` | Start development server |
 | `npm run build` | Build for production |
 | `npm run build:dev` | Build for development |
+| `npm run build:analyze` | Build and analyze bundle size |
+| `npm run lighthouse` | Run Lighthouse audits |
 | `npm run preview` | Preview production build |
 | `npm test` | Run tests |
 | `npm run test:watch` | Run tests in watch mode |
@@ -153,8 +155,24 @@ npm run build:dev
 | `VITE_CLERK_SIGN_UP_URL` | No | Sign-up page URL (default: `/sign-up`) |
 | `VITE_CLERK_AFTER_SIGN_IN_URL` | No | Redirect after sign-in (default: `/discover`) |
 | `VITE_CLERK_AFTER_SIGN_UP_URL` | No | Redirect after sign-up (default: `/discover`) |
+| `VITE_ENABLE_SENTRY` | No | Enable Sentry error tracking (default: `false`) |
+| `VITE_SENTRY_DSN` | No | Sentry DSN for error tracking |
+| `VITE_ENABLE_PERFORMANCE_MONITORING` | No | Enable performance monitoring (default: `false`) |
+| `VITE_ENABLE_ANALYTICS` | No | Enable user analytics (default: `true`) |
 
 *Required for authentication to work. App runs in dev mode without it.
+
+## 📊 Monitoring and Performance
+
+The application includes comprehensive monitoring and performance tracking:
+
+- **Error Tracking**: Sentry integration for error logging
+- **Performance Monitoring**: Web Vitals tracking (CLS, FID, FCP, LCP, TTFB)
+- **User Analytics**: Event tracking and user behavior analysis
+- **Bundle Analysis**: Tools for analyzing and optimizing bundle size
+- **Lighthouse Audits**: Automated performance, accessibility, and SEO audits
+
+For detailed information, see [Monitoring Documentation](docs/MONITORING.md).
 
 ## 🎨 Customization
 

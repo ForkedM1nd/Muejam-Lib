@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { securityHeadersPlugin } from "./vite-plugin-security-headers";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -12,7 +13,11 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(),
+    mode === "development" && componentTagger(),
+    securityHeadersPlugin(),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -21,28 +26,66 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: (id) => {
           // Vendor chunks
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'clerk': ['@clerk/clerk-react'],
-          'tanstack': ['@tanstack/react-query'],
-          'ui': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-label',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-select',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slot',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-toast',
-            '@radix-ui/react-tooltip',
-          ],
-          'markdown': ['react-markdown', 'remark-gfm', 'rehype-sanitize'],
-          'utils': ['date-fns', 'clsx', 'tailwind-merge'],
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@clerk/clerk-react')) {
+              return 'clerk';
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'tanstack';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'ui';
+            }
+            if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
+              return 'markdown';
+            }
+            if (id.includes('date-fns') || id.includes('clsx') || id.includes('tailwind-merge')) {
+              return 'utils';
+            }
+            if (id.includes('recharts')) {
+              return 'charts';
+            }
+            if (id.includes('lucide-react')) {
+              return 'icons';
+            }
+            // Other node_modules go to vendor
+            return 'vendor';
+          }
+
+          // Split heavy pages into separate chunks
+          if (id.includes('/pages/AdminDashboard')) {
+            return 'admin';
+          }
+          if (id.includes('/pages/AnalyticsDashboard')) {
+            return 'analytics';
+          }
+          if (id.includes('/pages/ModerationQueue') || id.includes('/pages/ModerationReview')) {
+            return 'moderation';
+          }
+          if (id.includes('/pages/StoryEditor') || id.includes('/pages/WriteDashboard')) {
+            return 'editor';
+          }
+          if (id.includes('/pages/Reader')) {
+            return 'reader';
+          }
         },
       },
     },
     chunkSizeWarningLimit: 600,
+    // Enable tree-shaking
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: mode === 'production',
+        drop_debugger: mode === 'production',
+      },
+    },
+    // Source maps for production debugging (can be disabled for smaller builds)
+    sourcemap: mode !== 'production',
   },
 }));

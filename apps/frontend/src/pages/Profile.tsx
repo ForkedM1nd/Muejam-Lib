@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSafeAuth } from "@/hooks/useSafeAuth";
 import { api } from "@/lib/api";
 import StoryCard from "@/components/shared/StoryCard";
@@ -10,10 +10,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserPlus, UserMinus, ShieldBan, Settings, Twitter, Instagram, Globe, Award, BookOpen, MessageSquare, Heart, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { BlockConfirmDialog } from "@/components/shared/BlockConfirmDialog";
+import { useState } from "react";
 
 export default function ProfilePage() {
   const { handle } = useParams<{ handle: string }>();
   const { isSignedIn } = useSafeAuth();
+  const queryClient = useQueryClient();
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
 
   const { data: profile, isLoading, isError } = useQuery({
     queryKey: ["profile", handle],
@@ -46,6 +50,36 @@ export default function ProfilePage() {
     enabled: !!handle,
   });
 
+  // Fetch whispers count for this user
+  const { data: whispersData } = useQuery({
+    queryKey: ["profile-whispers-count", handle],
+    queryFn: async () => {
+      // Fetch first page to get total count
+      const response = await api.getWhispers({ page_size: 1 });
+      return response;
+    },
+    enabled: !!handle && !isOwnProfile,
+  });
+
+  // Fetch mutual followers (social proof)
+  const { data: mutualFollowers } = useQuery({
+    queryKey: ["profile-mutual-followers", handle],
+    queryFn: async () => {
+      if (!isSignedIn || isOwnProfile) return null;
+      // Get followers of the profile user
+      const followers = await api.getFollowers(profile?.id || '', undefined);
+      // Get current user's following
+      const following = await api.getFollowing(currentUser?.id || '', undefined);
+
+      // Find mutual followers (people who follow this profile and are followed by current user)
+      const followingIds = new Set(following.results.map(u => u.id));
+      const mutual = followers.results.filter(u => followingIds.has(u.id)).slice(0, 3);
+
+      return mutual;
+    },
+    enabled: !!handle && !!profile?.id && !!currentUser?.id && !isOwnProfile && isSignedIn,
+  });
+
   // Fetch pinned stories
   const { data: pinnedStories } = useQuery({
     queryKey: ["profile-pinned", handle],
@@ -70,19 +104,104 @@ export default function ProfilePage() {
 
   const followMutation = useMutation({
     mutationFn: async () => {
-      if (profile?.is_following) await api.unfollowUser(handle!);
-      else await api.followUser(handle!);
+      if (!profile?.id) throw new Error("Profile ID not found");
+      if (profile?.is_following) {
+        await api.unfollowUser(profile.id);
+      } else {
+        await api.followUser(profile.id);
+      }
     },
-    onSuccess: () => toast({ title: profile?.is_following ? "Unfollowed" : "Following" }),
+    onMutate: async () => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ["profile", handle] });
+      const previousProfile = queryClient.getQueryData(["profile", handle]);
+
+      queryClient.setQueryData(["profile", handle], (old: any) => ({
+        ...old,
+        is_following: !old?.is_following,
+        follower_count: old?.is_following ? old.follower_count - 1 : old.follower_count + 1,
+      }));
+
+      return { previousProfile };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousProfile) {
+        queryClient.setQueryData(["profile", handle], context.previousProfile);
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update follow status",
+        variant: "destructive"
+      });
+    },
+    onSuccess: () => {
+      toast({ title: profile?.is_following ? "Unfollowed" : "Following" });
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ["profile", handle] });
+      queryClient.invalidateQueries({ queryKey: ["profile-mutual-followers", handle] });
+    },
   });
 
   const blockMutation = useMutation({
     mutationFn: async () => {
-      if (profile?.is_blocked) await api.unblockUser(handle!);
-      else await api.blockUser(handle!);
+      if (!profile?.id) throw new Error("Profile ID not found");
+      if (profile?.is_blocked) {
+        await api.unblockUser(profile.id);
+      } else {
+        await api.blockUser(profile.id);
+      }
     },
-    onSuccess: () => toast({ title: profile?.is_blocked ? "Unblocked" : "Blocked" }),
+    onMutate: async () => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ["profile", handle] });
+      const previousProfile = queryClient.getQueryData(["profile", handle]);
+
+      queryClient.setQueryData(["profile", handle], (old: any) => ({
+        ...old,
+        is_blocked: !old?.is_blocked,
+      }));
+
+      return { previousProfile };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousProfile) {
+        queryClient.setQueryData(["profile", handle], context.previousProfile);
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update block status",
+        variant: "destructive"
+      });
+    },
+    onSuccess: () => {
+      toast({ title: profile?.is_blocked ? "Unblocked" : "Blocked" });
+      // Invalidate related queries to remove blocked user content
+      queryClient.invalidateQueries({ queryKey: ["profile", handle] });
+      queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["whispers"] });
+      queryClient.invalidateQueries({ queryKey: ["discover"] });
+      queryClient.invalidateQueries({ queryKey: ["search"] });
+      queryClient.invalidateQueries({ queryKey: ["followers"] });
+      queryClient.invalidateQueries({ queryKey: ["following"] });
+    },
   });
+
+  const handleBlockClick = () => {
+    if (profile?.is_blocked) {
+      // Unblock immediately without confirmation
+      blockMutation.mutate();
+    } else {
+      // Show confirmation dialog for blocking
+      setBlockDialogOpen(true);
+    }
+  };
+
+  const handleBlockConfirm = () => {
+    setBlockDialogOpen(false);
+    blockMutation.mutate();
+  };
 
   if (isLoading) return <PageSkeleton />;
   if (isError || !profile) return <EmptyState title="User not found" />;
@@ -175,32 +294,52 @@ export default function ProfilePage() {
           )}
 
           {/* Statistics */}
-          {statistics && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-              <Card>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <Link to={`/users/${handle}/followers`}>
+              <Card className="cursor-pointer hover:bg-accent transition-colors">
                 <CardContent className="p-3 text-center">
-                  <div className="text-2xl font-bold">{statistics.total_stories}</div>
-                  <div className="text-xs text-muted-foreground">Stories</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <div className="text-2xl font-bold">{statistics.total_chapters}</div>
-                  <div className="text-xs text-muted-foreground">Chapters</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <div className="text-2xl font-bold">{statistics.follower_count}</div>
+                  <div className="text-2xl font-bold">{profile.follower_count}</div>
                   <div className="text-xs text-muted-foreground">Followers</div>
                 </CardContent>
               </Card>
-              <Card>
+            </Link>
+            <Link to={`/users/${handle}/following`}>
+              <Card className="cursor-pointer hover:bg-accent transition-colors">
                 <CardContent className="p-3 text-center">
-                  <div className="text-2xl font-bold">{statistics.total_likes_received}</div>
-                  <div className="text-xs text-muted-foreground">Likes</div>
+                  <div className="text-2xl font-bold">{profile.following_count}</div>
+                  <div className="text-xs text-muted-foreground">Following</div>
                 </CardContent>
               </Card>
+            </Link>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold">{statistics?.total_stories || stories?.results?.length || 0}</div>
+                <div className="text-xs text-muted-foreground">Stories</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold">{statistics?.total_whispers || 0}</div>
+                <div className="text-xs text-muted-foreground">Whispers</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Social Proof - Mutual Followers */}
+          {mutualFollowers && mutualFollowers.length > 0 && (
+            <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span>
+                Followed by{" "}
+                {mutualFollowers.map((user, idx) => (
+                  <span key={user.id}>
+                    <Link to={`/users/${user.handle}`} className="font-medium text-foreground hover:underline">
+                      {user.display_name}
+                    </Link>
+                    {idx < mutualFollowers.length - 1 && (idx === mutualFollowers.length - 2 ? " and " : ", ")}
+                  </span>
+                ))}
+              </span>
             </div>
           )}
 
@@ -221,7 +360,7 @@ export default function ProfilePage() {
                   >
                     {profile.is_following ? <><UserMinus className="h-3.5 w-3.5 mr-1" /> Unfollow</> : <><UserPlus className="h-3.5 w-3.5 mr-1" /> Follow</>}
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => blockMutation.mutate()}>
+                  <Button variant="ghost" size="sm" onClick={handleBlockClick}>
                     <ShieldBan className="h-3.5 w-3.5 mr-1" /> {profile.is_blocked ? "Unblock" : "Block"}
                   </Button>
                 </>
@@ -255,6 +394,15 @@ export default function ProfilePage() {
           <EmptyState title="No stories yet" description="This author hasn't published any stories." />
         )}
       </section>
+
+      {/* Block Confirmation Dialog */}
+      <BlockConfirmDialog
+        open={blockDialogOpen}
+        onOpenChange={setBlockDialogOpen}
+        onConfirm={handleBlockConfirm}
+        userName={profile.display_name}
+        isBlocking={!profile.is_blocked}
+      />
     </div>
   );
 }

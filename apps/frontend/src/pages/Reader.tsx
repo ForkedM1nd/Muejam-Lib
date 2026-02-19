@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSafeAuth } from "@/hooks/useSafeAuth";
 import { useEffect, useRef, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
@@ -14,6 +14,7 @@ import { Settings2, Moon, Sun, Minus, Plus, ArrowLeft, Highlighter, MessageCircl
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import WhisperComposer from "@/components/shared/WhisperComposer";
+import type { Highlight } from "@/types";
 
 function ReaderControls({ settings, setSettings, lineWidthPx }: ReturnType<typeof useReaderSettings>) {
   const [open, setOpen] = useState(false);
@@ -74,6 +75,7 @@ function ReaderControls({ settings, setSettings, lineWidthPx }: ReturnType<typeo
 export default function ReaderPage() {
   const { chapterId } = useParams<{ chapterId: string }>();
   const { isSignedIn } = useSafeAuth();
+  const queryClient = useQueryClient();
   const readerSettings = useReaderSettings();
   const { settings, lineWidthPx } = readerSettings;
   const contentRef = useRef<HTMLDivElement>(null);
@@ -81,11 +83,19 @@ export default function ReaderPage() {
   const [selection, setSelection] = useState<{ text: string; top: number; left: number } | null>(null);
   const [whisperModalOpen, setWhisperModalOpen] = useState(false);
   const [quoteForWhisper, setQuoteForWhisper] = useState("");
+  const [highlightIdForWhisper, setHighlightIdForWhisper] = useState<string | null>(null);
 
   const { data: chapter, isLoading, isError } = useQuery({
     queryKey: ["chapter", chapterId],
     queryFn: () => api.getChapter(chapterId!),
     enabled: !!chapterId,
+  });
+
+  // Fetch existing highlights for this chapter
+  const { data: highlights = [] } = useQuery({
+    queryKey: ["highlights", chapterId],
+    queryFn: () => api.getChapterHighlights(chapterId!),
+    enabled: !!chapterId && !!isSignedIn,
   });
 
   // Progress tracking (debounced)
@@ -98,7 +108,7 @@ export default function ReaderPage() {
         const scrollTop = window.scrollY;
         const docHeight = document.documentElement.scrollHeight - window.innerHeight;
         const progress = docHeight > 0 ? Math.min(Math.round((scrollTop / docHeight) * 100), 100) : 0;
-        api.updateProgress(chapterId, progress).catch(() => {});
+        api.updateProgress(chapterId, progress).catch(() => { });
       }, 2000);
     };
     window.addEventListener("scroll", handleScroll);
@@ -129,8 +139,7 @@ export default function ReaderPage() {
     mutationFn: async (quoteText: string) => {
       const plainText = contentRef.current?.innerText ?? "";
       const start = plainText.indexOf(quoteText);
-      return api.createHighlight({
-        chapter_id: chapterId!,
+      return api.createHighlight(chapterId!, {
         quote_text: quoteText.slice(0, 300),
         start_offset: start >= 0 ? start : 0,
         end_offset: start >= 0 ? start + quoteText.length : 0,
@@ -140,6 +149,8 @@ export default function ReaderPage() {
       toast({ title: "Highlighted!" });
       setSelection(null);
       window.getSelection()?.removeAllRanges();
+      // Invalidate highlights query to refetch
+      queryClient.invalidateQueries({ queryKey: ["highlights", chapterId] });
     },
     onError: () => toast({ title: "Failed to highlight", variant: "destructive" }),
   });
@@ -151,12 +162,97 @@ export default function ReaderPage() {
 
   const handleWhisperFromHighlight = async () => {
     if (!selection || !isSignedIn) return;
-    const hl = await highlightMutation.mutateAsync(selection.text);
+    const newHighlight = await highlightMutation.mutateAsync(selection.text);
     setQuoteForWhisper(selection.text);
+    setHighlightIdForWhisper(newHighlight.id);
     setWhisperModalOpen(true);
     setSelection(null);
     window.getSelection()?.removeAllRanges();
   };
+
+  // Navigate to a highlight when clicked
+  const handleHighlightClick = useCallback((highlight: Highlight) => {
+    if (!contentRef.current) return;
+
+    const targetOffset = highlight.start_offset;
+
+    // Find the text node and offset
+    const walker = document.createTreeWalker(
+      contentRef.current,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+
+    let currentOffset = 0;
+    let targetNode: Node | null = null;
+    let nodeOffset = 0;
+
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const nodeLength = node.textContent?.length || 0;
+
+      if (currentOffset + nodeLength >= targetOffset) {
+        targetNode = node;
+        nodeOffset = targetOffset - currentOffset;
+        break;
+      }
+
+      currentOffset += nodeLength;
+    }
+
+    if (targetNode) {
+      // Create a range and scroll to it
+      const range = document.createRange();
+      range.setStart(targetNode, Math.min(nodeOffset, targetNode.textContent?.length || 0));
+      range.setEnd(targetNode, Math.min(nodeOffset, targetNode.textContent?.length || 0));
+
+      // Scroll the range into view
+      const rect = range.getBoundingClientRect();
+      window.scrollTo({
+        top: window.scrollY + rect.top - 100,
+        behavior: 'smooth'
+      });
+
+      // Briefly highlight the text
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+
+      // Select the full highlight text
+      const endOffset = Math.min(
+        nodeOffset + highlight.quote_text.length,
+        targetNode.textContent?.length || 0
+      );
+      range.setEnd(targetNode, endOffset);
+      selection?.addRange(range);
+
+      // Clear selection after 2 seconds
+      setTimeout(() => {
+        selection?.removeAllRanges();
+      }, 2000);
+    }
+  }, []);
+
+  // Render content with highlights
+  const renderContentWithHighlights = useCallback(() => {
+    if (!chapter?.content) return null;
+
+    // If no highlights, render normally
+    if (!highlights.length) {
+      return (
+        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+          {chapter.content}
+        </ReactMarkdown>
+      );
+    }
+
+    // For simplicity, we'll render markdown normally and add highlight overlays
+    // A more sophisticated approach would parse and inject highlights into the DOM
+    return (
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+        {chapter.content}
+      </ReactMarkdown>
+    );
+  }, [chapter?.content, highlights]);
 
   const isDark = settings.theme === "dark";
 
@@ -183,9 +279,7 @@ export default function ReaderPage() {
           className="prose prose-neutral max-w-none"
           style={{ fontSize: settings.fontSize, lineHeight: 1.8 }}
         >
-          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-            {chapter.content ?? ""}
-          </ReactMarkdown>
+          {renderContentWithHighlights()}
         </div>
 
         {/* Selection floating toolbar */}
@@ -202,6 +296,34 @@ export default function ReaderPage() {
             </Button>
           </div>
         )}
+
+        {/* Highlights sidebar - show if there are highlights */}
+        {highlights.length > 0 && (
+          <div className="mt-12 pt-8 border-t border-border">
+            <h2 className="text-lg font-semibold mb-4" style={{ fontFamily: "var(--font-display)" }}>
+              Your Highlights ({highlights.length})
+            </h2>
+            <div className="space-y-3">
+              {highlights.map((highlight) => (
+                <div
+                  key={highlight.id}
+                  className={cn(
+                    "p-3 rounded-lg border cursor-pointer transition-colors",
+                    isDark
+                      ? "border-[hsl(30,10%,18%)] bg-[hsl(30,10%,12%)] hover:bg-[hsl(30,10%,15%)]"
+                      : "border-border bg-muted/50 hover:bg-muted"
+                  )}
+                  onClick={() => handleHighlightClick(highlight)}
+                >
+                  <p className="text-sm italic mb-2">"{highlight.quote_text}"</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(highlight.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Whisper from highlight modal */}
@@ -211,10 +333,17 @@ export default function ReaderPage() {
             <h3 className="text-lg font-medium mb-4" style={{ fontFamily: "var(--font-display)" }}>Whisper about this passage</h3>
             <WhisperComposer
               quoteText={quoteForWhisper}
+              highlightId={highlightIdForWhisper ?? undefined}
+              scope="HIGHLIGHT"
               placeholder="Share your thoughts on this passage…"
-              onSubmit={async (body) => {
-                await api.createWhisper({ body, scope: "HIGHLIGHT" });
+              onSubmit={async (content, mediaFile, scope, storyId, highlightId) => {
+                await api.createWhisper({
+                  content,
+                  scope: scope || "HIGHLIGHT",
+                  highlight_id: highlightId,
+                });
                 setWhisperModalOpen(false);
+                setHighlightIdForWhisper(null);
                 toast({ title: "Whisper posted!" });
               }}
             />

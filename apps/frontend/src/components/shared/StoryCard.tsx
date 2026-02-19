@@ -3,15 +3,22 @@ import type { Story } from "@/types";
 import TagPill from "./TagPill";
 import NSFWWarningLabel from "./NSFWWarningLabel";
 import BlurredNSFWImage from "./BlurredNSFWImage";
+import ShareButton from "./ShareButton";
+import { getStoryShareOptions } from "@/lib/shareUtils";
 
 export default function StoryCard({ story }: { story: Story }) {
   // Check if story has NSFW flag
   const isNSFW = (story as any).is_nsfw || false;
   const isBlurred = (story as any).is_blurred || false;
 
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
     <Link to={`/story/${story.slug}`} className="group block">
-      <div className="border border-border rounded-lg overflow-hidden bg-card hover:shadow-md transition-shadow">
+      <div className="border border-border rounded-lg overflow-hidden bg-card hover:shadow-md transition-shadow relative">
         {story.cover_url && (
           <>
             {isNSFW && isBlurred ? (
@@ -49,10 +56,20 @@ export default function StoryCard({ story }: { story: Story }) {
           {story.blurb && (
             <p className="text-sm text-muted-foreground line-clamp-2">{story.blurb}</p>
           )}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{story.author.display_name}</span>
-            <span>·</span>
-            <span>{story.chapter_count} ch.</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{story.author.display_name}</span>
+              <span>·</span>
+              <span>{story.chapter_count} ch.</span>
+            </div>
+            <div onClick={handleShareClick}>
+              <ShareButton
+                shareOptions={getStoryShareOptions(story)}
+                variant="ghost"
+                size="sm"
+                iconOnly
+              />
+            </div>
           </div>
           {story.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">

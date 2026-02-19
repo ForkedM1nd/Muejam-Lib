@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import WhisperComposer from "./WhisperComposer";
 import NSFWWarningLabel from "./NSFWWarningLabel";
 import BlurredNSFWImage from "./BlurredNSFWImage";
+import ShareButton from "./ShareButton";
+import { getWhisperShareOptions } from "@/lib/shareUtils";
 import type { Whisper } from "@/types";
 
 interface WhisperCardProps {
@@ -141,6 +143,15 @@ export default function WhisperCard({
             )}
           </button>
         )}
+
+        <div className="ml-auto">
+          <ShareButton
+            shareOptions={getWhisperShareOptions(whisper)}
+            variant="ghost"
+            size="sm"
+            iconOnly
+          />
+        </div>
       </div>
 
       {/* Reply Composer */}

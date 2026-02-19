@@ -27,6 +27,9 @@ export default function NotificationsPage() {
 
   const notifs = cursor ? allNotifs : (data?.results ?? []);
 
+  // Filter out notifications from blocked users
+  const filteredNotifs = notifs.filter((n) => !n.actor?.is_blocked);
+
   const markReadMutation = useMutation({
     mutationFn: (id: string) => api.markNotificationRead(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
@@ -37,7 +40,7 @@ export default function NotificationsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
-  const hasUnread = notifs.some((n) => !n.is_read);
+  const hasUnread = filteredNotifs.some((n) => !n.is_read);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
@@ -56,13 +59,13 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {isLoading && notifs.length === 0 ? (
+      {isLoading && filteredNotifs.length === 0 ? (
         <PageSkeleton />
-      ) : notifs.length === 0 ? (
+      ) : filteredNotifs.length === 0 ? (
         <EmptyState icon={<Bell className="h-10 w-10" />} title="All caught up" description="You have no notifications." />
       ) : (
         <div className="space-y-1">
-          {notifs.map((n) => {
+          {filteredNotifs.map((n) => {
             const NotificationWrapper = n.target_url ? Link : "div";
             const wrapperProps = n.target_url
               ? { to: n.target_url, className: "block" }

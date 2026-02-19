@@ -33,6 +33,9 @@ export default function WhispersPage() {
 
   const whispers = data?.pages.flatMap((page) => page.results) ?? [];
 
+  // Filter out whispers from blocked users
+  const filteredWhispers = whispers.filter((whisper) => !whisper.author.is_blocked);
+
   const createMutation = useMutation({
     mutationFn: async ({ content, mediaFile, recaptchaToken }: { content: string; mediaFile?: File; recaptchaToken?: string | null }) => {
       let media_key: string | undefined;
@@ -149,14 +152,14 @@ export default function WhispersPage() {
           description="Something went wrong. Please try again."
           action={<Button variant="outline" onClick={() => refetch()}>Retry</Button>}
         />
-      ) : whispers.length === 0 ? (
+      ) : filteredWhispers.length === 0 ? (
         <EmptyState
           title="No whispers yet"
           description="Be the first to share your thoughts!"
         />
       ) : (
         <div className="space-y-0 divide-y divide-border">
-          {whispers.map((whisper) => (
+          {filteredWhispers.map((whisper) => (
             <WhisperCard
               key={whisper.id}
               whisper={whisper}

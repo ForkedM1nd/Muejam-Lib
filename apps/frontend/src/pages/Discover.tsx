@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { useSafeAuth } from "@/hooks/useSafeAuth";
 import { usePagination, useInfiniteScroll, flattenPages } from "@/hooks/usePagination";
 import { api } from "@/lib/api";
@@ -7,7 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Search } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { X, Search, TrendingUp, Sparkles, Star, Award, ArrowRight } from "lucide-react";
 import StoryCard from "@/components/shared/StoryCard";
 import { StoryCardSkeleton } from "@/components/shared/Skeletons";
 import EmptyState from "@/components/shared/EmptyState";
@@ -49,6 +50,9 @@ function StoryFeed({ tab, tag, searchQuery }: StoryFeedProps) {
 
   const stories = flattenPages(data);
 
+  // Filter out stories from blocked authors
+  const filteredStories = stories.filter((story) => !story.author.is_blocked);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -73,7 +77,7 @@ function StoryFeed({ tab, tag, searchQuery }: StoryFeedProps) {
     );
   }
 
-  if (stories.length === 0) {
+  if (filteredStories.length === 0) {
     if (searchQuery) {
       return (
         <EmptyState
@@ -101,7 +105,7 @@ function StoryFeed({ tab, tag, searchQuery }: StoryFeedProps) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {stories.map((story) => (
+        {filteredStories.map((story) => (
           <StoryCard key={story.id} story={story} />
         ))}
       </div>
@@ -113,7 +117,7 @@ function StoryFeed({ tab, tag, searchQuery }: StoryFeedProps) {
         )}
       </div>
 
-      {!hasNextPage && stories.length > 0 && (
+      {!hasNextPage && filteredStories.length > 0 && (
         <div className="text-center text-sm text-muted-foreground py-4">
           You've reached the end
         </div>
@@ -184,6 +188,61 @@ export default function DiscoverPage() {
         >
           Discover
         </h1>
+
+        {/* Quick Links to Discovery Feeds */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Link to="/discover/trending">
+            <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 flex items-center gap-3">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <div>
+                  <h3 className="font-semibold">Trending</h3>
+                  <p className="text-xs text-muted-foreground">What's hot now</p>
+                </div>
+                <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/discover/new">
+            <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <div>
+                  <h3 className="font-semibold">New & Noteworthy</h3>
+                  <p className="text-xs text-muted-foreground">Fresh stories</p>
+                </div>
+                <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/discover/recommended">
+            <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 flex items-center gap-3">
+                <Star className="h-5 w-5 text-primary" />
+                <div>
+                  <h3 className="font-semibold">For You</h3>
+                  <p className="text-xs text-muted-foreground">Personalized</p>
+                </div>
+                <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/discover/staff-picks">
+            <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 flex items-center gap-3">
+                <Award className="h-5 w-5 text-primary" />
+                <div>
+                  <h3 className="font-semibold">Staff Picks</h3>
+                  <p className="text-xs text-muted-foreground">Curated by us</p>
+                </div>
+                <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
 
         {/* Search Bar */}
         <form onSubmit={handleSearch} className="mb-4">

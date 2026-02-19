@@ -274,7 +274,7 @@ export default function DMCAForm() {
                             By typing your name, you are providing an electronic signature that has the same legal
                             effect as a handwritten signature.
                         </p>
-                        {errors.signature && <p className="text-sm text-red-500">{errors.signature}</p>)}
+                        {errors.signature && <p className="text-sm text-red-500">{errors.signature}</p>}
                     </div>
 
                     {/* Legal Notice */}
