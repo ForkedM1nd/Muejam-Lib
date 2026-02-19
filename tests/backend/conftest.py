@@ -2,9 +2,23 @@
 Shared test fixtures and configuration for infrastructure tests.
 """
 
+import sys
+import os
 import pytest
 from datetime import datetime
 from hypothesis import settings, Verbosity
+
+# Add the Django project to the Python path
+backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'apps', 'backend'))
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
+
+# Set Django settings module
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+
+# Configure Django
+import django
+django.setup()
 
 # Configure Hypothesis for property-based testing
 settings.register_profile("default", max_examples=100, verbosity=Verbosity.normal)

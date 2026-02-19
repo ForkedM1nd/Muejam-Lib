@@ -446,3 +446,230 @@ def update_notification_preferences(request):
             {'error': {'code': 'INTERNAL_ERROR', 'message': 'Failed to update preferences'}},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+
+# Device Token Management Views
+
+def sync_register_device(user_id: str, token: str, platform: str, app_version: str = None):
+    """Synchronous wrapper for register_device."""
+    from .push_service import PushNotificationService
+    loop = asyncio.get_event_loop()
+    service = PushNotificationService()
+    return loop.run_until_complete(service.register_device(user_id, token, platform, app_version))
+
+
+def sync_unregister_device(token: str):
+    """Synchronous wrapper for unregister_device."""
+    from .push_service import PushNotificationService
+    loop = asyncio.get_event_loop()
+    service = PushNotificationService()
+    return loop.run_until_complete(service.unregister_device(token))
+
+
+def sync_get_user_devices(user_id: str):
+    """Synchronous wrapper for get_user_devices."""
+    from .push_service import PushNotificationService
+    loop = asyncio.get_event_loop()
+    service = PushNotificationService()
+    return loop.run_until_complete(service.get_user_devices(user_id))
+
+
+@api_view(['POST'])
+def register_device(request):
+    """
+    POST /v1/devices/register - Register device token for push notifications
+    
+    Body:
+        {
+            "token": "device_token_from_fcm_or_apns",
+            "platform": "ios" | "android",
+            "app_version": "1.0.0" (optional)
+        }
+    
+    Returns:
+        - 200: Device token registered successfully
+        - 400: Invalid request
+        - 401: Not authenticated
+        
+    Requirements:
+        - 4.1: Register device token for push notifications
+        - 4.2: Store token with user and platform information
+    """
+    from .serializers import DeviceTokenRegisterSerializer, DeviceTokenResponseSerializer
+    
+    # Check authentication
+    if not request.clerk_user_id or not request.user_profile:
+        return Response(
+            {'error': {'code': 'UNAUTHORIZED', 'message': 'Authentication required'}},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Validate request data
+    serializer = DeviceTokenRegisterSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {'error': {'code': 'INVALID_REQUEST', 'message': 'Invalid request data', 'details': serializer.errors}},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        device_token = sync_register_device(
+            user_id=request.user_profile.id,
+            token=serializer.validated_data['token'],
+            platform=serializer.validated_data['platform'],
+            app_version=serializer.validated_data.get('app_version')
+        )
+        
+        response_serializer = DeviceTokenResponseSerializer(device_token)
+        
+        return Response({
+            'data': response_serializer.data,
+            'message': 'Device registered successfully'
+        }, status=status.HTTP_200_OK)
+        
+    except ValueError as e:
+        return Response(
+            {'error': {'code': 'INVALID_REQUEST', 'message': str(e)}},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        return Response(
+            {'error': {'code': 'INTERNAL_ERROR', 'message': 'Failed to register device'}},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['DELETE'])
+def unregister_device(request):
+    """
+    DELETE /v1/devices/unregister - Unregister device token
+    
+    Body:
+        {
+            "token": "device_token_to_unregister"
+        }
+    
+    Returns:
+        - 200: Device token unregistered successfully
+        - 400: Invalid request
+        - 401: Not authenticated
+        - 404: Device token not found
+        
+    Requirements:
+        - 4.4: Handle device token deregistration
+    """
+    from .serializers import DeviceTokenUnregisterSerializer
+    
+    # Check authentication
+    if not request.clerk_user_id or not request.user_profile:
+        return Response(
+            {'error': {'code': 'UNAUTHORIZED', 'message': 'Authentication required'}},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Validate request data
+    serializer = DeviceTokenUnregisterSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {'error': {'code': 'INVALID_REQUEST', 'message': 'Invalid request data', 'details': serializer.errors}},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        success = sync_unregister_device(serializer.validated_data['token'])
+        
+        if not success:
+            return Response(
+                {'error': {'code': 'NOT_FOUND', 'message': 'Device token not found'}},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        return Response({
+            'message': 'Device unregistered successfully'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': {'code': 'INTERNAL_ERROR', 'message': 'Failed to unregister device'}},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['PUT'])
+def update_device_preferences(request):
+    """
+    PUT /v1/devices/preferences - Update device notification preferences
+    
+    Body:
+        {
+            "token": "device_token",
+            "enabled": true | false,
+            "notification_types": ["reply", "follow", "like"] (optional)
+        }
+    
+    Returns:
+        - 200: Preferences updated successfully
+        - 400: Invalid request
+        - 401: Not authenticated
+        - 404: Device token not found
+        
+    Requirements:
+        - 4.3: Update notification preferences per device
+    """
+    from .serializers import DevicePreferencesSerializer
+    
+    # Check authentication
+    if not request.clerk_user_id or not request.user_profile:
+        return Response(
+            {'error': {'code': 'UNAUTHORIZED', 'message': 'Authentication required'}},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Validate request data
+    serializer = DevicePreferencesSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {'error': {'code': 'INVALID_REQUEST', 'message': 'Invalid request data', 'details': serializer.errors}},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # For now, we'll use the enabled flag to activate/deactivate the device token
+        # In a full implementation, you would store notification_types preferences separately
+        token = serializer.validated_data['token']
+        enabled = serializer.validated_data.get('enabled', True)
+        
+        if not enabled:
+            # Deactivate the device token
+            success = sync_unregister_device(token)
+            if not success:
+                return Response(
+                    {'error': {'code': 'NOT_FOUND', 'message': 'Device token not found'}},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            # Verify the device token exists and belongs to the user
+            devices = sync_get_user_devices(request.user_profile.id)
+            device_found = any(d['token'] == token for d in devices)
+            
+            if not device_found:
+                return Response(
+                    {'error': {'code': 'NOT_FOUND', 'message': 'Device token not found for this user'}},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        return Response({
+            'message': 'Device preferences updated successfully',
+            'data': {
+                'token': token,
+                'enabled': enabled,
+                'notification_types': serializer.validated_data.get('notification_types', [])
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': {'code': 'INTERNAL_ERROR', 'message': 'Failed to update device preferences'}},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -235,6 +235,21 @@ def create_story(request):
     pass
 ```
 
+## Mobile API
+
+For mobile-specific API documentation including push notifications, deep linking, and mobile optimizations, see:
+
+**[Mobile API Documentation](../backend/mobile-api.md)**
+
+Key mobile features:
+- X-Client-Type header for platform identification
+- Deep links for in-app navigation
+- Push notification registration and payloads
+- Mobile-optimized responses and field filtering
+- Offline support with conditional requests
+- Chunked uploads for large media files
+- Higher rate limits for mobile clients
+
 ## Support
 
 For API support or questions, contact: support@muejam.com

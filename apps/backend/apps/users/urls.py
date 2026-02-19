@@ -1,6 +1,7 @@
 from django.urls import path, include
 from . import views
 from . import profile_views
+from . import mobile_session_views
 
 urlpatterns = [
     path('test-auth/', views.test_auth, name='test-auth'),
@@ -20,4 +21,12 @@ urlpatterns = [
     
     # Two-Factor Authentication endpoints
     path('2fa/', include('apps.users.two_factor_auth.urls')),
+    
+    # Mobile session management endpoints
+    path('sessions/create/', mobile_session_views.create_session, name='create-session'),  # POST /v1/users/sessions/create
+    path('sessions/refresh/', mobile_session_views.refresh_token, name='refresh-token'),  # POST /v1/users/sessions/refresh
+    path('sessions/revoke/', mobile_session_views.revoke_session, name='revoke-session'),  # POST /v1/users/sessions/revoke
+    path('sessions/active/', mobile_session_views.get_active_sessions, name='active-sessions'),  # GET /v1/users/sessions/active
+    path('sessions/revoke-all/', mobile_session_views.revoke_all_sessions, name='revoke-all-sessions'),  # POST /v1/users/sessions/revoke-all
 ]
+

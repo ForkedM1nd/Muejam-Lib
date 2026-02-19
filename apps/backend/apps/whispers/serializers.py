@@ -1,5 +1,6 @@
 """Serializers for whispers micro-posting system."""
 from rest_framework import serializers
+from apps.core.deep_link_service import DeepLinkService
 
 
 class WhisperSerializer(serializers.Serializer):
@@ -12,6 +13,7 @@ class WhisperSerializer(serializers.Serializer):
     Requirements:
         - 6.1: Create whisper with content and scope
         - 7.5: Include reply count and like count
+        - 6.1, 6.3: Include deep links for mobile clients
     """
     id = serializers.CharField(read_only=True)
     user_id = serializers.CharField(read_only=True)
@@ -26,6 +28,22 @@ class WhisperSerializer(serializers.Serializer):
     # These will be added dynamically in views
     reply_count = serializers.IntegerField(read_only=True, required=False)
     like_count = serializers.IntegerField(read_only=True, required=False)
+    
+    def to_representation(self, instance):
+        """Add deep link for mobile clients."""
+        data = super().to_representation(instance)
+        
+        # Add deep link for mobile clients
+        request = self.context.get('request')
+        if request and hasattr(request, 'client_type'):
+            if request.client_type.startswith('mobile'):
+                platform = 'ios' if 'ios' in request.client_type else 'android'
+                data['deep_link'] = DeepLinkService.generate_whisper_link(
+                    instance.id,
+                    platform
+                )
+        
+        return data
 
 
 class WhisperCreateSerializer(serializers.Serializer):

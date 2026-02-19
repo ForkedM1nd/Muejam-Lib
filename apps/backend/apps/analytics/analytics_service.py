@@ -5,6 +5,7 @@ from prisma import Prisma
 from prisma.models import Story, Chapter
 import csv
 import io
+from apps.analytics.mobile_analytics_service import get_mobile_analytics_service
 
 
 class AnalyticsService:
@@ -597,3 +598,24 @@ class AnalyticsService:
         writer.writerows(data)
         
         return output.getvalue()
+
+    @staticmethod
+    def get_mobile_analytics() -> Dict:
+        """
+        Get mobile-specific analytics metrics.
+        
+        Returns mobile analytics including:
+        - API response times per client type
+        - Push notification delivery rates
+        - Media upload success rates
+        
+        Requirements:
+            - 14.2: Track API response times per client type
+            - 14.3: Track push notification delivery rates
+            - 14.4: Track media upload success rates
+        
+        Returns:
+            Dictionary with mobile analytics data
+        """
+        mobile_analytics = get_mobile_analytics_service()
+        return mobile_analytics.get_all_mobile_metrics()

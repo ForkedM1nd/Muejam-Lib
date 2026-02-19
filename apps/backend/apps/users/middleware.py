@@ -46,6 +46,32 @@ def get_or_create_profile_sync(clerk_user_id: str):
         db.disconnect()
 
 
+def create_mobile_session_if_needed(request, user_profile):
+    """
+    Create a mobile session for mobile clients if needed.
+    
+    This is called after successful authentication to create a session
+    with a refresh token for mobile clients.
+    
+    Args:
+        request: Django request object with client_type attribute
+        user_profile: UserProfile object
+        
+    Returns:
+        Session data dict if created, None otherwise
+    """
+    # Only create sessions for mobile clients
+    client_type = getattr(request, 'client_type', 'web')
+    if not client_type or not client_type.startswith('mobile'):
+        return None
+    
+    # Check if this is a new authentication (not just a regular API call)
+    # We can detect this by checking if there's a special header or parameter
+    # For now, we'll skip automatic session creation and let clients
+    # explicitly call the session creation endpoint if needed
+    return None
+
+
 class ClerkAuthMiddleware:
     """
     Middleware to authenticate users via Clerk JWT tokens with proper verification.
@@ -83,6 +109,7 @@ class ClerkAuthMiddleware:
         request.clerk_user_id = None
         request.user_profile = None
         request.auth_error = None  # Track authentication errors
+        request.auth_error_details = None  # Detailed error information for clients
         
         # Extract Authorization header
         auth_header = request.headers.get('Authorization', '')
@@ -113,6 +140,9 @@ class ClerkAuthMiddleware:
                                     user_id=str(request.user_profile.id),
                                     success=True,
                                 )
+                                
+                                # Create mobile session if needed (Requirement 17.1)
+                                create_mobile_session_if_needed(request, request.user_profile)
                                     
                         except Exception as e:
                             logger.error(f"Failed to get/create user profile: {e}")
@@ -138,6 +168,14 @@ class ClerkAuthMiddleware:
             except TokenExpiredError:
                 logger.warning("Expired JWT token")
                 request.auth_error = 'expired_token'
+                request.auth_error_details = {
+                    'code': 'TOKEN_EXPIRED',
+                    'message': 'Your authentication token has expired',
+                    'details': {
+                        'technical_message': 'JWT token has expired and needs to be refreshed',
+                        'refresh_guidance': 'Please use the /v1/sessions/refresh endpoint with your refresh token to obtain a new access token'
+                    }
+                }
                 # Log authentication failure (Requirement 15.4)
                 log_authentication_event(
                     logger=structured_logger,

@@ -5,18 +5,22 @@ This middleware integrates with the RateLimiter infrastructure to enforce
 rate limits on all incoming requests. It provides:
 - Per-user rate limiting (authenticated users)
 - Per-IP rate limiting (anonymous users)
+- Client-type-specific rate limits (mobile vs web)
 - Admin bypass capability
 - Health check endpoint exemption
 - Standard rate limit headers (X-RateLimit-*)
 - 429 status with Retry-After header when limit exceeded
 
-The middleware uses the existing RateLimiter class which implements
-a sliding window algorithm with Redis for distributed rate limiting.
+The middleware uses the MobileRateLimiter class which implements
+a sliding window algorithm with Redis for distributed rate limiting
+and supports client-type-specific rate limits.
+
+Requirements: 8.1, 8.2, 8.3, 8.4
 """
 
 import logging
 from django.http import JsonResponse
-from infrastructure.rate_limiter import RateLimiter
+from infrastructure.rate_limiter import MobileRateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +56,7 @@ class RateLimitMiddleware:
             get_response: Next middleware or view in the chain
         """
         self.get_response = get_response
-        self.rate_limiter = RateLimiter()
+        self.rate_limiter = MobileRateLimiter()
         
         # Paths to skip rate limiting
         self.skip_paths = ['/health', '/metrics']
@@ -77,15 +81,19 @@ class RateLimitMiddleware:
         # Check if user is admin (bypass rate limiting)
         is_admin = self._is_admin_user(request)
         
-        # Check rate limit
-        if not self.rate_limiter.allow_request(user_id, is_admin):
+        # Get client type from request (set by ClientTypeMiddleware)
+        client_type = getattr(request, 'client_type', 'web')
+        
+        # Check rate limit with client type
+        if not self.rate_limiter.allow_request(user_id, is_admin, client_type):
             # Rate limit exceeded - get details for response
-            user_result = self.rate_limiter.check_user_limit(user_id)
+            user_result = self.rate_limiter.check_user_limit(user_id, client_type)
             
             logger.warning(
                 f"Rate limit exceeded for {user_id}",
                 extra={
                     'user_id': user_id,
+                    'client_type': client_type,
                     'path': request.path,
                     'method': request.method,
                     'limit': user_result.limit,
@@ -116,7 +124,7 @@ class RateLimitMiddleware:
         response = self.get_response(request)
         
         # Add rate limit headers to response
-        user_result = self.rate_limiter.check_user_limit(user_id)
+        user_result = self.rate_limiter.check_user_limit(user_id, client_type)
         response['X-RateLimit-Limit'] = str(user_result.limit)
         response['X-RateLimit-Remaining'] = str(user_result.remaining)
         response['X-RateLimit-Reset'] = user_result.reset_at.isoformat()

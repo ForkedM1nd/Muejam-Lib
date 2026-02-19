@@ -1007,3 +1007,283 @@ model UserBadge {
   @@index([user_id])
   @@index([badge_type])
 }
+
+model DeviceToken {
+  id            String   @id @default(uuid())
+  user_id       String
+  token         String   @unique
+  platform      String   // 'ios' or 'android'
+  app_version   String?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  last_used_at  DateTime @default(now())
+  
+  @@index([user_id])
+  @@index([platform])
+  @@index([is_active])
+}
+
+model PushNotificationLog {
+  id              String   @id @default(uuid())
+  device_token_id String
+  notification_id String?
+  payload         Json
+  status          String   // 'sent', 'failed', 'invalid_token'
+  error_message   String?
+  sent_at         DateTime @default(now())
+  
+  @@index([device_token_id])
+  @@index([notification_id])
+  @@index([status])
+  @@index([sent_at])
+}
+
+model UploadSession {
+  id              String   @id @default(uuid())
+  user_id         String
+  filename        String
+  total_size      Int
+  chunk_size      Int
+  chunks_total    Int
+  chunks_uploaded Int      @default(0)
+  status          String   // 'in_progress', 'completed', 'failed'
+  s3_upload_id    String?
+  created_at      DateTime @default(now())
+  expires_at      DateTime
+  
+  @@index([user_id])
+  @@index([status])
+}
+
+model MobileConfig {
+  id          String   @id @default(uuid())
+  platform    String   // 'ios' or 'android'
+  min_version String   // Minimum supported app version
+  config      Json     // Configuration JSON
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  @@unique([platform])
+}
+
+model MobileSession {
+  id                String   @id @default(uuid())
+  user_id           String
+  device_token_id   String?  // Optional link to device token
+  refresh_token     String   @unique
+  client_type       String   // 'mobile-ios' or 'mobile-android'
+  device_info       Json?    // Device metadata (model, OS version, etc.)
+  is_active         Boolean  @default(true)
+  created_at        DateTime @default(now())
+  last_refreshed_at DateTime @default(now())
+  expires_at        DateTime
+  revoked_at        DateTime?
+  
+  @@index([user_id])
+  @@index([refresh_token])
+  @@index([is_active])
+  @@index([expires_at])
+}
+
+// Status Page Models
+// Implements Requirements 18.1-18.12
+
+// Component status tracking
+model ComponentStatus {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g., "API", "Database", "File Storage", "Email Service", "Authentication"
+  description String?
+  status      String   // "operational", "degraded", "partial_outage", "major_outage"
+  lastChecked DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  
+  // Uptime tracking
+  uptimeRecords UptimeRecord[]
+  
+  // Incidents affecting this component
+  incidents IncidentComponent[]
+  
+  @@map("component_status")
+}
+
+// Uptime tracking records
+model UptimeRecord {
+  id          String   @id @default(uuid())
+  componentId String
+  component   ComponentStatus @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  
+  isUp        Boolean  // true if component was operational
+  checkedAt   DateTime @default(now())
+  
+  @@index([componentId, checkedAt])
+  @@map("uptime_records")
+}
+
+// Incident tracking
+model Incident {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  status      String   // "investigating", "identified", "monitoring", "resolved"
+  severity    String   // "minor", "major", "critical"
+  
+  startedAt   DateTime @default(now())
+  resolvedAt  DateTime?
+  
+  // Root cause and resolution details
+  rootCause   String?
+  resolution  String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Affected components
+  affectedComponents IncidentComponent[]
+  
+  // Status updates
+  updates     IncidentUpdate[]
+  
+  @@map("incidents")
+}
+
+// Many-to-many relationship between incidents and components
+model IncidentComponent {
+  id          String   @id @default(uuid())
+  incidentId  String
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  
+  componentId String
+  component   ComponentStatus @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([incidentId, componentId])
+  @@map("incident_components")
+}
+
+// Incident status updates
+model IncidentUpdate {
+  id          String   @id @default(uuid())
+  incidentId  String
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  
+  message     String
+  status      String   // Current incident status at time of update
+  
+  // Optional ETA for resolution
+  estimatedResolution DateTime?
+  
+  createdAt   DateTime @default(now())
+  createdBy   String?  // Admin user ID who posted the update
+  
+  @@index([incidentId, createdAt])
+  @@map("incident_updates")
+}
+
+// Scheduled maintenance windows
+model MaintenanceWindow {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  
+  // Actual start/end times
+  actualStart    DateTime?
+  actualEnd      DateTime?
+  
+  status      String   // "scheduled", "in_progress", "completed", "cancelled"
+  
+  // Affected components
+  affectedComponents String[] // Array of component IDs
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?  // Admin user ID
+  
+  @@map("maintenance_windows")
+}
+
+// Status page subscriptions
+model StatusSubscription {
+  id          String   @id @default(uuid())
+  email       String?
+  phone       String?  // For SMS notifications
+  
+  // Subscription preferences
+  notifyOnIncidents    Boolean @default(true)
+  notifyOnMaintenance  Boolean @default(true)
+  notifyOnResolution   Boolean @default(true)
+  
+  isActive    Boolean  @default(true)
+  
+  // Verification
+  verified    Boolean  @default(false)
+  verificationToken String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([email])
+  @@index([phone])
+  @@map("status_subscriptions")
+}
+
+// Notification Preference and Queue Models
+// Implements Requirements 21.9, 21.10
+
+model NotificationPreference {
+  id                    String   @id @default(cuid())
+  user_id               String   @unique
+  
+  // Notification type preferences with frequency settings
+  // Frequency options: immediate, daily_digest, weekly_digest, disabled
+  welcome_email         String   @default("immediate")
+  new_comment           String   @default("immediate")
+  new_like              String   @default("daily_digest")
+  new_follower          String   @default("immediate")
+  new_content           String   @default("immediate")
+  content_takedown      String   @default("immediate")
+  security_alert        String   @default("immediate")
+  
+  // Marketing preferences
+  marketing_emails      Boolean  @default(true)
+  
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  @@index([user_id])
+}
+
+model NotificationQueue {
+  id                    String   @id @default(cuid())
+  user_id               String
+  notification_type     String   // welcome, comment, like, follower, content, takedown, security
+  
+  // Notification data (JSON)
+  data                  Json
+  
+  // Status tracking
+  status                String   @default("pending") // pending, sent, failed
+  frequency             String   // immediate, daily_digest, weekly_digest
+  
+  // Delivery tracking
+  scheduled_for         DateTime?
+  sent_at               DateTime?
+  failed_at             DateTime?
+  error_message         String?
+  retry_count           Int      @default(0)
+  
+  // Email tracking
+  email_id              String?  // Resend email ID
+  
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  @@index([user_id, status])
+  @@index([status, scheduled_for])
+  @@index([notification_type])
+}

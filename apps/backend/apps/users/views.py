@@ -189,7 +189,24 @@ def me(request):
     if request.method == 'GET':
         # Return current user's profile
         serializer = UserProfileReadSerializer(request.user_profile)
-        return Response(serializer.data)
+        profile_data = serializer.data
+        
+        # Add cache headers for offline support (Requirements 9.1, 9.4)
+        from apps.core.offline_support_service import OfflineSupportService
+        import json
+        
+        last_modified = request.user_profile.updated_at
+        etag = OfflineSupportService.generate_etag(json.dumps(profile_data, default=str))
+        
+        # Check conditional request
+        if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+            response = OfflineSupportService.create_not_modified_response()
+            OfflineSupportService.add_cache_headers(response, last_modified, etag)
+            return response
+        
+        response = Response(profile_data)
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
     
     elif request.method == 'PUT':
         # Update current user's profile
@@ -281,6 +298,8 @@ def user_by_handle(request, handle):
     
     Requirements:
         - 1.4: Return public profile when accessed by handle
+        - 9.2: Support conditional requests
+        - 9.3: Return 304 Not Modified when appropriate
     """
     # Fetch profile by handle
     profile = sync_get_profile_by_handle(handle)
@@ -296,7 +315,29 @@ def user_by_handle(request, handle):
             status=status.HTTP_404_NOT_FOUND
         )
     
-    # Return public profile
+    # Serialize profile
     serializer = PublicUserProfileSerializer(profile)
-    return Response(serializer.data)
+    profile_data = serializer.data
+    
+    # Check conditional request headers (Requirements 9.2, 9.3)
+    from apps.core.offline_support_service import OfflineSupportService
+    import json
+    
+    last_modified = profile.updated_at
+    etag = OfflineSupportService.generate_etag(json.dumps(profile_data, default=str))
+    
+    # Check if client has fresh cached content
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        # Return 304 Not Modified
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    # Create response with cache headers
+    response = Response(profile_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    
+    return response
+
+
 

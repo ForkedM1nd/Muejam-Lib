@@ -355,6 +355,8 @@ def _list_stories(request):
     Requirements:
         - 5.1: List stories with filters
         - 11.5: Exclude blocked users from content feeds
+        - 9.1: Include cache headers for offline support
+        - 9.4: Include cache-control headers for mobile caching
     """
     # Parse query parameters
     published_filter = request.query_params.get('published')
@@ -405,15 +407,32 @@ def _list_stories(request):
         # Generate next cursor
         next_cursor = stories[-1].id if has_next and stories else None
         
+        # Calculate last modified time from most recent story
+        last_modified = max(
+            (story.updated_at for story in stories),
+            default=datetime.now()
+        ) if stories else datetime.now()
+        
         db.disconnect()
         
         # Serialize response
         serializer = StoryListSerializer(stories, many=True)
-        
-        return Response({
+        response_data = {
             'data': serializer.data,
             'next_cursor': next_cursor
-        })
+        }
+        
+        # Create response
+        response = Response(response_data)
+        
+        # Add cache headers for offline support (Requirements 9.1, 9.4)
+        from apps.core.offline_support_service import OfflineSupportService
+        import json
+        
+        etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error listing stories: {e}")
@@ -438,12 +457,15 @@ def get_story_by_slug(request, slug):
     
     Returns:
         - 200: Story details
+        - 304: Not Modified (if content hasn't changed)
         - 404: Story not found or deleted
         - 403: Access denied (blocked author)
         
     Requirements:
         - 5.1: Get story by slug
         - 3.9: Hide content from blocked authors
+        - 9.2: Support conditional requests
+        - 9.3: Return 304 Not Modified when appropriate
     """
     # Check cache first
     cache_key = f'story_metadata:{slug}'
@@ -509,11 +531,29 @@ def get_story_by_slug(request, slug):
         serializer = StoryDetailSerializer(story)
         story_data = serializer.data
         
+        # Check conditional request headers (Requirements 9.2, 9.3)
+        from apps.core.offline_support_service import OfflineSupportService
+        import json
+        
+        last_modified = story.updated_at
+        etag = OfflineSupportService.generate_etag(json.dumps(story_data, default=str))
+        
+        # Check if client has fresh cached content
+        if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+            # Return 304 Not Modified
+            response = OfflineSupportService.create_not_modified_response()
+            OfflineSupportService.add_cache_headers(response, last_modified, etag)
+            return response
+        
         # Cache the story metadata
         ttl = cache_manager.get_ttl_for_type('story_metadata')
         cache_manager.set(cache_key, story_data, ttl=ttl, tags=[f'story:{story.id}', f'author:{story.author_id}'])
         
-        return Response({'data': story_data})
+        # Create response with cache headers
+        response = Response({'data': story_data})
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error getting story: {e}")
@@ -908,6 +948,8 @@ def list_chapters(request, story_id):
         
     Requirements:
         - 5.2: List chapters for a story
+        - 9.1: Include cache headers for offline support
+        - 9.4: Include cache-control headers for mobile caching
     """
     # Parse query parameters
     cursor = request.query_params.get('cursor')
@@ -960,15 +1002,32 @@ def list_chapters(request, story_id):
         # Generate next cursor
         next_cursor = chapters[-1].id if has_next and chapters else None
         
+        # Calculate last modified time from most recent chapter
+        last_modified = max(
+            (chapter.updated_at for chapter in chapters),
+            default=datetime.now()
+        ) if chapters else datetime.now()
+        
         db.disconnect()
         
         # Serialize response
         serializer = ChapterListSerializer(chapters, many=True)
-        
-        return Response({
+        response_data = {
             'data': serializer.data,
             'next_cursor': next_cursor
-        })
+        }
+        
+        # Create response
+        response = Response(response_data)
+        
+        # Add cache headers for offline support (Requirements 9.1, 9.4)
+        from apps.core.offline_support_service import OfflineSupportService
+        import json
+        
+        etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error listing chapters: {e}")
@@ -993,10 +1052,13 @@ def get_chapter(request, chapter_id):
     
     Returns:
         - 200: Chapter details with content
+        - 304: Not Modified (if content hasn't changed)
         - 404: Chapter not found or deleted
         
     Requirements:
         - 5.2: Get chapter content
+        - 9.2: Support conditional requests
+        - 9.3: Return 304 Not Modified when appropriate
     """
     db = Prisma()
     
@@ -1023,8 +1085,27 @@ def get_chapter(request, chapter_id):
         
         # Serialize response
         serializer = ChapterDetailSerializer(chapter)
+        chapter_data = serializer.data
         
-        return Response({'data': serializer.data})
+        # Check conditional request headers (Requirements 9.2, 9.3)
+        from apps.core.offline_support_service import OfflineSupportService
+        import json
+        
+        last_modified = chapter.updated_at
+        etag = OfflineSupportService.generate_etag(json.dumps(chapter_data, default=str))
+        
+        # Check if client has fresh cached content
+        if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+            # Return 304 Not Modified
+            response = OfflineSupportService.create_not_modified_response()
+            OfflineSupportService.add_cache_headers(response, last_modified, etag)
+            return response
+        
+        # Create response with cache headers
+        response = Response({'data': chapter_data})
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error getting chapter: {e}")
@@ -1038,6 +1119,8 @@ def get_chapter(request, chapter_id):
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
 
 
 @api_view(['POST'])

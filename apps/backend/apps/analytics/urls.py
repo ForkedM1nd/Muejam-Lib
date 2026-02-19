@@ -7,4 +7,5 @@ urlpatterns = [
     path('stories/<str:story_id>/', views.story_analytics, name='story-analytics'),
     path('stories/<str:story_id>/export/', views.export_analytics, name='export-analytics'),
     path('follower-growth/', views.follower_growth, name='follower-growth'),
+    path('mobile/', views.mobile_analytics, name='mobile-analytics'),
 ]

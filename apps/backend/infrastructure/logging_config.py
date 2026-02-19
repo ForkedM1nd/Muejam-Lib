@@ -375,11 +375,13 @@ def get_logger(name: str) -> StructuredLogger:
 
 
 def log_api_request(logger: StructuredLogger, method: str, path: str, status_code: int, 
-                   response_time_ms: float, user_agent: str, user_id: Optional[str] = None):
+                   response_time_ms: float, user_agent: str, user_id: Optional[str] = None,
+                   test_mode: bool = False):
     """
     Log API request.
     
     Implements Requirement 15.3: Log all API requests.
+    Implements Requirement 18.5: Separate test request logs from production logs.
     
     Args:
         logger: Logger instance
@@ -389,17 +391,23 @@ def log_api_request(logger: StructuredLogger, method: str, path: str, status_cod
         response_time_ms: Response time in milliseconds
         user_agent: User agent string
         user_id: User ID if authenticated
+        test_mode: Whether this is a test mode request (Requirement 18.5)
     """
-    logger.info(
-        'API request',
-        event_type='api_request',
-        method=method,
-        path=path,
-        status_code=status_code,
-        response_time_ms=response_time_ms,
-        user_agent=user_agent,
-        user_id=user_id,
-    )
+    log_data = {
+        'event_type': 'api_request',
+        'method': method,
+        'path': path,
+        'status_code': status_code,
+        'response_time_ms': response_time_ms,
+        'user_agent': user_agent,
+        'user_id': user_id,
+    }
+    
+    # Add test mode flag if enabled (Requirement 18.5)
+    if test_mode:
+        log_data['test_mode'] = True
+    
+    logger.info('API request', **log_data)
 
 
 def log_authentication_event(logger: StructuredLogger, event_type: str, user_id: Optional[str] = None,

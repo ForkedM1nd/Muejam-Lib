@@ -2,6 +2,7 @@
 import re
 from rest_framework import serializers
 from prisma import Prisma
+from apps.core.deep_link_service import DeepLinkService
 
 
 class UserProfileReadSerializer(serializers.Serializer):
@@ -15,6 +16,7 @@ class UserProfileReadSerializer(serializers.Serializer):
     Requirements:
         - 1.4: Return profile fields when user requests their profile
         - 24.1, 24.7, 24.12: Return profile customization fields
+        - 6.1, 6.3: Include deep links for mobile clients
     """
     id = serializers.CharField(read_only=True)
     clerk_user_id = serializers.CharField(read_only=True)
@@ -35,6 +37,22 @@ class UserProfileReadSerializer(serializers.Serializer):
     pinned_story_1 = serializers.CharField(read_only=True, allow_null=True)
     pinned_story_2 = serializers.CharField(read_only=True, allow_null=True)
     pinned_story_3 = serializers.CharField(read_only=True, allow_null=True)
+    
+    def to_representation(self, instance):
+        """Add deep link for mobile clients."""
+        data = super().to_representation(instance)
+        
+        # Add deep link for mobile clients
+        request = self.context.get('request')
+        if request and hasattr(request, 'client_type'):
+            if request.client_type.startswith('mobile'):
+                platform = 'ios' if 'ios' in request.client_type else 'android'
+                data['deep_link'] = DeepLinkService.generate_profile_link(
+                    instance.id,
+                    platform
+                )
+        
+        return data
 
 
 class UserProfileWriteSerializer(serializers.Serializer):
@@ -188,6 +206,7 @@ class PublicUserProfileSerializer(serializers.Serializer):
     Requirements:
         - 1.4: Return public profile when accessed by handle
         - 24.1, 24.7, 24.12: Return public profile customization
+        - 6.1, 6.3: Include deep links for mobile clients
     """
     id = serializers.CharField(read_only=True)
     handle = serializers.CharField(read_only=True)
@@ -205,3 +224,19 @@ class PublicUserProfileSerializer(serializers.Serializer):
     pinned_story_1 = serializers.CharField(read_only=True, allow_null=True)
     pinned_story_2 = serializers.CharField(read_only=True, allow_null=True)
     pinned_story_3 = serializers.CharField(read_only=True, allow_null=True)
+    
+    def to_representation(self, instance):
+        """Add deep link for mobile clients."""
+        data = super().to_representation(instance)
+        
+        # Add deep link for mobile clients
+        request = self.context.get('request')
+        if request and hasattr(request, 'client_type'):
+            if request.client_type.startswith('mobile'):
+                platform = 'ios' if 'ios' in request.client_type else 'android'
+                data['deep_link'] = DeepLinkService.generate_profile_link(
+                    instance.id,
+                    platform
+                )
+        
+        return data

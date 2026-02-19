@@ -12,7 +12,7 @@ from .views import (
     ModerationMetricsView
 )
 
-app_name = 'admin'
+app_name = 'app_admin'
 
 urlpatterns = [
     # Main dashboard endpoint

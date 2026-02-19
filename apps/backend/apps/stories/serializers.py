@@ -3,6 +3,7 @@ import re
 from rest_framework import serializers
 from prisma import Prisma
 from datetime import datetime
+from apps.core.deep_link_service import DeepLinkService
 
 
 def generate_slug(title: str) -> str:
@@ -58,6 +59,7 @@ class StoryDetailSerializer(serializers.Serializer):
     
     Requirements:
         - 5.1: Get story by slug with full details
+        - 6.1, 6.3: Include deep links for mobile clients
     """
     id = serializers.CharField(read_only=True)
     slug = serializers.CharField(read_only=True)
@@ -70,6 +72,22 @@ class StoryDetailSerializer(serializers.Serializer):
     deleted_at = serializers.DateTimeField(read_only=True, allow_null=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
+    
+    def to_representation(self, instance):
+        """Add deep link for mobile clients."""
+        data = super().to_representation(instance)
+        
+        # Add deep link for mobile clients
+        request = self.context.get('request')
+        if request and hasattr(request, 'client_type'):
+            if request.client_type.startswith('mobile'):
+                platform = 'ios' if 'ios' in request.client_type else 'android'
+                data['deep_link'] = DeepLinkService.generate_story_link(
+                    instance.id,
+                    platform
+                )
+        
+        return data
 
 
 class StoryCreateSerializer(serializers.Serializer):
@@ -190,6 +208,7 @@ class ChapterDetailSerializer(serializers.Serializer):
     
     Requirements:
         - 5.2: Get chapter content
+        - 6.1, 6.3: Include deep links for mobile clients
     """
     id = serializers.CharField(read_only=True)
     story_id = serializers.CharField(read_only=True)
@@ -201,6 +220,22 @@ class ChapterDetailSerializer(serializers.Serializer):
     deleted_at = serializers.DateTimeField(read_only=True, allow_null=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
+    
+    def to_representation(self, instance):
+        """Add deep link for mobile clients."""
+        data = super().to_representation(instance)
+        
+        # Add deep link for mobile clients
+        request = self.context.get('request')
+        if request and hasattr(request, 'client_type'):
+            if request.client_type.startswith('mobile'):
+                platform = 'ios' if 'ios' in request.client_type else 'android'
+                data['deep_link'] = DeepLinkService.generate_chapter_link(
+                    instance.id,
+                    platform
+                )
+        
+        return data
 
 
 class ChapterCreateSerializer(serializers.Serializer):

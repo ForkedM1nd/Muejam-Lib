@@ -240,3 +240,34 @@ async def export_analytics(request, story_id):
     response['Content-Disposition'] = f'attachment; filename="analytics_{export_type}_{story_id}.csv"'
     
     return response
+
+
+
+@api_view(['GET'])
+def mobile_analytics(request):
+    """
+    GET /v1/analytics/mobile - Get mobile-specific analytics metrics
+    
+    Requirements:
+        - 14.2: Track API response times per client type
+        - 14.3: Track push notification delivery rates
+        - 14.4: Track media upload success rates
+    
+    Returns mobile analytics including:
+    - API response times per client type (web, mobile-ios, mobile-android)
+    - Push notification delivery rates and failures
+    - Media upload success rates
+    
+    Note: This endpoint requires admin/staff permissions
+    """
+    # Check if user is staff/admin
+    if not request.user or not getattr(request.user, 'is_staff', False):
+        return Response(
+            {'error': {'code': 'FORBIDDEN', 'message': 'Admin access required'}},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Get mobile analytics
+    analytics = AnalyticsService.get_mobile_analytics()
+    
+    return Response(analytics)

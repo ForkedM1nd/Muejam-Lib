@@ -16,6 +16,7 @@ from collections import defaultdict
 import hashlib
 
 from prisma import Prisma
+from apps.security.mobile_security_logger import MobileSecurityLogger
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,9 @@ class SuspiciousActivityDetector:
     async def check_user_activity(
         self,
         user_id: str,
-        ip_address: Optional[str] = None
+        ip_address: Optional[str] = None,
+        platform: Optional[str] = None,
+        request_id: Optional[str] = None
     ) -> List[str]:
         """
         Check user activity for suspicious patterns.
@@ -60,11 +63,13 @@ class SuspiciousActivityDetector:
         Args:
             user_id: The user ID to check
             ip_address: Optional IP address for multi-account detection
+            platform: Optional platform identifier (for mobile logging)
+            request_id: Optional request ID for tracing
             
         Returns:
             List of detected suspicious activity flags
             
-        Requirements: 5.10, 5.11
+        Requirements: 5.10, 5.11, 11.4
         """
         flags = []
         
@@ -82,6 +87,21 @@ class SuspiciousActivityDetector:
                     logger.warning(
                         f"User {user_id} has {accounts_from_ip} accounts from IP {ip_address}"
                     )
+                    
+                    # Log suspicious pattern for mobile clients
+                    if platform and platform.startswith('mobile'):
+                        MobileSecurityLogger.log_suspicious_traffic_pattern(
+                            user_id=user_id,
+                            ip_address=ip_address,
+                            platform=platform,
+                            pattern_type='multiple_accounts_same_ip',
+                            pattern_details={
+                                'account_count': accounts_from_ip,
+                                'threshold': self.max_accounts_per_ip
+                            },
+                            request_id=request_id,
+                            severity='high'
+                        )
             
             # Check for rapid content creation
             content_last_hour = await self._count_user_content_last_hour(db, user_id)
@@ -90,6 +110,22 @@ class SuspiciousActivityDetector:
                 logger.warning(
                     f"User {user_id} created {content_last_hour} content items in last hour"
                 )
+                
+                # Log suspicious pattern for mobile clients
+                if platform and platform.startswith('mobile') and ip_address:
+                    MobileSecurityLogger.log_suspicious_traffic_pattern(
+                        user_id=user_id,
+                        ip_address=ip_address,
+                        platform=platform,
+                        pattern_type='rapid_content_creation',
+                        pattern_details={
+                            'content_count': content_last_hour,
+                            'threshold': self.max_content_per_hour,
+                            'time_window': '1_hour'
+                        },
+                        request_id=request_id,
+                        severity='medium'
+                    )
             
             # Check for duplicate content across accounts
             has_duplicates = await self._has_duplicate_content_across_accounts(
@@ -98,12 +134,40 @@ class SuspiciousActivityDetector:
             if has_duplicates:
                 flags.append('duplicate_content')
                 logger.warning(f"User {user_id} has duplicate content across accounts")
+                
+                # Log suspicious pattern for mobile clients
+                if platform and platform.startswith('mobile') and ip_address:
+                    MobileSecurityLogger.log_suspicious_traffic_pattern(
+                        user_id=user_id,
+                        ip_address=ip_address,
+                        platform=platform,
+                        pattern_type='duplicate_content',
+                        pattern_details={
+                            'description': 'Content duplicated across multiple accounts'
+                        },
+                        request_id=request_id,
+                        severity='high'
+                    )
             
             # Check for bot-like behavior patterns
             has_bot_behavior = await self._has_bot_like_behavior(db, user_id)
             if has_bot_behavior:
                 flags.append('bot_behavior')
                 logger.warning(f"User {user_id} exhibits bot-like behavior")
+                
+                # Log suspicious pattern for mobile clients
+                if platform and platform.startswith('mobile') and ip_address:
+                    MobileSecurityLogger.log_suspicious_traffic_pattern(
+                        user_id=user_id,
+                        ip_address=ip_address,
+                        platform=platform,
+                        pattern_type='bot_behavior',
+                        pattern_details={
+                            'description': 'Automated or bot-like behavior detected'
+                        },
+                        request_id=request_id,
+                        severity='high'
+                    )
             
             if flags:
                 logger.info(

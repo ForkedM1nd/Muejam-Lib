@@ -38,3 +38,32 @@ class PresignUploadResponseSerializer(serializers.Serializer):
     fields = serializers.DictField()
     object_key = serializers.CharField()
     max_size = serializers.IntegerField()
+
+
+class MobileMediaUploadSerializer(serializers.Serializer):
+    """Serializer for mobile media upload request."""
+    
+    file = serializers.FileField(required=True)
+    filename = serializers.CharField(required=True, max_length=255)
+    content_type = serializers.CharField(required=True, max_length=100)
+
+
+class ChunkedUploadInitSerializer(serializers.Serializer):
+    """Serializer for chunked upload initialization request."""
+    
+    filename = serializers.CharField(required=True, max_length=255)
+    total_size = serializers.IntegerField(required=True, min_value=1)
+
+
+class ChunkedUploadChunkSerializer(serializers.Serializer):
+    """Serializer for chunked upload chunk request."""
+    
+    session_id = serializers.CharField(required=True)
+    chunk_number = serializers.IntegerField(required=True, min_value=0)
+    chunk_data = serializers.FileField(required=True)
+
+
+class ChunkedUploadCompleteSerializer(serializers.Serializer):
+    """Serializer for chunked upload completion request."""
+    
+    session_id = serializers.CharField(required=True)

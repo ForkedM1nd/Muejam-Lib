@@ -8,3 +8,10 @@ urlpatterns = [
     path('preferences', views.notification_preferences, name='notification_preferences'),
     path('preferences/update', views.update_notification_preferences, name='update_notification_preferences'),
 ]
+
+# Device token management endpoints (mobile-backend-integration)
+device_urlpatterns = [
+    path('register', views.register_device, name='register_device'),
+    path('unregister', views.unregister_device, name='unregister_device'),
+    path('preferences', views.update_device_preferences, name='update_device_preferences'),
+]

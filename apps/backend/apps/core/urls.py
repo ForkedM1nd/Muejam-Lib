@@ -14,6 +14,17 @@ from .pii_config_views import (
     remove_from_whitelist,
     initialize_pii_configs
 )
+from .sync_views import (
+    sync_stories,
+    sync_whispers,
+    sync_batch,
+    sync_status,
+    resolve_conflict
+)
+from .mobile_config_views import (
+    get_mobile_config,
+    update_mobile_config
+)
 
 urlpatterns = [
     path('', health_check, name='health-check'),
@@ -31,4 +42,19 @@ urlpatterns = [
     path('admin/pii-config/<str:pii_type>/update/', update_pii_config, name='update-pii-config'),
     path('admin/pii-config/<str:pii_type>/whitelist/', add_to_whitelist, name='add-to-whitelist'),
     path('admin/pii-config/<str:pii_type>/whitelist/remove/', remove_from_whitelist, name='remove-from-whitelist'),
+]
+
+# Sync endpoints for mobile data synchronization
+sync_urlpatterns = [
+    path('stories/', sync_stories, name='sync-stories'),
+    path('whispers/', sync_whispers, name='sync-whispers'),
+    path('batch/', sync_batch, name='sync-batch'),
+    path('status/', sync_status, name='sync-status'),
+    path('resolve-conflict/', resolve_conflict, name='resolve-conflict'),
+]
+
+# Mobile configuration endpoints
+config_urlpatterns = [
+    path('mobile/', get_mobile_config, name='get-mobile-config'),
+    path('mobile/', update_mobile_config, name='update-mobile-config'),
 ]

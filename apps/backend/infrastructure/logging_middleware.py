@@ -35,11 +35,21 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         # Record request start time
         request.start_time = time.time()
         
+        # Detect test mode (Requirement 18.5)
+        test_mode_header = request.headers.get('X-Test-Mode', '').lower()
+        request.is_test_mode = test_mode_header in ['true', '1', 'yes']
+        
         # Set request context in logger
-        self.logger.set_context(
-            request_id=request.request_id,
-            ip_address=self.get_client_ip(request),
-        )
+        context = {
+            'request_id': request.request_id,
+            'ip_address': self.get_client_ip(request),
+        }
+        
+        # Add test mode flag to logging context (Requirement 18.5)
+        if request.is_test_mode:
+            context['test_mode'] = True
+        
+        self.logger.set_context(**context)
         
         # Add user ID if authenticated
         if hasattr(request, 'user') and request.user and hasattr(request.user, 'id'):
@@ -64,7 +74,10 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         if hasattr(request, 'user') and request.user and hasattr(request.user, 'id'):
             user_id = str(request.user.id)
         
-        # Log the request
+        # Check if this is a test mode request (Requirement 18.5)
+        is_test_mode = getattr(request, 'is_test_mode', False)
+        
+        # Log the request with test mode flag
         log_api_request(
             logger=self.logger,
             method=request.method,
@@ -73,6 +86,7 @@ class RequestLoggingMiddleware(MiddlewareMixin):
             response_time_ms=response_time_ms,
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
             user_id=user_id,
+            test_mode=is_test_mode
         )
         
         # Add request ID to response headers

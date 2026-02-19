@@ -334,6 +334,8 @@ def _list_whispers(request):
         - 6.6: List global whispers
         - 6.7: List story-specific whispers
         - 6.11: Exclude blocked users from whisper feeds
+        - 9.1: Include cache headers for offline support
+        - 9.4: Include cache-control headers for mobile caching
     """
     # Parse query parameters
     scope_filter = request.query_params.get('scope')
@@ -388,6 +390,12 @@ def _list_whispers(request):
         # Generate next cursor
         next_cursor = whispers[-1].id if has_next and whispers else None
         
+        # Calculate last modified time from most recent whisper
+        last_modified = max(
+            (whisper.created_at for whisper in whispers),
+            default=datetime.now()
+        ) if whispers else datetime.now()
+        
         db.disconnect()
         
         # Add counts to whispers
@@ -409,10 +417,22 @@ def _list_whispers(request):
             }
             whispers_data.append(whisper_dict)
         
-        return Response({
+        response_data = {
             'data': whispers_data,
             'next_cursor': next_cursor
-        })
+        }
+        
+        # Create response
+        response = Response(response_data)
+        
+        # Add cache headers for offline support (Requirements 9.1, 9.4)
+        from apps.core.offline_support_service import OfflineSupportService
+        import json
+        
+        etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error listing whispers: {e}")
@@ -426,6 +446,8 @@ def _list_whispers(request):
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
 
 
 @api_view(['DELETE'])

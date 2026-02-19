@@ -72,11 +72,15 @@ INSTALLED_APPS = [
     'apps.help',
     'apps.analytics',
     'apps.security',
+    'apps.testing',  # Test mode endpoints (Requirement 18.1-18.4)
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'infrastructure.https_enforcement.HTTPSEnforcementMiddleware',  # HTTPS enforcement (Requirement 6.4)
+    'infrastructure.api_version_middleware.APIVersionMiddleware',  # API versioning (Requirement 1.4)
+    'infrastructure.client_type_middleware.ClientTypeMiddleware',  # Client type detection (Requirements 2.1, 2.2, 2.3, 2.5)
+    'infrastructure.mobile_analytics_middleware.MobileAnalyticsMiddleware',  # Mobile analytics tracking (Requirements 14.2)
     'infrastructure.apm_middleware.APMMiddleware',  # APM performance tracking (Requirement 14.2)
     'infrastructure.rate_limit_middleware.RateLimitMiddleware',  # Rate limiting after SecurityMiddleware
     # 'infrastructure.timeout_middleware.TimeoutMiddleware',  # Disabled on Windows - SIGALRM not available
@@ -518,6 +522,42 @@ SPECTACULAR_SETTINGS = {
     Tokens are issued by Clerk authentication service.
     
     Example: `Authorization: Bearer <your_token>`
+    
+    ## Mobile Integration
+    
+    ### Client Type Header
+    Mobile clients should include the `X-Client-Type` header to receive optimized responses:
+    - `mobile-ios` - iOS mobile app
+    - `mobile-android` - Android mobile app
+    - `web` - Web browser (default if not specified)
+    
+    Example: `X-Client-Type: mobile-ios`
+    
+    ### Mobile-Specific Features
+    When using mobile client types, the API provides:
+    - **Deep Links**: Responses include `deep_link` fields with platform-specific URLs (muejam://)
+    - **Field Filtering**: Use `?fields=id,title,author` to request only specific fields
+    - **Response Optimization**: Compressed responses and optimized payload sizes
+    - **Offline Support**: ETag and Last-Modified headers for conditional requests
+    - **Push Notifications**: Device token registration and notification delivery
+    
+    ### API Versioning
+    The API uses path-based versioning:
+    - `/v1/` - Current stable API version
+    - Future versions will be introduced as `/v2/`, `/v3/`, etc.
+    
+    Deprecated versions will include `X-API-Deprecation` and `X-API-Sunset` headers.
+    
+    ### Rate Limiting
+    Rate limits vary by client type:
+    - Web clients: 100 requests/minute
+    - Mobile clients: 150 requests/minute
+    - Authenticated users: Higher limits than anonymous
+    
+    When rate limited, responses include:
+    - `X-RateLimit-Remaining`: Requests remaining in current window
+    - `X-RateLimit-Reset`: Timestamp when limit resets
+    - `Retry-After`: Seconds to wait before retrying (on 429 responses)
     ''',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
@@ -540,6 +580,8 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Uploads', 'description': 'Media upload management'},
         {'name': 'Moderation', 'description': 'Content reporting'},
         {'name': 'Health', 'description': 'System health monitoring'},
+        {'name': 'Mobile', 'description': 'Mobile-specific endpoints for push notifications, device management, and configuration'},
+        {'name': 'Testing', 'description': 'Test mode endpoints for mobile app development and QA'},
     ],
     'CONTACT': {
         'name': 'MueJam Library Support',
@@ -548,4 +590,8 @@ SPECTACULAR_SETTINGS = {
     'LICENSE': {
         'name': 'Proprietary',
     },
+    'POSTPROCESSING_HOOKS': [
+        'apps.core.schema_hooks.add_mobile_parameters',
+        'apps.core.schema_hooks.add_mobile_examples',
+    ],
 }

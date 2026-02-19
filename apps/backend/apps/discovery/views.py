@@ -208,7 +208,35 @@ def discover_feed(request):
         CacheManager.TTL_CONFIG['discover_feed']
     )
     
-    return Response(response_data)
+    # Add cache headers for offline support (Requirements 9.1, 9.4)
+    from apps.core.offline_support_service import OfflineSupportService
+    import json
+    
+    # Calculate last modified from response data
+    last_modified = datetime.now()
+    if response_data.get('data'):
+        # Use the most recent story's published_at or updated_at
+        dates = []
+        for story in response_data['data']:
+            if story.get('published_at'):
+                dates.append(datetime.fromisoformat(story['published_at'].replace('Z', '+00:00')))
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+    
+    # Check conditional request headers (Requirements 9.2, 9.3)
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        # Return 304 Not Modified
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    # Create response with cache headers
+    response = Response(response_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    
+    return response
 
 
 async def fetch_trending_feed(request, tag_slug=None, search_query=None):
@@ -428,6 +456,7 @@ def trending_stories_v2(request):
     
     Requirements:
         - 25.1, 25.2: Trending feed based on engagement and recency
+        - 9.1, 9.4: Include cache headers for offline support
     
     Query params:
         - limit: Number of stories to return (default: 20)
@@ -435,6 +464,8 @@ def trending_stories_v2(request):
     """
     from .discovery_service import DiscoveryService
     from apps.stories.serializers import StoryListSerializer
+    from apps.core.offline_support_service import OfflineSupportService
+    import json
     
     limit = int(request.query_params.get('limit', 20))
     days = int(request.query_params.get('days', 7))
@@ -442,7 +473,26 @@ def trending_stories_v2(request):
     stories = asyncio.run(DiscoveryService.get_trending_stories(limit=limit, days=days))
     
     serializer = StoryListSerializer(stories, many=True)
-    return Response(serializer.data)
+    response_data = serializer.data
+    
+    # Calculate last modified from stories
+    last_modified = datetime.now()
+    if stories:
+        dates = [s.updated_at for s in stories if hasattr(s, 'updated_at')]
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(response_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response
 
 
 @api_view(['GET'])
@@ -454,9 +504,12 @@ def stories_by_genre(request, genre):
     Requirements:
         - 25.3: Genre-based browsing
         - 25.4: Filtering by status, word count, update frequency
+        - 9.1, 9.4: Include cache headers for offline support
     """
     from .discovery_service import DiscoveryService
     from apps.stories.serializers import StoryListSerializer
+    from apps.core.offline_support_service import OfflineSupportService
+    import json
     
     limit = int(request.query_params.get('limit', 20))
     offset = int(request.query_params.get('offset', 0))
@@ -473,12 +526,31 @@ def stories_by_genre(request, genre):
     ))
     
     serializer = StoryListSerializer(stories, many=True)
-    return Response({
+    response_data = {
         'results': serializer.data,
         'total': total,
         'limit': limit,
         'offset': offset
-    })
+    }
+    
+    # Calculate last modified from stories
+    last_modified = datetime.now()
+    if stories:
+        dates = [s.updated_at for s in stories if hasattr(s, 'updated_at')]
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(response_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response
 
 
 @api_view(['GET'])
@@ -489,9 +561,12 @@ def recommended_stories(request):
     
     Requirements:
         - 25.5: Recommendations based on reading history and followed authors
+        - 9.1, 9.4: Include cache headers for offline support
     """
     from .discovery_service import DiscoveryService
     from apps.stories.serializers import StoryListSerializer
+    from apps.core.offline_support_service import OfflineSupportService
+    import json
     
     if not request.user_profile:
         return Response(
@@ -507,7 +582,26 @@ def recommended_stories(request):
     ))
     
     serializer = StoryListSerializer(stories, many=True)
-    return Response(serializer.data)
+    response_data = serializer.data
+    
+    # Calculate last modified from stories
+    last_modified = datetime.now()
+    if stories:
+        dates = [s.updated_at for s in stories if hasattr(s, 'updated_at')]
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(response_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response
 
 
 @api_view(['GET'])
@@ -518,9 +612,12 @@ def similar_stories(request, story_id):
     
     Requirements:
         - 25.6: Similar stories based on genre, tags, and reader overlap
+        - 9.1, 9.4: Include cache headers for offline support
     """
     from .discovery_service import DiscoveryService
     from apps.stories.serializers import StoryListSerializer
+    from apps.core.offline_support_service import OfflineSupportService
+    import json
     
     limit = int(request.query_params.get('limit', 5))
     
@@ -530,7 +627,26 @@ def similar_stories(request, story_id):
     ))
     
     serializer = StoryListSerializer(stories, many=True)
-    return Response(serializer.data)
+    response_data = serializer.data
+    
+    # Calculate last modified from stories
+    last_modified = datetime.now()
+    if stories:
+        dates = [s.updated_at for s in stories if hasattr(s, 'updated_at')]
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(response_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response
 
 
 @api_view(['GET'])
@@ -541,9 +657,12 @@ def new_and_noteworthy(request):
     
     Requirements:
         - 25.7: New and noteworthy featuring recent stories with quality signals
+        - 9.1, 9.4: Include cache headers for offline support
     """
     from .discovery_service import DiscoveryService
     from apps.stories.serializers import StoryListSerializer
+    from apps.core.offline_support_service import OfflineSupportService
+    import json
     
     limit = int(request.query_params.get('limit', 10))
     days = int(request.query_params.get('days', 30))
@@ -551,7 +670,26 @@ def new_and_noteworthy(request):
     stories = asyncio.run(DiscoveryService.get_new_and_noteworthy(limit=limit, days=days))
     
     serializer = StoryListSerializer(stories, many=True)
-    return Response(serializer.data)
+    response_data = serializer.data
+    
+    # Calculate last modified from stories
+    last_modified = datetime.now()
+    if stories:
+        dates = [s.updated_at for s in stories if hasattr(s, 'updated_at')]
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(response_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response
 
 
 @api_view(['GET'])
@@ -562,16 +700,38 @@ def staff_picks(request):
     
     Requirements:
         - 25.10: Staff picks curated by moderators
+        - 9.1, 9.4: Include cache headers for offline support
     """
     from .discovery_service import DiscoveryService
     from apps.stories.serializers import StoryListSerializer
+    from apps.core.offline_support_service import OfflineSupportService
+    import json
     
     limit = int(request.query_params.get('limit', 10))
     
     stories = asyncio.run(DiscoveryService.get_staff_picks(limit=limit))
     
     serializer = StoryListSerializer(stories, many=True)
-    return Response(serializer.data)
+    response_data = serializer.data
+    
+    # Calculate last modified from stories
+    last_modified = datetime.now()
+    if stories:
+        dates = [s.updated_at for s in stories if hasattr(s, 'updated_at')]
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(response_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response
 
 
 @api_view(['GET'])
@@ -582,8 +742,11 @@ def rising_authors(request):
     
     Requirements:
         - 25.12: Rising authors featuring new authors with growing followings
+        - 9.1, 9.4: Include cache headers for offline support
     """
     from .discovery_service import DiscoveryService
+    from apps.core.offline_support_service import OfflineSupportService
+    import json
     
     limit = int(request.query_params.get('limit', 10))
     days = int(request.query_params.get('days', 30))
@@ -605,4 +768,21 @@ def rising_authors(request):
         for item in authors
     ]
     
-    return Response(author_data)
+    # Calculate last modified from authors
+    last_modified = datetime.now()
+    if authors:
+        dates = [item['author'].updated_at for item in authors if hasattr(item['author'], 'updated_at')]
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(author_data, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(author_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response

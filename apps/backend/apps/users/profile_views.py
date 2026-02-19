@@ -15,6 +15,7 @@ async def user_statistics(request, handle):
     Requirements:
         - 24.4: Display user statistics
         - 24.8, 24.9: Respect privacy settings
+        - 9.1, 9.4: Include cache headers for offline support
     
     Returns:
         - total_stories: Total published stories
@@ -26,6 +27,9 @@ async def user_statistics(request, handle):
     """
     from .views import get_profile_by_handle
     from apps.gdpr.privacy_enforcement import PrivacyEnforcement
+    from apps.core.offline_support_service import OfflineSupportService
+    from datetime import datetime
+    import json
     
     # Get user profile
     profile = await get_profile_by_handle(handle)
@@ -49,7 +53,19 @@ async def user_statistics(request, handle):
     # Get statistics
     stats = await ProfileService.get_user_statistics(profile.id)
     
-    return Response(stats)
+    # Add cache headers
+    last_modified = profile.updated_at if hasattr(profile, 'updated_at') else datetime.now()
+    etag = OfflineSupportService.generate_etag(json.dumps(stats, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(stats)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response
 
 
 @api_view(['GET'])
@@ -60,12 +76,16 @@ async def user_pinned_stories(request, handle):
     
     Requirements:
         - 24.5: Display pinned stories
+        - 9.1, 9.4: Include cache headers for offline support
     
     Returns:
         List of up to 3 pinned stories
     """
     from .views import get_profile_by_handle
     from apps.stories.serializers import StoryListSerializer
+    from apps.core.offline_support_service import OfflineSupportService
+    from datetime import datetime
+    import json
     
     # Get user profile
     profile = await get_profile_by_handle(handle)
@@ -81,8 +101,26 @@ async def user_pinned_stories(request, handle):
     
     # Serialize stories
     serializer = StorySerializer(stories, many=True)
+    response_data = serializer.data
     
-    return Response(serializer.data)
+    # Add cache headers
+    last_modified = datetime.now()
+    if stories:
+        dates = [s.updated_at for s in stories if hasattr(s, 'updated_at')]
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(response_data, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(response_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response
 
 
 @api_view(['GET'])
@@ -93,11 +131,15 @@ async def user_badges(request, handle):
     
     Requirements:
         - 24.6: Display user badges
+        - 9.1, 9.4: Include cache headers for offline support
     
     Returns:
         List of badges earned by the user
     """
     from .views import get_profile_by_handle
+    from apps.core.offline_support_service import OfflineSupportService
+    from datetime import datetime
+    import json
     
     # Get user profile
     profile = await get_profile_by_handle(handle)
@@ -122,7 +164,24 @@ async def user_badges(request, handle):
         for badge in badges
     ]
     
-    return Response(badge_data)
+    # Add cache headers
+    last_modified = datetime.now()
+    if badges:
+        dates = [badge.earned_at for badge in badges if hasattr(badge, 'earned_at')]
+        if dates:
+            last_modified = max(dates)
+    
+    etag = OfflineSupportService.generate_etag(json.dumps(badge_data, default=str))
+    
+    # Check conditional request
+    if OfflineSupportService.check_conditional_request(request, last_modified, etag):
+        response = OfflineSupportService.create_not_modified_response()
+        OfflineSupportService.add_cache_headers(response, last_modified, etag)
+        return response
+    
+    response = Response(badge_data)
+    OfflineSupportService.add_cache_headers(response, last_modified, etag)
+    return response
 
 
 @api_view(['POST'])

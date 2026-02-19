@@ -12,6 +12,11 @@ Welcome to the MueJam Library documentation. This directory contains comprehensi
 - [API Documentation](architecture/api.md) - REST API endpoints and usage
 
 ### Backend
+#### API Documentation
+- [API Documentation](architecture/api.md) - REST API endpoints and usage
+- [Mobile API Documentation](backend/mobile-api.md) - Mobile-specific API features and integration
+- [Mobile Quick Start](backend/mobile-quick-start.md) - Quick start guide for mobile developers
+
 #### Infrastructure
 - [Infrastructure Overview](backend/infrastructure/overview.md) - Database optimization and caching infrastructure
 - [Deployment Guide](backend/infrastructure/deployment-guide.md) - Production deployment instructions
