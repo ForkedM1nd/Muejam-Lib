@@ -1,209 +1,180 @@
-#!/bin/bash
-# Blue-Green deployment script for MueJam Library
-# Usage: ./scripts/deploy-blue-green.sh <environment> <target-color>
-# Example: ./scripts/deploy-blue-green.sh production green
+#!/usr/bin/env bash
+# Blue-green deployment script for MueJam Library.
+# Usage: ./scripts/deployment/deploy-blue-green.sh <environment> <target-color>
 
-set -e  # Exit on error
-set -u  # Exit on undefined variable
+set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Configuration
 ENVIRONMENT="${1:-production}"
 TARGET_COLOR="${2:-green}"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+BACKEND_DIR="${REPO_ROOT}/apps/backend"
 
-# Validate inputs
-if [[ ! "$ENVIRONMENT" =~ ^(staging|production)$ ]]; then
-    echo -e "${RED}Error: Invalid environment '$ENVIRONMENT'${NC}"
+ERROR_RATE_THRESHOLD="${ERROR_RATE_THRESHOLD:-2.0}"
+P99_LATENCY_THRESHOLD_MS="${P99_LATENCY_THRESHOLD_MS:-2000}"
+MONITORING_DURATION_SECONDS="${MONITORING_DURATION_SECONDS:-300}"
+MONITORING_POLL_INTERVAL_SECONDS="${MONITORING_POLL_INTERVAL_SECONDS:-30}"
+TRAFFIC_SHIFT_STEPS="${TRAFFIC_SHIFT_STEPS:-10 25 50 75 100}"
+HEALTH_CHECK_RETRIES="${HEALTH_CHECK_RETRIES:-30}"
+HEALTH_CHECK_RETRY_INTERVAL_SECONDS="${HEALTH_CHECK_RETRY_INTERVAL_SECONDS:-10}"
+
+PYTHON_BIN="$(command -v python3 || command -v python || true)"
+
+require_command() {
+    if ! command -v "$1" > /dev/null 2>&1; then
+        echo "FAIL: required command '$1' is not installed"
+        exit 1
+    fi
+}
+
+greater_than() {
+    local value="$1"
+    local threshold="$2"
+
+    "$PYTHON_BIN" - "$value" "$threshold" <<'PY'
+import sys
+
+value = float(sys.argv[1])
+threshold = float(sys.argv[2])
+
+raise SystemExit(0 if value > threshold else 1)
+PY
+}
+
+rollback_and_exit() {
+    local reason="$1"
+
+    echo "FAIL: ${reason}"
+    echo "INFO: triggering rollback"
+    "$SCRIPT_DIR/rollback.sh" "$ENVIRONMENT" "$reason" --yes
+    exit 1
+}
+
+if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
+    echo "FAIL: invalid environment '${ENVIRONMENT}' (expected staging or production)"
     exit 1
 fi
 
-if [[ ! "$TARGET_COLOR" =~ ^(blue|green)$ ]]; then
-    echo -e "${RED}Error: Invalid target color '$TARGET_COLOR'${NC}"
+if [[ "$TARGET_COLOR" != "blue" && "$TARGET_COLOR" != "green" ]]; then
+    echo "FAIL: invalid target color '${TARGET_COLOR}' (expected blue or green)"
     exit 1
 fi
 
-# Determine current and target environments
+if [[ -z "$PYTHON_BIN" ]]; then
+    echo "FAIL: python is required for threshold comparisons"
+    exit 1
+fi
+
+require_command git
+require_command curl
+require_command docker
+
 if [[ "$TARGET_COLOR" == "green" ]]; then
     CURRENT_COLOR="blue"
 else
     CURRENT_COLOR="green"
 fi
 
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}Blue-Green Deployment${NC}"
-echo -e "${BLUE}Environment: $ENVIRONMENT${NC}"
-echo -e "${BLUE}Current: $CURRENT_COLOR${NC}"
-echo -e "${BLUE}Target: $TARGET_COLOR${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo ""
+TARGET_ENVIRONMENT_KEY="${ENVIRONMENT}-${TARGET_COLOR}"
 
-# Step 1: Deploy to target environment
-echo -e "${YELLOW}Step 1: Deploying to $TARGET_COLOR environment...${NC}"
+echo "========================================"
+echo "Blue-Green Deployment"
+echo "Environment: ${ENVIRONMENT}"
+echo "Current color: ${CURRENT_COLOR}"
+echo "Target color: ${TARGET_COLOR}"
+echo "========================================"
 
-# Get version
-VERSION=$(git describe --tags --always)
-echo "Version: $VERSION"
+VERSION="$(git -C "$REPO_ROOT" describe --tags --always)"
 
-# Deploy application to target environment
-# This would typically involve:
-# - Building Docker image with version tag
-# - Pushing to container registry
-# - Updating ECS/Kubernetes deployment for target color
-# - Waiting for deployment to complete
+echo "Step 1: Building target image"
+echo "INFO: version ${VERSION}"
+docker build \
+    -t "muejam-backend:${VERSION}" \
+    -f "${BACKEND_DIR}/Dockerfile" \
+    "${BACKEND_DIR}"
 
-echo "Building Docker image..."
-docker build -t muejam-backend:$VERSION -f Dockerfile .
+TARGET_IMAGE="muejam-backend:${ENVIRONMENT}-${TARGET_COLOR}"
+docker tag "muejam-backend:${VERSION}" "$TARGET_IMAGE"
 
-echo "Tagging image for $TARGET_COLOR environment..."
-docker tag muejam-backend:$VERSION muejam-backend:$ENVIRONMENT-$TARGET_COLOR
-
-echo "Pushing image to registry..."
-# docker push muejam-backend:$ENVIRONMENT-$TARGET_COLOR
-
-echo -e "${GREEN}✓ Deployed to $TARGET_COLOR environment${NC}"
-echo ""
-
-# Step 2: Run database migrations
-echo -e "${YELLOW}Step 2: Running database migrations...${NC}"
-
-# Migrations run on target environment before traffic switch
-# This ensures the new code can work with the migrated schema
-# python manage.py migrate --database=$ENVIRONMENT-$TARGET_COLOR
-
-echo -e "${GREEN}✓ Migrations completed${NC}"
-echo ""
-
-# Step 3: Warm up target environment
-echo -e "${YELLOW}Step 3: Warming up $TARGET_COLOR environment...${NC}"
-
-# Send test traffic to warm up caches and connections
-"$SCRIPT_DIR/warmup.sh" "$ENVIRONMENT-$TARGET_COLOR"
-
-echo -e "${GREEN}✓ Warm-up completed${NC}"
-echo ""
-
-# Step 4: Health checks
-echo -e "${YELLOW}Step 4: Running health checks on $TARGET_COLOR environment...${NC}"
-
-MAX_RETRIES=30
-RETRY_COUNT=0
-HEALTH_CHECK_URL="https://$ENVIRONMENT-$TARGET_COLOR-api.muejam.com/health"
-
-while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if curl -f -s "$HEALTH_CHECK_URL" > /dev/null; then
-        echo -e "${GREEN}✓ Health check passed${NC}"
-        break
-    fi
-    
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    echo "Health check attempt $RETRY_COUNT/$MAX_RETRIES..."
-    sleep 10
-done
-
-if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-    echo -e "${RED}Health checks failed after $MAX_RETRIES attempts${NC}"
-    exit 1
+if [[ -n "${CONTAINER_REGISTRY:-}" ]]; then
+    REGISTRY_IMAGE="${CONTAINER_REGISTRY}/muejam-backend:${ENVIRONMENT}-${TARGET_COLOR}"
+    docker tag "$TARGET_IMAGE" "$REGISTRY_IMAGE"
+    docker push "$REGISTRY_IMAGE"
+    echo "PASS: pushed image to ${REGISTRY_IMAGE}"
+else
+    echo "INFO: CONTAINER_REGISTRY not set; skipping image push"
 fi
 
-echo ""
+echo "Step 2: Database migrations"
+if [[ "${RUN_MIGRATIONS:-false}" == "true" ]]; then
+    (cd "$BACKEND_DIR" && python manage.py migrate --noinput)
+    echo "PASS: migrations completed"
+else
+    echo "INFO: skipping migrations (set RUN_MIGRATIONS=true to enable)"
+fi
 
-# Step 5: Gradual traffic shift
-echo -e "${YELLOW}Step 5: Shifting traffic to $TARGET_COLOR environment...${NC}"
+echo "Step 3: Warm-up"
+"$SCRIPT_DIR/warmup.sh" "$TARGET_ENVIRONMENT_KEY"
 
-# Shift traffic gradually: 10% -> 25% -> 50% -> 75% -> 100%
-TRAFFIC_PERCENTAGES=(10 25 50 75 100)
-MONITORING_DURATION=300  # 5 minutes per step
+echo "Step 4: Health checks"
+HEALTH_CHECK_URL="${HEALTH_CHECK_URL:-https://${TARGET_ENVIRONMENT_KEY}-api.muejam.com/health}"
 
-for PERCENTAGE in "${TRAFFIC_PERCENTAGES[@]}"; do
-    echo ""
-    echo -e "${BLUE}Shifting $PERCENTAGE% traffic to $TARGET_COLOR...${NC}"
-    
-    # Update load balancer to send PERCENTAGE% to target
-    # This would use AWS ALB weighted target groups or similar
-    # aws elbv2 modify-target-group-attributes ...
-    
-    echo "Monitoring for $MONITORING_DURATION seconds..."
-    
-    # Monitor metrics during traffic shift
-    START_TIME=$(date +%s)
-    while [ $(($(date +%s) - START_TIME)) -lt $MONITORING_DURATION ]; do
-        # Check error rate
-        ERROR_RATE=$("$SCRIPT_DIR/check-error-rate.sh" "$ENVIRONMENT-$TARGET_COLOR")
-        
-        if (( $(echo "$ERROR_RATE > 2.0" | bc -l) )); then
-            echo -e "${RED}Error rate exceeded threshold: $ERROR_RATE%${NC}"
-            echo "Initiating automatic rollback..."
-            "$SCRIPT_DIR/rollback.sh" "$ENVIRONMENT"
-            exit 1
-        fi
-        
-        # Check response time
-        P99_LATENCY=$("$SCRIPT_DIR/check-latency.sh" "$ENVIRONMENT-$TARGET_COLOR")
-        
-        if (( $(echo "$P99_LATENCY > 2000" | bc -l) )); then
-            echo -e "${RED}Response time exceeded threshold: ${P99_LATENCY}ms${NC}"
-            echo "Initiating automatic rollback..."
-            "$SCRIPT_DIR/rollback.sh" "$ENVIRONMENT"
-            exit 1
-        fi
-        
-        # Display current metrics
-        echo -ne "\rError Rate: $ERROR_RATE% | P99 Latency: ${P99_LATENCY}ms | Time: $(($(date +%s) - START_TIME))s / ${MONITORING_DURATION}s"
-        
-        sleep 30
-    done
-    
-    echo ""
-    echo -e "${GREEN}✓ $PERCENTAGE% traffic shift successful${NC}"
+for ((attempt = 1; attempt <= HEALTH_CHECK_RETRIES; attempt += 1)); do
+    if curl --silent --show-error --fail --max-time 10 "$HEALTH_CHECK_URL" > /dev/null; then
+        echo "PASS: health check succeeded (${HEALTH_CHECK_URL})"
+        break
+    fi
+
+    if [[ "$attempt" -eq "$HEALTH_CHECK_RETRIES" ]]; then
+        rollback_and_exit "health checks failed after ${HEALTH_CHECK_RETRIES} attempts"
+    fi
+
+    echo "INFO: health check attempt ${attempt}/${HEALTH_CHECK_RETRIES} failed, retrying"
+    sleep "$HEALTH_CHECK_RETRY_INTERVAL_SECONDS"
 done
 
-echo ""
-echo -e "${GREEN}✓ All traffic shifted to $TARGET_COLOR environment${NC}"
-echo ""
+echo "Step 5: Gradual traffic shift"
+read -r -a traffic_percentages <<< "$TRAFFIC_SHIFT_STEPS"
 
-# Step 6: Final verification
-echo -e "${YELLOW}Step 6: Running final verification...${NC}"
+for percentage in "${traffic_percentages[@]}"; do
+    echo "INFO: shifting ${percentage}% traffic to ${TARGET_COLOR}"
+    echo "INFO: apply weighted routing in ALB/ingress here"
 
-# Run comprehensive smoke tests
-"$SCRIPT_DIR/smoke-tests.sh" "$ENVIRONMENT-$TARGET_COLOR" || {
-    echo -e "${RED}Final verification failed${NC}"
-    echo "Initiating rollback..."
-    "$SCRIPT_DIR/rollback.sh" "$ENVIRONMENT"
-    exit 1
-}
+    start_time="$(date +%s)"
 
-echo -e "${GREEN}✓ Final verification passed${NC}"
-echo ""
+    while true; do
+        current_time="$(date +%s)"
+        elapsed="$((current_time - start_time))"
 
-# Step 7: Keep old environment for rollback
-echo -e "${YELLOW}Step 7: Maintaining $CURRENT_COLOR environment for rollback...${NC}"
+        if (( elapsed >= MONITORING_DURATION_SECONDS )); then
+            break
+        fi
 
-echo "$CURRENT_COLOR environment will be kept running for 24 hours"
-echo "This allows for quick rollback if issues are discovered"
-echo ""
-echo "To manually rollback, run:"
-echo "  ./scripts/rollback.sh $ENVIRONMENT"
-echo ""
+        error_rate="$("$SCRIPT_DIR/check-error-rate.sh" "$TARGET_ENVIRONMENT_KEY")"
+        p99_latency="$("$SCRIPT_DIR/check-latency.sh" "$TARGET_ENVIRONMENT_KEY")"
 
-# Success
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Blue-Green deployment completed!${NC}"
-echo -e "${GREEN}Active environment: $TARGET_COLOR${NC}"
-echo -e "${GREEN}Standby environment: $CURRENT_COLOR${NC}"
-echo -e "${GREEN}========================================${NC}"
-echo ""
-echo "Monitoring:"
-echo "- Continue monitoring for 30 minutes"
-echo "- Watch error rates and performance metrics"
-echo "- Check for user-reported issues"
-echo ""
-echo "Cleanup:"
-echo "- $CURRENT_COLOR environment will be decommissioned in 24 hours"
-echo "- To decommission now: ./scripts/decommission.sh $ENVIRONMENT $CURRENT_COLOR"
+        if greater_than "$error_rate" "$ERROR_RATE_THRESHOLD"; then
+            rollback_and_exit "error rate ${error_rate}% exceeded ${ERROR_RATE_THRESHOLD}% at ${percentage}% traffic"
+        fi
+
+        if greater_than "$p99_latency" "$P99_LATENCY_THRESHOLD_MS"; then
+            rollback_and_exit "p99 latency ${p99_latency}ms exceeded ${P99_LATENCY_THRESHOLD_MS}ms at ${percentage}% traffic"
+        fi
+
+        echo "INFO: metrics error_rate=${error_rate}% p99_latency=${p99_latency}ms elapsed=${elapsed}s/${MONITORING_DURATION_SECONDS}s"
+        sleep "$MONITORING_POLL_INTERVAL_SECONDS"
+    done
+
+    echo "PASS: ${percentage}% traffic shift completed"
+done
+
+echo "Step 6: Final verification"
+if ! "$SCRIPT_DIR/smoke-tests.sh" "$TARGET_ENVIRONMENT_KEY"; then
+    rollback_and_exit "final smoke tests failed"
+fi
+
+echo "Step 7: Post-cutover state"
+echo "INFO: keep ${CURRENT_COLOR} as standby for fast rollback"
+echo "PASS: deployment completed"
+echo "INFO: active color=${TARGET_COLOR} standby color=${CURRENT_COLOR}"

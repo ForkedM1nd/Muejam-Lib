@@ -38,6 +38,15 @@ The CI/CD pipeline automates testing, building, and deploying the application to
 
 ## GitHub Actions Workflows
 
+### Current Implemented Baseline
+
+The repository currently ships with a baseline infrastructure workflow:
+
+- **File**: `.github/workflows/infra-devops.yml`
+- **Purpose**: Validate Terraform configuration, deployment shell script syntax, and Docker Compose configuration on push/PR.
+
+This baseline acts as a guardrail while the broader CI and CD flows below are incrementally rolled out.
+
 ### CI Workflow (Test & Build)
 
 **Trigger**: On every push and pull request

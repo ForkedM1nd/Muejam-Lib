@@ -1,7 +1,7 @@
 #!/bin/bash
 # Create a new release with semantic versioning
-# Usage: ./scripts/create-release.sh <major|minor|patch> [message]
-# Example: ./scripts/create-release.sh minor "Add new feature"
+# Usage: ./scripts/deployment/create-release.sh <major|minor|patch> [message]
+# Example: ./scripts/deployment/create-release.sh minor "Add new feature"
 
 set -e
 
@@ -84,7 +84,7 @@ git commit -m "Update CHANGELOG for $NEW_VERSION"
 echo -e "${YELLOW}Creating git tag...${NC}"
 git tag -a "$NEW_VERSION" -m "$RELEASE_MESSAGE"
 
-echo -e "${GREEN}✓ Release $NEW_VERSION created${NC}"
+echo -e "${GREEN}PASS: release $NEW_VERSION created${NC}"
 echo ""
 echo "Next steps:"
 echo "1. Review the changes: git show $NEW_VERSION"

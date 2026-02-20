@@ -1,6 +1,6 @@
 #!/bin/bash
 # Database backup script
-# Usage: ./scripts/backup-database.sh <environment>
+# Usage: ./scripts/deployment/backup-database.sh <environment>
 
 set -e
 
@@ -21,4 +21,4 @@ echo "Waiting for snapshot to complete..."
 aws rds wait db-snapshot-completed \
     --db-snapshot-identifier "$SNAPSHOT_ID"
 
-echo "✓ Backup completed: $SNAPSHOT_ID"
+echo "PASS: backup completed: $SNAPSHOT_ID"

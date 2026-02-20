@@ -1,0 +1,78 @@
+name: Infra and DevOps Checks
+
+on:
+  pull_request:
+    branches: [master, main]
+    paths:
+      - "infra/**"
+      - "scripts/deployment/**"
+      - "docker-compose.yml"
+      - ".github/workflows/infra-devops.yml"
+  push:
+    branches: [master, main]
+    paths:
+      - "infra/**"
+      - "scripts/deployment/**"
+      - "docker-compose.yml"
+      - ".github/workflows/infra-devops.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-validation:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: infra/terraform
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Check terraform formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize terraform modules
+        run: terraform init -backend=false
+
+      - name: Validate terraform configuration
+        run: terraform validate
+
+  deployment-scripts-validation:
+    name: Deployment Scripts Validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate deployment script syntax
+        run: |
+          for script in scripts/deployment/*.sh; do
+            bash -n "$script"
+          done
+
+  docker-compose-validation:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare environment files for compose parsing
+        run: |
+          cp apps/backend/.env.example apps/backend/.env
+          cp apps/frontend/.env.example apps/frontend/.env.local
+
+      - name: Validate docker compose file
+        run: docker compose -f docker-compose.yml config > /dev/null

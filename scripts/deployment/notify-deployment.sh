@@ -1,6 +1,6 @@
 #!/bin/bash
 # Send deployment notifications to Slack
-# Usage: ./scripts/notify-deployment.sh <status> --version <version> --environment <env>
+# Usage: ./scripts/deployment/notify-deployment.sh <status> --version <version> --environment <env>
 
 STATUS="${1:-success}"
 VERSION=""
@@ -34,6 +34,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [ -z "$DEPLOYED_BY" ]; then
+    DEPLOYED_BY="unknown"
+fi
+
 # Slack webhook URL (should be in environment variable)
 SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
 
@@ -46,22 +50,22 @@ fi
 case "$STATUS" in
     success)
         COLOR="good"
-        TITLE="✅ Deployment Successful"
+        TITLE="[OK] Deployment Successful"
         MESSAGE="Version $VERSION has been deployed to $ENVIRONMENT by $DEPLOYED_BY"
         ;;
     rollback)
         COLOR="danger"
-        TITLE="⚠️ Deployment Rolled Back"
-        MESSAGE="Deployment to $ENVIRONMENT has been rolled back. Reason: $REASON"
+        TITLE="[WARN] Deployment Rolled Back"
+        MESSAGE="Deployment to $ENVIRONMENT has been rolled back by $DEPLOYED_BY. Reason: $REASON"
         ;;
     failed)
         COLOR="danger"
-        TITLE="❌ Deployment Failed"
+        TITLE="[FAIL] Deployment Failed"
         MESSAGE="Deployment of version $VERSION to $ENVIRONMENT failed. Reason: $REASON"
         ;;
     *)
         COLOR="warning"
-        TITLE="ℹ️ Deployment Status"
+        TITLE="[INFO] Deployment Status"
         MESSAGE="Deployment status: $STATUS"
         ;;
 esac

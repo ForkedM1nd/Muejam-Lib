@@ -1,184 +1,156 @@
-#!/bin/bash
-# Rollback script for MueJam Library
-# Usage: ./scripts/rollback.sh <environment> [reason]
-# Example: ./scripts/rollback.sh production "High error rate detected"
+#!/usr/bin/env bash
+# Rollback script for MueJam Library.
+# Usage: ./scripts/deployment/rollback.sh <environment> [reason] [--yes]
 
-set -e  # Exit on error
-set -u  # Exit on undefined variable
+set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+ENVIRONMENT="production"
+ROLLBACK_REASON="Manual rollback initiated"
+AUTO_APPROVE=false
 
-# Configuration
-ENVIRONMENT="${1:-production}"
-ROLLBACK_REASON="${2:-Manual rollback initiated}"
+if [[ $# -gt 0 ]]; then
+    ENVIRONMENT="$1"
+    shift
+fi
+
+if [[ $# -gt 0 && "${1:-}" != --* ]]; then
+    ROLLBACK_REASON="$1"
+    shift
+fi
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --yes|-y)
+            AUTO_APPROVE=true
+            ;;
+        *)
+            echo "FAIL: unknown option '$1'"
+            echo "Usage: ./scripts/deployment/rollback.sh <environment> [reason] [--yes]"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+ROLLBACK_ERROR_RATE_THRESHOLD="${ROLLBACK_ERROR_RATE_THRESHOLD:-2.0}"
+CHECK_POST_ROLLBACK_METRICS="${CHECK_POST_ROLLBACK_METRICS:-true}"
+CURRENT_COLOR="${CURRENT_COLOR:-green}"
 
-echo -e "${RED}========================================${NC}"
-echo -e "${RED}ROLLBACK INITIATED${NC}"
-echo -e "${RED}Environment: $ENVIRONMENT${NC}"
-echo -e "${RED}Reason: $ROLLBACK_REASON${NC}"
-echo -e "${RED}========================================${NC}"
-echo ""
+PYTHON_BIN="$(command -v python3 || command -v python || true)"
 
-# Confirm rollback for production
-if [[ "$ENVIRONMENT" == "production" ]]; then
-    echo -e "${YELLOW}WARNING: You are about to rollback PRODUCTION${NC}"
-    read -p "Are you sure you want to continue? (yes/no): " CONFIRM
-    
-    if [[ "$CONFIRM" != "yes" ]]; then
-        echo "Rollback cancelled"
+require_command() {
+    if ! command -v "$1" > /dev/null 2>&1; then
+        echo "FAIL: required command '$1' is not installed"
+        exit 1
+    fi
+}
+
+greater_than() {
+    local value="$1"
+    local threshold="$2"
+
+    "$PYTHON_BIN" - "$value" "$threshold" <<'PY'
+import sys
+
+value = float(sys.argv[1])
+threshold = float(sys.argv[2])
+
+raise SystemExit(0 if value > threshold else 1)
+PY
+}
+
+if [[ "$ENVIRONMENT" != "development" && "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
+    echo "FAIL: invalid environment '${ENVIRONMENT}'"
+    exit 1
+fi
+
+if [[ "$CURRENT_COLOR" != "blue" && "$CURRENT_COLOR" != "green" ]]; then
+    echo "FAIL: CURRENT_COLOR must be 'blue' or 'green'"
+    exit 1
+fi
+
+if [[ -z "$PYTHON_BIN" ]]; then
+    echo "FAIL: python is required for rollback checks"
+    exit 1
+fi
+
+require_command curl
+
+if [[ "$CURRENT_COLOR" == "green" ]]; then
+    PREVIOUS_COLOR="blue"
+else
+    PREVIOUS_COLOR="green"
+fi
+
+echo "========================================"
+echo "Rollback initiated"
+echo "Environment: ${ENVIRONMENT}"
+echo "Current color: ${CURRENT_COLOR}"
+echo "Rollback target: ${PREVIOUS_COLOR}"
+echo "Reason: ${ROLLBACK_REASON}"
+echo "========================================"
+
+if [[ "$ENVIRONMENT" == "production" && "$AUTO_APPROVE" != "true" ]]; then
+    read -r -p "Confirm production rollback (yes/no): " confirmation
+    if [[ "$confirmation" != "yes" ]]; then
+        echo "INFO: rollback cancelled"
         exit 0
     fi
 fi
 
-# Step 1: Determine current and previous environments
-echo -e "${YELLOW}Step 1: Identifying environments...${NC}"
+echo "Step 1: Verifying target environment health"
+ROLLBACK_HEALTH_URL="${ROLLBACK_HEALTH_URL:-https://${ENVIRONMENT}-${PREVIOUS_COLOR}-api.muejam.com/health}"
 
-# In blue-green deployment, we switch back to the previous color
-# Assuming current is green, rollback to blue
-CURRENT_COLOR="green"
-PREVIOUS_COLOR="blue"
-
-echo "Current environment: $CURRENT_COLOR"
-echo "Rolling back to: $PREVIOUS_COLOR"
-echo ""
-
-# Step 2: Verify previous environment is healthy
-echo -e "${YELLOW}Step 2: Verifying $PREVIOUS_COLOR environment health...${NC}"
-
-HEALTH_CHECK_URL="https://$ENVIRONMENT-$PREVIOUS_COLOR-api.muejam.com/health"
-
-if ! curl -f -s "$HEALTH_CHECK_URL" > /dev/null; then
-    echo -e "${RED}Error: $PREVIOUS_COLOR environment is not healthy${NC}"
-    echo "Cannot rollback to unhealthy environment"
+if ! curl --silent --show-error --fail --max-time 10 "$ROLLBACK_HEALTH_URL" > /dev/null; then
+    echo "FAIL: rollback target is unhealthy (${ROLLBACK_HEALTH_URL})"
     exit 1
 fi
 
-echo -e "${GREEN}✓ $PREVIOUS_COLOR environment is healthy${NC}"
-echo ""
+echo "PASS: rollback target is healthy"
 
-# Step 3: Switch traffic back to previous environment
-echo -e "${YELLOW}Step 3: Switching traffic to $PREVIOUS_COLOR environment...${NC}"
+echo "Step 2: Switching traffic"
+echo "INFO: update load balancer weights to route traffic to ${PREVIOUS_COLOR}"
+echo "PASS: traffic switched"
 
-# Immediate traffic switch (no gradual rollback)
-echo "Switching 100% traffic to $PREVIOUS_COLOR..."
+echo "Step 3: Post-rollback checks"
+if [[ "$CHECK_POST_ROLLBACK_METRICS" == "true" ]]; then
+    error_rate="$("$SCRIPT_DIR/check-error-rate.sh" "${ENVIRONMENT}-${PREVIOUS_COLOR}")"
+    echo "INFO: post-rollback error rate ${error_rate}%"
 
-# Update load balancer to send all traffic to previous environment
-# aws elbv2 modify-target-group-attributes ...
-
-echo -e "${GREEN}✓ Traffic switched to $PREVIOUS_COLOR${NC}"
-echo ""
-
-# Step 4: Verify rollback successful
-echo -e "${YELLOW}Step 4: Verifying rollback...${NC}"
-
-# Check error rate
-sleep 30  # Wait for metrics to update
-ERROR_RATE=$("$SCRIPT_DIR/check-error-rate.sh" "$ENVIRONMENT-$PREVIOUS_COLOR")
-
-echo "Current error rate: $ERROR_RATE%"
-
-if (( $(echo "$ERROR_RATE > 2.0" | bc -l) )); then
-    echo -e "${RED}Warning: Error rate still high after rollback${NC}"
-    echo "Manual intervention may be required"
-else
-    echo -e "${GREEN}✓ Error rate within acceptable range${NC}"
-fi
-
-echo ""
-
-# Step 5: Database rollback (if needed)
-echo -e "${YELLOW}Step 5: Checking if database rollback is needed...${NC}"
-
-# Check if migrations were run in the failed deployment
-MIGRATIONS_RUN=$(python manage.py showmigrations | grep "\[X\]" | tail -1)
-
-if [[ -n "$MIGRATIONS_RUN" ]]; then
-    echo "Migrations were run in failed deployment"
-    echo -e "${YELLOW}Database rollback may be required${NC}"
-    echo ""
-    echo "To rollback database:"
-    echo "1. Enable maintenance mode: ./scripts/maintenance-mode.sh enable"
-    echo "2. Restore from backup: ./scripts/restore-database.sh $ENVIRONMENT"
-    echo "3. Disable maintenance mode: ./scripts/maintenance-mode.sh disable"
-    echo ""
-    read -p "Do you want to rollback database now? (yes/no): " ROLLBACK_DB
-    
-    if [[ "$ROLLBACK_DB" == "yes" ]]; then
-        echo "Enabling maintenance mode..."
-        "$SCRIPT_DIR/maintenance-mode.sh" enable
-        
-        echo "Restoring database from backup..."
-        "$SCRIPT_DIR/restore-database.sh" "$ENVIRONMENT" || {
-            echo -e "${RED}Database restore failed${NC}"
-            exit 1
-        }
-        
-        echo "Disabling maintenance mode..."
-        "$SCRIPT_DIR/maintenance-mode.sh" disable
-        
-        echo -e "${GREEN}✓ Database rolled back${NC}"
+    if greater_than "$error_rate" "$ROLLBACK_ERROR_RATE_THRESHOLD"; then
+        echo "WARN: error rate is still above threshold (${ROLLBACK_ERROR_RATE_THRESHOLD}%)"
     else
-        echo "Skipping database rollback"
-        echo "Database may be in inconsistent state - manual review required"
+        echo "PASS: error rate is within threshold"
     fi
 else
-    echo "No migrations were run - database rollback not needed"
+    echo "INFO: skipped metric verification (CHECK_POST_ROLLBACK_METRICS=false)"
 fi
 
-echo ""
+echo "Step 4: Database rollback guidance"
+if [[ "${ROLLBACK_DATABASE:-false}" == "true" ]]; then
+    if [[ -x "${REPO_ROOT}/infra/backup/postgres-restore.sh" ]]; then
+        echo "WARN: database restore requires explicit backup selection"
+        echo "INFO: list backups with: ${REPO_ROOT}/infra/backup/postgres-restore.sh --list"
+    else
+        echo "WARN: restore script not found at infra/backup/postgres-restore.sh"
+    fi
+else
+    echo "INFO: database rollback skipped (set ROLLBACK_DATABASE=true to enable manual flow)"
+fi
 
-# Step 6: Notify team
-echo -e "${YELLOW}Step 6: Sending rollback notification...${NC}"
-
-CURRENT_VERSION=$(git describe --tags --always)
+echo "Step 5: Notify team"
+rolled_back_by="$(git -C "$REPO_ROOT" config user.name || true)"
+if [[ -z "$rolled_back_by" ]]; then
+    rolled_back_by="unknown"
+fi
 
 "$SCRIPT_DIR/notify-deployment.sh" rollback \
-    --version "$CURRENT_VERSION" \
+    --version "$(git -C "$REPO_ROOT" describe --tags --always 2> /dev/null || echo unknown)" \
     --environment "$ENVIRONMENT" \
     --reason "$ROLLBACK_REASON" \
-    --rolled-back-by "$(git config user.name)"
+    --deployed-by "$rolled_back_by"
 
-echo -e "${GREEN}✓ Rollback notification sent${NC}"
-echo ""
-
-# Step 7: Post-rollback actions
-echo -e "${YELLOW}Step 7: Post-rollback actions...${NC}"
-
-echo "1. Investigating root cause..."
-echo "   - Check Sentry for errors: https://sentry.io/organizations/muejam/issues/"
-echo "   - Review application logs"
-echo "   - Analyze metrics in Grafana"
-echo ""
-
-echo "2. Creating incident report..."
-echo "   - Document what went wrong"
-echo "   - Identify root cause"
-echo "   - Plan remediation"
-echo ""
-
-echo "3. Monitoring system..."
-echo "   - Watch error rates for next 30 minutes"
-echo "   - Verify user-reported issues resolved"
-echo "   - Check all critical functionality"
-echo ""
-
-# Success
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Rollback completed successfully${NC}"
-echo -e "${GREEN}Active environment: $PREVIOUS_COLOR${NC}"
-echo -e "${GREEN}========================================${NC}"
-echo ""
-echo "Next steps:"
-echo "1. Continue monitoring for 30 minutes"
-echo "2. Investigate root cause of failure"
-echo "3. Fix issues in development"
-echo "4. Test thoroughly before next deployment"
-echo "5. Update deployment procedures if needed"
-echo ""
-echo "Failed environment ($CURRENT_COLOR) is still running for investigation"
-echo "To decommission: ./scripts/decommission.sh $ENVIRONMENT $CURRENT_COLOR"
+echo "PASS: rollback completed"
+echo "INFO: active color=${PREVIOUS_COLOR} standby color=${CURRENT_COLOR}"
