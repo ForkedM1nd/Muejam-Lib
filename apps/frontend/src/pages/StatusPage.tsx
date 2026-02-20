@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, XCircle, AlertCircle, Clock, Activity } from 'lucide-react';
 import { services } from '@/lib/api';
+import PageHeader from '@/components/shared/PageHeader';
+import SurfacePanel from '@/components/shared/SurfacePanel';
 
 interface ComponentStatus {
     name: string;
@@ -32,7 +34,7 @@ export default function StatusPage() {
     const fetchStatus = async () => {
         try {
             const data = await services.status.getHealth();
-            setStatus(data as any);
+            setStatus(data as SystemStatus);
         } catch (error) {
             console.error('Failed to fetch status:', error);
         } finally {
@@ -75,33 +77,29 @@ export default function StatusPage() {
 
     if (loading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="text-center">Loading system status...</div>
-            </div>
+            <SurfacePanel className="p-8 text-center">Loading system status...</SurfacePanel>
         );
     }
 
     if (!status) {
         return (
-            <div className="container mx-auto px-4 py-8">
+            <SurfacePanel className="p-6">
                 <Alert variant="destructive">
                     <AlertDescription>
                         Failed to load system status. Please try again later.
                     </AlertDescription>
                 </Alert>
-            </div>
+            </SurfacePanel>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-4xl font-bold mb-2">System Status</h1>
-                <p className="text-muted-foreground">
-                    Current operational status of MueJam Library services
-                </p>
-            </div>
+        <div className="space-y-6">
+            <PageHeader
+                title="System Status"
+                eyebrow="Operations"
+                description="Current operational status of MueJam Library services."
+            />
 
             {/* Overall Status */}
             <Card className="mb-6">

@@ -7,9 +7,9 @@ import ShareButton from "./ShareButton";
 import { getStoryShareOptions } from "@/lib/shareUtils";
 
 export default function StoryCard({ story }: { story: Story }) {
-  // Check if story has NSFW flag
-  const isNSFW = (story as any).is_nsfw || false;
-  const isBlurred = (story as any).is_blurred || false;
+  const moderatedStory = story as Story & { is_nsfw?: boolean; is_blurred?: boolean };
+  const isNSFW = Boolean(moderatedStory.is_nsfw);
+  const isBlurred = Boolean(moderatedStory.is_blurred);
 
   const handleShareClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -18,7 +18,7 @@ export default function StoryCard({ story }: { story: Story }) {
 
   return (
     <Link to={`/story/${story.slug}`} className="group block">
-      <div className="border border-border rounded-lg overflow-hidden bg-card hover:shadow-md transition-shadow relative">
+      <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-[0_14px_34px_-28px_hsl(var(--foreground)/0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_-26px_hsl(var(--foreground)/0.7)]">
         {story.cover_url && (
           <>
             {isNSFW && isBlurred ? (
@@ -32,7 +32,7 @@ export default function StoryCard({ story }: { story: Story }) {
                 <img
                   src={story.cover_url}
                   alt={story.title}
-                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                   loading="lazy"
                 />
                 {isNSFW && (
@@ -46,7 +46,7 @@ export default function StoryCard({ story }: { story: Story }) {
         )}
         <div className="p-4 space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-medium leading-snug group-hover:text-primary transition-colors line-clamp-2 flex-1" style={{ fontFamily: "var(--font-display)" }}>
+            <h3 className="flex-1 line-clamp-2 font-medium leading-snug transition-colors group-hover:text-primary" style={{ fontFamily: "var(--font-display)" }}>
               {story.title}
             </h3>
             {isNSFW && !story.cover_url && (

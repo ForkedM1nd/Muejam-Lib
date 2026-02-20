@@ -28,9 +28,9 @@ export default function WhisperCard({
   const [showReplyComposer, setShowReplyComposer] = useState(false);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
-  // Check if whisper has NSFW flag
-  const isNSFW = (whisper as any).is_nsfw || false;
-  const isBlurred = (whisper as any).is_blurred || false;
+  const moderatedWhisper = whisper as Whisper & { is_nsfw?: boolean; is_blurred?: boolean };
+  const isNSFW = Boolean(moderatedWhisper.is_nsfw);
+  const isBlurred = Boolean(moderatedWhisper.is_blurred);
 
   const handleReply = async (content: string) => {
     if (!onReply) return;
@@ -44,7 +44,7 @@ export default function WhisperCard({
   };
 
   return (
-    <div className={cn("py-4 space-y-3", !compact && "border-b border-border")}>
+    <div className={cn("space-y-3 px-4 py-4", !compact && "border-b border-border/70")}>
       {/* Header */}
       <div className="flex items-center gap-2">
         {whisper.author.avatar_url ? (
@@ -74,7 +74,7 @@ export default function WhisperCard({
 
       {/* Quote */}
       {whisper.quote_text && (
-        <blockquote className="border-l-2 border-primary/30 pl-3 text-sm text-muted-foreground italic">
+        <blockquote className="rounded-r-lg border-l-2 border-primary/35 bg-accent/35 py-2 pl-3 text-sm italic text-muted-foreground">
           "{whisper.quote_text}"
         </blockquote>
       )}
@@ -93,7 +93,7 @@ export default function WhisperCard({
               className="rounded-lg border border-border max-h-80"
             />
           ) : (
-            <div className="rounded-lg overflow-hidden border border-border">
+            <div className="overflow-hidden rounded-lg border border-border/70">
               <img
                 src={whisper.media_url}
                 alt=""

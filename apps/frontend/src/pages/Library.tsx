@@ -10,6 +10,8 @@ import { ShelfManager, StoryRemovalButton } from "@/components/shared/ShelfManag
 import { Plus, BookMarked, ChevronRight, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { Shelf } from "@/types";
+import PageHeader from "@/components/shared/PageHeader";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 
 function CreateShelfForm({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
@@ -124,60 +126,59 @@ export default function LibraryPage() {
 
   if (selectedShelf) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="mx-auto max-w-5xl">
         <ShelfDetail shelf={selectedShelf} onBack={() => setSelectedShelf(null)} />
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold mb-1" style={{ fontFamily: "var(--font-display)" }}>
-            Library
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Organize your favorite stories into shelves
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setShowCreate(!showCreate)}>
-          <Plus className="h-4 w-4 mr-1" /> New Shelf
-        </Button>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        title="Library"
+        eyebrow="Your shelves"
+        description="Organize your favorite stories into custom shelves."
+        action={(
+          <Button variant="outline" size="sm" onClick={() => setShowCreate(!showCreate)}>
+            <Plus className="h-4 w-4 mr-1" /> New Shelf
+          </Button>
+        )}
+      />
 
       {showCreate && (
-        <div className="p-4 border rounded-lg bg-accent/20">
+        <SurfacePanel className="p-4">
           <h3 className="text-sm font-medium mb-3">Create a new shelf</h3>
           <CreateShelfForm onCreated={() => setShowCreate(false)} />
-        </div>
+        </SurfacePanel>
       )}
 
       {isLoading ? (
         <PageSkeleton />
       ) : shelves && shelves.length > 0 ? (
-        <div className="space-y-2">
-          {shelves.map((shelf) => (
-            <button
-              key={shelf.id}
-              onClick={() => setSelectedShelf(shelf)}
-              className="w-full flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors text-left group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-md bg-accent/50 group-hover:bg-accent transition-colors">
-                  <BookMarked className="h-5 w-5 text-muted-foreground" />
+        <SurfacePanel className="p-2">
+          <div className="space-y-2">
+            {shelves.map((shelf) => (
+              <button
+                key={shelf.id}
+                onClick={() => setSelectedShelf(shelf)}
+                className="group flex w-full items-center justify-between rounded-xl border border-transparent p-4 text-left transition-colors hover:border-border hover:bg-accent/30"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-accent/50 p-2 transition-colors group-hover:bg-accent">
+                    <BookMarked className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{shelf.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {shelf.story_count} {shelf.story_count === 1 ? "story" : "stories"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">{shelf.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {shelf.story_count} {shelf.story_count === 1 ? "story" : "stories"}
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </button>
-          ))}
-        </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
+              </button>
+            ))}
+          </div>
+        </SurfacePanel>
       ) : (
         <EmptyState
           title="No shelves yet"

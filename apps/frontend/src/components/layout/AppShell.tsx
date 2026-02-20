@@ -1,8 +1,23 @@
-import { ReactNode } from "react";
+import { ReactNode, useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { UserButton } from "@clerk/clerk-react";
-import { Search, Menu, X, Bell, Moon, Sun, User, Settings, LogOut, Bookmark } from "lucide-react";
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import {
+  Bell,
+  Bookmark,
+  Compass,
+  Flame,
+  Home,
+  LibraryBig,
+  LogOut,
+  Menu,
+  MessageCircle,
+  Moon,
+  PenSquare,
+  Search,
+  Settings,
+  Sun,
+  User,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,17 +37,33 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { getTotalNewMatches } from "@/lib/savedSearches";
 import { useSavedSearchNotifications } from "@/hooks/useSavedSearchNotifications";
 import { ConnectionStatus } from "@/components/shared/ConnectionStatus";
+import FloatingFooter, { type FooterNavLink } from "@/components/layout/FloatingFooter";
 
 const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? "";
 
-const NAV_LINKS = [
-  { to: "/discover", label: "Discover" },
-  { to: "/activity", label: "Activity", auth: true },
-  { to: "/library", label: "Library", auth: true },
-  { to: "/highlights", label: "Highlights", auth: true },
-  { to: "/write", label: "Write", auth: true },
-  { to: "/whispers", label: "Whispers" },
+const NAV_LINKS: FooterNavLink[] = [
+  { to: "/", label: "Home", icon: Home },
+  { to: "/discover", label: "Discover", icon: Compass },
+  { to: "/activity", label: "Activity", icon: Flame },
+  { to: "/library", label: "Library", icon: LibraryBig },
+  { to: "/write", label: "Write", icon: PenSquare },
+  { to: "/whispers", label: "Whispers", icon: MessageCircle },
 ];
+
+const AUTH_ONLY_LINKS = new Set(["/activity", "/library", "/write"]);
+
+const UTILITY_LINKS = [
+  { to: "/about", label: "About" },
+  { to: "/community", label: "Community" },
+  { to: "/help", label: "Help" },
+  { to: "/status", label: "Status" },
+  { to: "/legal/terms", label: "Terms" },
+];
+
+function isPathActive(pathname: string, to: string) {
+  if (to === "/") return pathname === "/";
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
 
 function SearchBar() {
   const [query, setQuery] = useState("");
@@ -43,29 +74,26 @@ function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Check for new matches in saved searches
   useSavedSearchNotifications();
 
-  // Update new matches count periodically
   useEffect(() => {
     const updateCount = () => {
       setNewMatchesCount(getTotalNewMatches());
     };
 
     updateCount();
-    const interval = setInterval(updateCount, 30000); // Update every 30 seconds
+    const interval = setInterval(updateCount, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Debounce the query to reduce API calls
   const debouncedQuery = useDebounce(query, 300);
 
   const { data: suggestions } = useQuery({
     queryKey: ["search-suggest", debouncedQuery],
     queryFn: () => api.searchSuggest(debouncedQuery),
     enabled: debouncedQuery.length >= 2,
-    staleTime: 30_000,
+    staleTime: 30000,
   });
 
   type SearchItem =
@@ -75,9 +103,9 @@ function SearchBar() {
 
   const allItems: SearchItem[] = useMemo(
     () => [
-      ...(suggestions?.stories?.map((s) => ({ type: "story" as const, label: s.title, slug: s.slug })) ?? []),
-      ...(suggestions?.authors?.map((a) => ({ type: "author" as const, label: a.display_name, handle: a.handle })) ?? []),
-      ...(suggestions?.tags?.map((t) => ({ type: "tag" as const, label: t.name, slug: t.slug })) ?? []),
+      ...(suggestions?.stories?.map((story) => ({ type: "story" as const, label: story.title, slug: story.slug })) ?? []),
+      ...(suggestions?.authors?.map((author) => ({ type: "author" as const, label: author.display_name, handle: author.handle })) ?? []),
+      ...(suggestions?.tags?.map((tag) => ({ type: "tag" as const, label: tag.name, slug: tag.slug })) ?? []),
     ],
     [suggestions]
   );
@@ -91,38 +119,56 @@ function SearchBar() {
     } else if (query.trim()) {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
     }
+
     setOpen(false);
     inputRef.current?.blur();
-  }, [query, selectedIdx, allItems, navigate]);
+  }, [allItems, navigate, query, selectedIdx]);
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, allItems.length - 1)); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, -1)); }
-    else if (e.key === "Enter") { e.preventDefault(); submit(); }
-    else if (e.key === "Escape") { setOpen(false); inputRef.current?.blur(); }
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setSelectedIdx((idx) => Math.min(idx + 1, allItems.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setSelectedIdx((idx) => Math.max(idx - 1, -1));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      submit();
+    } else if (event.key === "Escape") {
+      setOpen(false);
+      inputRef.current?.blur();
+    }
   };
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <div ref={containerRef} className="relative w-full max-w-sm">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           ref={inputRef}
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); setSelectedIdx(-1); }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+            setSelectedIdx(-1);
+          }}
           onFocus={() => query.length >= 2 && setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder="Search stories, authors, tags…"
-          className="w-full h-9 pl-9 pr-3 rounded-full border border-input bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          className="h-9 w-full rounded-full border border-border/80 bg-background/90 pl-9 pr-9 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
+
         {newMatchesCount > 0 && (
           <Link
             to="/search"
@@ -130,10 +176,10 @@ function SearchBar() {
             title={`${newMatchesCount} new matches in saved searches`}
           >
             <div className="relative">
-              <Bookmark className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+              <Bookmark className="h-4 w-4 text-muted-foreground transition-colors hover:text-foreground" />
               <Badge
                 variant="destructive"
-                className="absolute -top-2 -right-2 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center"
+                className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center px-1 text-[10px]"
               >
                 {newMatchesCount > 9 ? "9+" : newMatchesCount}
               </Badge>
@@ -141,51 +187,79 @@ function SearchBar() {
           </Link>
         )}
       </div>
+
       {open && allItems.length > 0 && (
-        <div className="absolute top-full mt-1 w-full bg-popover border border-border rounded-lg shadow-lg z-50 py-1 overflow-hidden">
+        <div className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-border/80 bg-popover/95 py-1 shadow-2xl backdrop-blur">
           {suggestions?.stories && suggestions.stories.length > 0 && (
-            <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Stories</div>
+            <div className="px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">Stories</div>
           )}
-          {suggestions?.stories?.map((s, i) => (
+
+          {suggestions?.stories?.map((story, index) => (
             <button
-              key={s.id}
-              className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors", selectedIdx === i && "bg-accent")}
-              onMouseEnter={() => setSelectedIdx(i)}
-              onClick={() => { navigate(`/story/${s.slug}`); setOpen(false); }}
+              key={story.id}
+              className={cn(
+                "w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent",
+                selectedIdx === index && "bg-accent"
+              )}
+              onMouseEnter={() => setSelectedIdx(index)}
+              onClick={() => {
+                navigate(`/story/${story.slug}`);
+                setOpen(false);
+              }}
             >
-              <span className="font-medium">{s.title}</span>
-              <span className="text-muted-foreground ml-2 text-xs">by {s.author.display_name}</span>
+              <span className="font-medium">{story.title}</span>
+              <span className="ml-2 text-xs text-muted-foreground">by {story.author.display_name}</span>
             </button>
           ))}
+
           {suggestions?.authors && suggestions.authors.length > 0 && (
-            <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider border-t border-border">Authors</div>
+            <div className="border-t border-border/70 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Authors
+            </div>
           )}
-          {suggestions?.authors?.map((a, i) => {
-            const idx = (suggestions?.stories?.length ?? 0) + i;
+
+          {suggestions?.authors?.map((author, index) => {
+            const idx = (suggestions?.stories?.length ?? 0) + index;
             return (
               <button
-                key={a.id}
-                className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors", selectedIdx === idx && "bg-accent")}
+                key={author.id}
+                className={cn(
+                  "w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent",
+                  selectedIdx === idx && "bg-accent"
+                )}
                 onMouseEnter={() => setSelectedIdx(idx)}
-                onClick={() => { navigate(`/u/${a.handle}`); setOpen(false); }}
+                onClick={() => {
+                  navigate(`/u/${author.handle}`);
+                  setOpen(false);
+                }}
               >
-                {a.display_name} <span className="text-muted-foreground">@{a.handle}</span>
+                {author.display_name} <span className="text-muted-foreground">@{author.handle}</span>
               </button>
             );
           })}
+
           {suggestions?.tags && suggestions.tags.length > 0 && (
-            <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider border-t border-border">Tags</div>
+            <div className="border-t border-border/70 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Tags
+            </div>
           )}
-          {suggestions?.tags?.map((t, i) => {
-            const idx = (suggestions?.stories?.length ?? 0) + (suggestions?.authors?.length ?? 0) + i;
+
+          {suggestions?.tags?.map((tag, index) => {
+            const idx = (suggestions?.stories?.length ?? 0) + (suggestions?.authors?.length ?? 0) + index;
             return (
               <button
-                key={t.id}
-                className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors", selectedIdx === idx && "bg-accent")}
+                key={tag.id}
+                className={cn(
+                  "w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent",
+                  selectedIdx === idx && "bg-accent"
+                )}
                 onMouseEnter={() => setSelectedIdx(idx)}
-                onClick={() => { navigate(`/search?q=${encodeURIComponent(t.name)}`); setOpen(false); }}
+                onClick={() => {
+                  navigate(`/search?q=${encodeURIComponent(tag.name)}`);
+                  setOpen(false);
+                }}
               >
-                #{t.name}
+                #{tag.name}
               </button>
             );
           })}
@@ -206,23 +280,35 @@ function AuthButtons() {
   };
 
   if (!CLERK_KEY) {
-    return <Button size="sm" variant="outline" disabled>Auth not configured</Button>;
+    return (
+      <Button size="sm" variant="outline" disabled>
+        Auth not configured
+      </Button>
+    );
   }
 
   if (isSignedIn) {
     return (
       <>
-        <Button variant="ghost" size="icon" onClick={toggleTheme} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-xl"
+          onClick={toggleTheme}
+          title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+        >
           {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         </Button>
+
         <Link to="/notifications">
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="rounded-xl">
             <Bell className="h-4 w-4" />
           </Button>
         </Link>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="rounded-xl">
               <User className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -244,7 +330,13 @@ function AuthButtons() {
 
   return (
     <>
-      <Button variant="ghost" size="icon" onClick={toggleTheme} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="rounded-xl"
+        onClick={toggleTheme}
+        title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+      >
         {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
       </Button>
       <Button size="sm" variant="outline" onClick={() => navigate("/sign-in")}>
@@ -262,73 +354,96 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const visibleNavLinks = useMemo(
+    () => NAV_LINKS.filter((link) => !AUTH_ONLY_LINKS.has(link.to) || isSignedIn),
+    [isSignedIn]
+  );
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto max-w-5xl flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="text-xl font-semibold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+    <div className="relative min-h-screen overflow-x-clip bg-background">
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--secondary)/0.7),_hsl(var(--background))_52%)]" />
+        <div className="absolute -top-24 left-1/2 h-[26rem] w-[26rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-10 right-[-5rem] h-64 w-64 rounded-full bg-secondary/50 blur-2xl" />
+      </div>
+
+      <header className="pointer-events-none fixed inset-x-0 top-0 z-50">
+        <div className="pointer-events-auto mx-auto mt-3 w-[min(1120px,calc(100%-1rem))] rounded-2xl border border-border/70 bg-background/90 shadow-[0_20px_60px_-35px_hsl(var(--foreground)/0.55)] backdrop-blur-xl">
+          <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
+            <Link to="/" className="rounded-xl px-2 py-1 text-xl font-semibold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
               MueJam
             </Link>
-            <nav className="hidden md:flex items-center gap-1">
-              {NAV_LINKS.filter((l) => !l.auth || isSignedIn).map((l) => (
+
+            <nav className="hidden items-center gap-1 lg:flex">
+              {visibleNavLinks.map((link) => (
                 <Link
-                  key={l.to}
-                  to={l.to}
+                  key={link.to}
+                  to={link.to}
                   className={cn(
-                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                    location.pathname.startsWith(l.to)
-                      ? "text-foreground bg-accent"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    "rounded-xl px-3 py-1.5 text-sm font-medium transition-all",
+                    isPathActive(location.pathname, link.to)
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
-                  {l.label}
+                  {link.label}
                 </Link>
               ))}
             </nav>
-          </div>
 
-          <div className="hidden md:flex items-center gap-3">
-            <ConnectionStatus />
-            <SearchBar />
-            <AuthButtons />
-          </div>
+            <div className="ml-auto hidden items-center gap-2 md:flex">
+              <ConnectionStatus />
+              <SearchBar />
+              <AuthButtons />
+            </div>
 
-          <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+            <button
+              className="ml-auto rounded-xl p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-border px-4 py-3 space-y-3">
-            <SearchBar />
-            <nav className="flex flex-col gap-1">
-              {NAV_LINKS.filter((l) => !l.auth || isSignedIn).map((l) => (
+          <div className="pointer-events-auto mx-auto mt-2 w-[min(1120px,calc(100%-1rem))] rounded-2xl border border-border/70 bg-background/95 p-3 shadow-2xl backdrop-blur-xl md:hidden">
+            <div className="mb-3">
+              <SearchBar />
+            </div>
+
+            <nav className="grid grid-cols-2 gap-2">
+              {visibleNavLinks.map((link) => (
                 <Link
-                  key={l.to}
-                  to={l.to}
-                  onClick={() => setMobileMenuOpen(false)}
+                  key={link.to}
+                  to={link.to}
                   className={cn(
-                    "px-3 py-2 rounded-md text-sm font-medium",
-                    location.pathname.startsWith(l.to) ? "bg-accent text-foreground" : "text-muted-foreground"
+                    "rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+                    isPathActive(location.pathname, link.to)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-accent/40 text-foreground"
                   )}
                 >
-                  {l.label}
+                  {link.label}
                 </Link>
               ))}
             </nav>
-            <div className="flex items-center gap-2 pt-2 border-t border-border">
+
+            <div className="mt-3 flex items-center gap-2 border-t border-border/70 pt-3">
               <AuthButtons />
             </div>
           </div>
         )}
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main className="relative mx-auto w-full max-w-6xl px-4 pb-44 pt-24 sm:px-6 sm:pt-28 lg:px-8">{children}</main>
 
-      <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} MueJam · A home for serial stories
-      </footer>
+      <FloatingFooter navLinks={visibleNavLinks} utilityLinks={UTILITY_LINKS} pathname={location.pathname} />
     </div>
   );
 }

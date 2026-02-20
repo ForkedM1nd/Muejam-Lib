@@ -1,5 +1,6 @@
 import { BookOpen } from "lucide-react";
 import type { ReactNode } from "react";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 
 interface EmptyStateProps {
   icon?: ReactNode;
@@ -10,13 +11,13 @@ interface EmptyStateProps {
 
 export default function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      <div className="text-muted-foreground mb-4">
-        {icon ?? <BookOpen className="h-10 w-10 mx-auto" />}
-      </div>
-      <h3 className="text-lg font-medium mb-1" style={{ fontFamily: "var(--font-display)" }}>{title}</h3>
-      {description && <p className="text-sm text-muted-foreground max-w-sm">{description}</p>}
+    <SurfacePanel className="px-4 py-14 text-center">
+      <div className="mx-auto mb-4 text-muted-foreground">{icon ?? <BookOpen className="mx-auto h-10 w-10" />}</div>
+      <h3 className="mb-1 text-lg font-medium" style={{ fontFamily: "var(--font-display)" }}>
+        {title}
+      </h3>
+      {description && <p className="mx-auto max-w-sm text-sm text-muted-foreground">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
-    </div>
+    </SurfacePanel>
   );
 }

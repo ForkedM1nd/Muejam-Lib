@@ -7,11 +7,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { X, Search, TrendingUp, Sparkles, Star, Award, ArrowRight } from "lucide-react";
 import StoryCard from "@/components/shared/StoryCard";
 import { StoryCardSkeleton } from "@/components/shared/Skeletons";
 import EmptyState from "@/components/shared/EmptyState";
+import PageHeader from "@/components/shared/PageHeader";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 
 interface StoryFeedProps {
   tab: "trending" | "new" | "for-you";
@@ -180,80 +181,77 @@ export default function DiscoverPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1
-          className="text-3xl font-semibold mb-4"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          Discover
-        </h1>
+    <div className="space-y-6">
+      <PageHeader
+        title="Discover"
+        eyebrow="Reader feed"
+        description="A clean feed of trending, fresh, and personalized stories."
+      />
 
-        {/* Quick Links to Discovery Feeds */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Link to="/discover/trending">
-            <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
-              <CardContent className="p-4 flex items-center gap-3">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <div>
-                  <h3 className="font-semibold">Trending</h3>
-                  <p className="text-xs text-muted-foreground">What's hot now</p>
-                </div>
-                <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
-              </CardContent>
-            </Card>
-          </Link>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Link to="/discover/trending">
+          <SurfacePanel className="h-full p-4 transition hover:-translate-y-0.5 hover:bg-accent/40">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <div>
+                <h3 className="font-semibold">Trending</h3>
+                <p className="text-xs text-muted-foreground">What is hot now</p>
+              </div>
+              <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+            </div>
+          </SurfacePanel>
+        </Link>
 
-          <Link to="/discover/new">
-            <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
-              <CardContent className="p-4 flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <div>
-                  <h3 className="font-semibold">New & Noteworthy</h3>
-                  <p className="text-xs text-muted-foreground">Fresh stories</p>
-                </div>
-                <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
-              </CardContent>
-            </Card>
-          </Link>
+        <Link to="/discover/new">
+          <SurfacePanel className="h-full p-4 transition hover:-translate-y-0.5 hover:bg-accent/40">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <div>
+                <h3 className="font-semibold">New & Noteworthy</h3>
+                <p className="text-xs text-muted-foreground">Fresh stories</p>
+              </div>
+              <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+            </div>
+          </SurfacePanel>
+        </Link>
 
-          <Link to="/discover/recommended">
-            <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
-              <CardContent className="p-4 flex items-center gap-3">
-                <Star className="h-5 w-5 text-primary" />
-                <div>
-                  <h3 className="font-semibold">For You</h3>
-                  <p className="text-xs text-muted-foreground">Personalized</p>
-                </div>
-                <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
-              </CardContent>
-            </Card>
-          </Link>
+        <Link to="/discover/recommended">
+          <SurfacePanel className="h-full p-4 transition hover:-translate-y-0.5 hover:bg-accent/40">
+            <div className="flex items-center gap-3">
+              <Star className="h-5 w-5 text-primary" />
+              <div>
+                <h3 className="font-semibold">For You</h3>
+                <p className="text-xs text-muted-foreground">Personalized</p>
+              </div>
+              <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+            </div>
+          </SurfacePanel>
+        </Link>
 
-          <Link to="/discover/staff-picks">
-            <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
-              <CardContent className="p-4 flex items-center gap-3">
-                <Award className="h-5 w-5 text-primary" />
-                <div>
-                  <h3 className="font-semibold">Staff Picks</h3>
-                  <p className="text-xs text-muted-foreground">Curated by us</p>
-                </div>
-                <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
+        <Link to="/discover/staff-picks">
+          <SurfacePanel className="h-full p-4 transition hover:-translate-y-0.5 hover:bg-accent/40">
+            <div className="flex items-center gap-3">
+              <Award className="h-5 w-5 text-primary" />
+              <div>
+                <h3 className="font-semibold">Staff Picks</h3>
+                <p className="text-xs text-muted-foreground">Curated by us</p>
+              </div>
+              <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+            </div>
+          </SurfacePanel>
+        </Link>
+      </div>
 
-        {/* Search Bar */}
+      <SurfacePanel className="p-4">
         <form onSubmit={handleSearch} className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search stories..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-10"
+              className="border-border/80 bg-background/80 pl-9 pr-10"
             />
             {searchInput && (
               <button
@@ -267,9 +265,8 @@ export default function DiscoverPage() {
           </div>
         </form>
 
-        {/* Active Filters */}
         {(currentTag || currentSearch) && (
-          <div className="flex items-center gap-2 mb-4">
+          <div className="mb-4 flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Filters:</span>
             {currentTag && (
               <Badge variant="secondary" className="gap-1">
@@ -295,10 +292,10 @@ export default function DiscoverPage() {
             )}
           </div>
         )}
-      </div>
+      </SurfacePanel>
 
       <Tabs value={currentTab} onValueChange={handleTabChange}>
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 rounded-xl border border-border/70 bg-card/80 p-1">
           <TabsTrigger value="trending">Trending</TabsTrigger>
           <TabsTrigger value="new">New</TabsTrigger>
           <TabsTrigger value="for-you">For You</TabsTrigger>

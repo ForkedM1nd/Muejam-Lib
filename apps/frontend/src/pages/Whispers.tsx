@@ -11,6 +11,8 @@ import { toast } from "@/hooks/use-toast";
 import { uploadFile } from "@/lib/upload";
 import { Loader2 } from "lucide-react";
 import type { Whisper } from "@/types";
+import PageHeader from "@/components/shared/PageHeader";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 
 export default function WhispersPage() {
   const { isSignedIn } = useSafeAuth();
@@ -121,31 +123,26 @@ export default function WhispersPage() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold mb-1" style={{ fontFamily: "var(--font-display)" }}>
-          Whispers
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Share your thoughts with the community
-        </p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader title="Whispers" eyebrow="Threads" description="Share quick thoughts with the community." />
 
       {isSignedIn && (
-        <WhisperComposer
-          onSubmit={async (content, mediaFile, _scope, _storyId, _highlightId, recaptchaToken) => {
-            await createMutation.mutateAsync({ content, mediaFile, recaptchaToken });
-          }}
-          submitting={createMutation.isPending}
-        />
+        <SurfacePanel className="p-4">
+          <WhisperComposer
+            onSubmit={async (content, mediaFile, _scope, _storyId, _highlightId, recaptchaToken) => {
+              await createMutation.mutateAsync({ content, mediaFile, recaptchaToken });
+            }}
+            submitting={createMutation.isPending}
+          />
+        </SurfacePanel>
       )}
 
       {isLoading ? (
-        <div className="space-y-4">
+        <SurfacePanel className="space-y-4 p-4">
           {Array.from({ length: 5 }).map((_, i) => (
             <WhisperSkeleton key={i} />
           ))}
-        </div>
+        </SurfacePanel>
       ) : isError ? (
         <EmptyState
           title="Failed to load whispers"
@@ -158,18 +155,20 @@ export default function WhispersPage() {
           description="Be the first to share your thoughts!"
         />
       ) : (
-        <div className="space-y-0 divide-y divide-border">
-          {filteredWhispers.map((whisper) => (
-            <WhisperCard
-              key={whisper.id}
-              whisper={whisper}
-              onLike={() => likeMutation.mutate(whisper)}
-              onReply={async (content) => {
-                await replyMutation.mutateAsync({ whisperId: whisper.id, content });
-              }}
-            />
-          ))}
-        </div>
+        <SurfacePanel className="overflow-hidden">
+          <div className="divide-y divide-border/70">
+            {filteredWhispers.map((whisper) => (
+              <WhisperCard
+                key={whisper.id}
+                whisper={whisper}
+                onLike={() => likeMutation.mutate(whisper)}
+                onReply={async (content) => {
+                  await replyMutation.mutateAsync({ whisperId: whisper.id, content });
+                }}
+              />
+            ))}
+          </div>
+        </SurfacePanel>
       )}
 
       {hasNextPage && (

@@ -67,6 +67,9 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy").then(m => ({ de
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy").then(m => ({ default: m.CookiePolicy })));
 const CommunityGuidelines = lazy(() => import("./pages/CommunityGuidelines").then(m => ({ default: m.CommunityGuidelines })));
 const CopyrightPolicy = lazy(() => import("./pages/CopyrightPolicy").then(m => ({ default: m.CopyrightPolicy })));
+const About = lazy(() => import("./pages/About"));
+const Community = lazy(() => import("./pages/Community"));
+const StatusPage = lazy(() => import("./pages/StatusPage"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AnalyticsDashboard = lazy(() => import("./pages/AnalyticsDashboard"));
@@ -187,6 +190,9 @@ function AppRoutes() {
           <Route path="/legal/cookies" element={<AppShell><CookiePolicy /></AppShell>} />
           <Route path="/legal/guidelines" element={<AppShell><CommunityGuidelines /></AppShell>} />
           <Route path="/legal/copyright" element={<AppShell><CopyrightPolicy /></AppShell>} />
+          <Route path="/about" element={<AppShell><About /></AppShell>} />
+          <Route path="/community" element={<AppShell><Community /></AppShell>} />
+          <Route path="/status" element={<AppShell><StatusPage /></AppShell>} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/analytics" element={<AnalyticsDashboard />} />
           <Route path="/moderation" element={<ModerationQueue />} />

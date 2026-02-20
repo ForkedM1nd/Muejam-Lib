@@ -1,18 +1,19 @@
 import { ActivityFeed } from "@/components/shared/ActivityFeed";
+import PageHeader from "@/components/shared/PageHeader";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 
 export default function Activity() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-          Activity
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Recent updates from writers and readers you follow.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Activity"
+        eyebrow="Social feed"
+        description="Recent updates from writers and readers you follow."
+      />
 
-      <ActivityFeed />
+      <SurfacePanel className="p-5 sm:p-6">
+        <ActivityFeed />
+      </SurfacePanel>
     </div>
   );
 }

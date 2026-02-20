@@ -1,26 +1,18 @@
 import { useState } from "react";
 import { NewAndNoteworthyFeed, DiscoveryFilters, type DiscoveryFilterValues } from "@/components/discovery";
+import PageHeader from "@/components/shared/PageHeader";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 
 export default function NewAndNoteworthyPage() {
     const [filters, setFilters] = useState<DiscoveryFilterValues>({});
 
     return (
-        <div className="max-w-5xl mx-auto px-4 py-8">
-            <div className="mb-6">
-                <h1
-                    className="text-3xl font-semibold mb-2"
-                    style={{ fontFamily: "var(--font-display)" }}
-                >
-                    New & Noteworthy
-                </h1>
-                <p className="text-muted-foreground">
-                    Fresh stories worth your attention
-                </p>
-            </div>
+        <div className="space-y-6">
+            <PageHeader title="New & Noteworthy" eyebrow="Discover" description="Fresh stories worth your attention." />
 
-            <div className="mb-6">
+            <SurfacePanel className="p-4">
                 <DiscoveryFilters filters={filters} onFiltersChange={setFilters} />
-            </div>
+            </SurfacePanel>
 
             <div className="transition-opacity duration-300">
                 <NewAndNoteworthyFeed filters={filters} />
