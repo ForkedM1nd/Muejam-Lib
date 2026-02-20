@@ -4,6 +4,41 @@ from .trending import TrendingCalculator
 from .personalization import PersonalizationEngine
 from prisma import Prisma
 import asyncio
+import threading
+
+
+def _run_async(coro):
+    """Run async code from sync context, even inside active event loops."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    try:
+        import nest_asyncio
+
+        nest_asyncio.apply()
+        return loop.run_until_complete(coro)
+    except Exception:
+        pass
+
+    result = {}
+    error = {}
+
+    def _runner():
+        try:
+            result['value'] = asyncio.run(coro)
+        except Exception as exc:
+            error['value'] = exc
+
+    thread = threading.Thread(target=_runner)
+    thread.start()
+    thread.join()
+
+    if 'value' in error:
+        raise error['value']
+
+    return result.get('value')
 
 
 @shared_task
@@ -19,7 +54,7 @@ def update_trending_scores():
         - 19.2: Run every 10-30 minutes
     """
     calculator = TrendingCalculator()
-    asyncio.run(calculator.update_all_trending_scores())
+    _run_async(calculator.update_all_trending_scores())
 
 
 @shared_task
@@ -34,15 +69,12 @@ def apply_daily_decay():
         - 10.6: Apply daily score decay of 0.98
         - 19.4: Run every 24 hours
     """
-    async def run_decay():
+    async def _apply_decay_async():
         db = Prisma()
         await db.connect()
         try:
-            # Multiply all interest scores by decay factor
-            await db.execute_raw(
-                "UPDATE \"UserInterest\" SET score = score * 0.98"
-            )
+            await db.execute_raw('UPDATE "UserInterest" SET score = score * 0.98')
         finally:
             await db.disconnect()
-    
-    asyncio.run(run_decay())
+
+    _run_async(_apply_decay_async())

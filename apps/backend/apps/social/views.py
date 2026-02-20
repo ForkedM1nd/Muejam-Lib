@@ -13,94 +13,45 @@ from .serializers import (
 from apps.notifications.views import sync_create_notification
 
 
+def _run_async(coro):
+    """Run an async coroutine in an isolated event loop."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
 def sync_follow_user(follower_id: str, following_id: str):
     """Synchronous wrapper for follow_user."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(follow_user(follower_id, following_id))
+    return _run_async(follow_user(follower_id, following_id))
 
 
 def sync_unfollow_user(follower_id: str, following_id: str):
     """Synchronous wrapper for unfollow_user."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(unfollow_user(follower_id, following_id))
+    return _run_async(unfollow_user(follower_id, following_id))
 
 
 def sync_get_followers(user_id: str, cursor: str = None, page_size: int = 20):
     """Synchronous wrapper for get_followers."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(get_followers(user_id, cursor, page_size))
+    return _run_async(get_followers(user_id, cursor, page_size))
 
 
 def sync_get_following(user_id: str, cursor: str = None, page_size: int = 20):
     """Synchronous wrapper for get_following."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(get_following(user_id, cursor, page_size))
+    return _run_async(get_following(user_id, cursor, page_size))
 
 
 def sync_block_user(blocker_id: str, blocked_id: str):
     """Synchronous wrapper for block_user."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(block_user(blocker_id, blocked_id))
+    return _run_async(block_user(blocker_id, blocked_id))
 
 
 def sync_unblock_user(blocker_id: str, blocked_id: str):
     """Synchronous wrapper for unblock_user."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(unblock_user(blocker_id, blocked_id))
+    return _run_async(unblock_user(blocker_id, blocked_id))
 
 
 @api_view(['POST', 'DELETE'])

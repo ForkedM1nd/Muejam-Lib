@@ -8,6 +8,7 @@ Requirements: 7.1, 7.2, 7.3, 7.5, 7.6
 
 import io
 import secrets
+import asyncio
 import bcrypt
 import pyotp
 import qrcode
@@ -330,31 +331,6 @@ class TwoFactorAuthService:
         finally:
             await self.prisma.disconnect()
     
-    def has_2fa_enabled_sync(self, user_id: str) -> bool:
-        """
-        Synchronous version of has_2fa_enabled.
-        
-        This replaces the async version to avoid the nest_asyncio anti-pattern
-        that was causing performance issues and potential deadlocks.
-        
-        Args:
-            user_id: The user's ID
-            
-        Returns:
-            True if user has a confirmed TOTP device, False otherwise
-        """
-        self.prisma.connect()
-        try:
-            device = self.prisma.totpdevice.find_first(
-                where={
-                    'user_id': user_id,
-                    'confirmed': True
-                }
-            )
-            return device is not None
-        finally:
-            self.prisma.disconnect()
-    
     async def has_2fa_enabled(self, user_id: str) -> bool:
         """
         Check if a user has 2FA enabled.
@@ -390,17 +366,34 @@ class TwoFactorAuthService:
         Returns:
             True if user has a confirmed TOTP device, False otherwise
         """
-        self.prisma.connect()
         try:
-            device = self.prisma.totpdevice.find_first(
-                where={
-                    'user_id': user_id,
-                    'confirmed': True
-                }
-            )
-            return device is not None
-        finally:
-            self.prisma.disconnect()
+            asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            try:
+                return loop.run_until_complete(self.has_2fa_enabled(user_id))
+            finally:
+                loop.close()
+
+        result = {}
+        error = {}
+
+        def _runner():
+            try:
+                result['value'] = asyncio.run(self.has_2fa_enabled(user_id))
+            except Exception as exc:
+                error['value'] = exc
+
+        import threading
+
+        thread = threading.Thread(target=_runner)
+        thread.start()
+        thread.join()
+
+        if 'value' in error:
+            raise error['value']
+
+        return result.get('value', False)
 
     
     async def disable_2fa(self, user_id: str) -> bool:

@@ -6,10 +6,9 @@ Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.7, 7.8
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework import status
 from apps.users.two_factor_auth import views
-from asgiref.sync import async_to_sync
 
 
 @pytest.fixture
@@ -48,6 +47,10 @@ def create_authenticated_request(factory, method, path, data=None):
     request.clerk_user_id = "test-user-123"
     request.user_profile = MagicMock(id="test-user-123")
     request.auth_error = None
+
+    user = MagicMock()
+    user.is_authenticated = True
+    force_authenticate(request, user=user)
     
     return request
 
@@ -71,7 +74,7 @@ class TestSetup2FA:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/setup')
-        response = async_to_sync(views.setup_2fa)(request)
+        response = views.setup_2fa(request)
         
         assert response.status_code == status.HTTP_200_OK
         assert 'secret' in response.data
@@ -89,7 +92,7 @@ class TestSetup2FA:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/setup')
-        response = async_to_sync(views.setup_2fa)(request)
+        response = views.setup_2fa(request)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -105,7 +108,7 @@ class TestVerifySetup2FA:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/verify-setup', {'token': '123456'})
-        response = async_to_sync(views.verify_setup_2fa)(request)
+        response = views.verify_setup_2fa(request)
         
         assert response.status_code == status.HTTP_200_OK
         assert response.data['enabled'] is True
@@ -118,14 +121,14 @@ class TestVerifySetup2FA:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/verify-setup', {'token': '999999'})
-        response = async_to_sync(views.verify_setup_2fa)(request)
+        response = views.verify_setup_2fa(request)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
     
     def test_verify_setup_missing_token(self, factory):
         """Test verification fails without token."""
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/verify-setup', {})
-        response = async_to_sync(views.verify_setup_2fa)(request)
+        response = views.verify_setup_2fa(request)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -142,7 +145,7 @@ class TestVerify2FA:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/verify', {'token': '123456'})
-        response = async_to_sync(views.verify_2fa)(request)
+        response = views.verify_2fa(request)
         
         assert response.status_code == status.HTTP_200_OK
         assert response.data['verified'] is True
@@ -155,7 +158,7 @@ class TestVerify2FA:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/verify', {'token': '123456'})
-        response = async_to_sync(views.verify_2fa)(request)
+        response = views.verify_2fa(request)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -172,7 +175,7 @@ class TestVerifyBackupCode:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/backup-code', {'code': 'ABCD1234'})
-        response = async_to_sync(views.verify_backup_code)(request)
+        response = views.verify_backup_code(request)
         
         assert response.status_code == status.HTTP_200_OK
         assert response.data['verified'] is True
@@ -187,7 +190,7 @@ class TestVerifyBackupCode:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/backup-code', {'code': 'INVALID1'})
-        response = async_to_sync(views.verify_backup_code)(request)
+        response = views.verify_backup_code(request)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -204,7 +207,7 @@ class TestDisable2FA:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'DELETE', '/v1/users/2fa/')
-        response = async_to_sync(views.disable_2fa)(request)
+        response = views.disable_2fa(request)
         
         assert response.status_code == status.HTTP_200_OK
         assert response.data['disabled'] is True
@@ -217,7 +220,7 @@ class TestDisable2FA:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'DELETE', '/v1/users/2fa/')
-        response = async_to_sync(views.disable_2fa)(request)
+        response = views.disable_2fa(request)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -237,7 +240,7 @@ class TestRegenerateBackupCodes:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/regenerate-backup-codes')
-        response = async_to_sync(views.regenerate_backup_codes)(request)
+        response = views.regenerate_backup_codes(request)
         
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data['backup_codes']) == 10
@@ -250,6 +253,6 @@ class TestRegenerateBackupCodes:
         mock_service_class.return_value = mock_service
         
         request = create_authenticated_request(factory, 'POST', '/v1/users/2fa/regenerate-backup-codes')
-        response = async_to_sync(views.regenerate_backup_codes)(request)
+        response = views.regenerate_backup_codes(request)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST

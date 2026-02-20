@@ -37,33 +37,27 @@ class TestClerkAuthMiddleware:
         assert request.clerk_user_id is None
         assert request.user_profile is None
     
-    @patch('apps.users.middleware.jwt.decode')
-    @patch('apps.users.middleware.get_or_create_profile')
-    def test_middleware_with_valid_token(self, mock_get_profile, mock_jwt_decode):
+    @patch('apps.users.middleware.JWTVerificationService.verify_token')
+    @patch('apps.users.middleware.get_or_create_profile_sync')
+    def test_middleware_with_valid_token(self, mock_get_profile, mock_verify_token):
         """Test middleware with valid JWT token."""
         factory = RequestFactory()
         request = factory.get('/', HTTP_AUTHORIZATION='Bearer valid_token')
         
-        # Mock JWT decode
-        mock_jwt_decode.return_value = {'sub': 'user_123'}
+        # Mock JWT verification
+        mock_verify_token.return_value = {'sub': 'user_123'}
         
         # Mock profile creation
         mock_profile = Mock()
         mock_profile.clerk_user_id = 'user_123'
         mock_profile.handle = 'user_user_123'
         
-        # Create async mock
-        async def async_get_profile(clerk_user_id):
-            return mock_profile
-        
-        mock_get_profile.return_value = async_get_profile('user_123')
+        mock_get_profile.return_value = mock_profile
         
         get_response = Mock(return_value=Mock())
         middleware = ClerkAuthMiddleware(get_response)
         
-        with patch('asyncio.get_event_loop') as mock_loop:
-            mock_loop.return_value.run_until_complete.return_value = mock_profile
-            response = middleware(request)
+        response = middleware(request)
         
         assert request.clerk_user_id == 'user_123'
         assert request.user_profile == mock_profile
@@ -155,11 +149,26 @@ class TestUserProfileEndpoints:
         from prisma import Prisma
         db = Prisma()
         await db.connect()
-        # Delete all test profiles
-        await db.userprofile.delete_many(
-            where={'clerk_user_id': {'startswith': 'test_'}}
-        )
-        await db.disconnect()
+        try:
+            test_profiles = await db.userprofile.find_many(
+                where={'clerk_user_id': {'startswith': 'test_'}},
+            )
+            profile_ids = [profile.id for profile in test_profiles]
+
+            if profile_ids:
+                await db.chapter.delete_many()
+                await db.storystatsdaily.delete_many()
+                await db.story.delete_many(
+                    where={'author_id': {'in': profile_ids}}
+                )
+
+            # Remove dependent records first to satisfy foreign keys.
+            await db.userinterest.delete_many()
+            await db.userprofile.delete_many(
+                where={'clerk_user_id': {'startswith': 'test_'}}
+            )
+        finally:
+            await db.disconnect()
     
     async def test_get_me_authenticated(self):
         """Test GET /v1/users/me with authenticated user."""

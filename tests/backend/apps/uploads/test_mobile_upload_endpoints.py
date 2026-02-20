@@ -131,26 +131,21 @@ class ChunkedUploadEndpointsTest(TestCase):
         self.client = APIClient()
         self.user_id = 'test_user_123'
         self.mock_user = {'sub': self.user_id}
-        
-        # Initialize database
-        self.db = Prisma()
-        asyncio.run(self._async_setup())
-    
-    async def _async_setup(self):
-        """Async setup for database connection."""
-        await self.db.connect()
     
     def tearDown(self):
         """Clean up database."""
-        asyncio.run(self._async_teardown())
+        asyncio.run(self._async_cleanup())
     
-    async def _async_teardown(self):
+    async def _async_cleanup(self):
         """Async teardown for database cleanup."""
-        # Clean up test upload sessions
-        await self.db.uploadsession.delete_many(
-            where={'user_id': self.user_id}
-        )
-        await self.db.disconnect()
+        db = Prisma()
+        await db.connect()
+        try:
+            await db.uploadsession.delete_many(
+                where={'user_id': self.user_id}
+            )
+        finally:
+            await db.disconnect()
     
     def test_chunked_upload_init_success(self):
         """Test successful chunked upload initialization."""
@@ -361,25 +356,21 @@ class MobileUploadIntegrationTest(TestCase):
         self.client = APIClient()
         self.user_id = 'test_user_123'
         self.mock_user = {'sub': self.user_id}
-        
-        # Initialize database
-        self.db = Prisma()
-        asyncio.run(self._async_setup())
-    
-    async def _async_setup(self):
-        """Async setup for database connection."""
-        await self.db.connect()
     
     def tearDown(self):
         """Clean up database."""
-        asyncio.run(self._async_teardown())
+        asyncio.run(self._async_cleanup())
     
-    async def _async_teardown(self):
+    async def _async_cleanup(self):
         """Async teardown for database cleanup."""
-        await self.db.uploadsession.delete_many(
-            where={'user_id': self.user_id}
-        )
-        await self.db.disconnect()
+        db = Prisma()
+        await db.connect()
+        try:
+            await db.uploadsession.delete_many(
+                where={'user_id': self.user_id}
+            )
+        finally:
+            await db.disconnect()
     
     def test_complete_chunked_upload_flow(self):
         """Test complete chunked upload flow from init to completion."""

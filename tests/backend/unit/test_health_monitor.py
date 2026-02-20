@@ -489,19 +489,20 @@ class TestReplicationLagMonitoring:
         )
         assert not monitor.check_replica_capacity()
     
-    def test_replica_capacity_warning_on_init(self, caplog):
+    def test_replica_capacity_warning_on_init(self):
         """Test that warning is logged when replica capacity is insufficient."""
-        import logging
-        caplog.set_level(logging.WARNING)
-        
-        monitor = HealthMonitor(
-            primary_instance="primary:5432",
-            replica_instances=["replica1:5432"],  # Only 1 replica
-            min_replicas=3
-        )
-        
-        # Check that warning was logged
-        assert any("Replica capacity" in record.message for record in caplog.records)
+        from infrastructure.health_monitor import logger as health_logger
+        from unittest.mock import patch
+
+        with patch.object(health_logger, 'warning') as mock_warning:
+            HealthMonitor(
+                primary_instance="primary:5432",
+                replica_instances=["replica1:5432"],  # Only 1 replica
+                min_replicas=3
+            )
+
+        mock_warning.assert_called_once()
+        assert "Replica capacity" in mock_warning.call_args[0][0]
     
     @pytest.mark.asyncio
     async def test_automatic_resync_triggered_on_high_lag(self, health_monitor):

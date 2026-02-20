@@ -6,6 +6,7 @@ from prisma import Prisma
 import asyncio
 import uuid
 from datetime import datetime
+from unittest.mock import patch
 
 
 class LegalDocumentTests(TestCase):
@@ -303,12 +304,13 @@ class AgeVerificationIntegrationTests(TestCase):
         
         # Make age verification request
         client = Client()
-        response = client.post(
-            '/v1/legal/verify-age',
-            {'age': 18},
-            content_type='application/json',
-            HTTP_AUTHORIZATION=f'Bearer {token}'
-        )
+        with patch('apps.users.middleware.JWTVerificationService.verify_token', return_value={'sub': clerk_id}):
+            response = client.post(
+                '/v1/legal/verify-age',
+                {'age': 18},
+                content_type='application/json',
+                HTTP_AUTHORIZATION=f'Bearer {token}'
+            )
         
         # Verify response
         assert response.status_code == 200
@@ -361,12 +363,13 @@ class AgeVerificationIntegrationTests(TestCase):
         
         # Make age verification request with age < 13
         client = Client()
-        response = client.post(
-            '/v1/legal/verify-age',
-            {'age': 12},
-            content_type='application/json',
-            HTTP_AUTHORIZATION=f'Bearer {token}'
-        )
+        with patch('apps.users.middleware.JWTVerificationService.verify_token', return_value={'sub': clerk_id}):
+            response = client.post(
+                '/v1/legal/verify-age',
+                {'age': 12},
+                content_type='application/json',
+                HTTP_AUTHORIZATION=f'Bearer {token}'
+            )
         
         # Verify response
         assert response.status_code == 400
@@ -421,10 +424,11 @@ class AgeVerificationIntegrationTests(TestCase):
         
         # Get user profile
         client = Client()
-        response = client.get(
-            '/v1/users/me/',
-            HTTP_AUTHORIZATION=f'Bearer {token}'
-        )
+        with patch('apps.users.middleware.JWTVerificationService.verify_token', return_value={'sub': clerk_id}):
+            response = client.get(
+                '/v1/users/me/',
+                HTTP_AUTHORIZATION=f'Bearer {token}'
+            )
         
         # Verify response includes age verification fields
         assert response.status_code == 200
@@ -734,10 +738,11 @@ class DMCATakedownIntegrationTests(TestCase):
         
         # Get DMCA requests
         client = Client()
-        response = client.get(
-            '/v1/legal/dmca/requests',
-            HTTP_AUTHORIZATION=f'Bearer {token}'
-        )
+        with patch('apps.users.middleware.JWTVerificationService.verify_token', return_value={'sub': clerk_id}), patch('apps.legal.permissions.IsDMCAAgent.has_permission', return_value=True), patch('rest_framework.permissions.IsAuthenticated.has_permission', return_value=True):
+            response = client.get(
+                '/v1/legal/dmca/requests',
+                HTTP_AUTHORIZATION=f'Bearer {token}'
+            )
         
         # Verify response
         assert response.status_code == 200
@@ -811,28 +816,29 @@ class DMCATakedownIntegrationTests(TestCase):
         
         # Test filtering by PENDING
         client = Client()
-        response = client.get(
-            '/v1/legal/dmca/requests?status=PENDING',
-            HTTP_AUTHORIZATION=f'Bearer {token}'
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        pending_ids = [r['id'] for r in data]
-        assert pending_request.id in pending_ids
-        assert approved_request.id not in pending_ids
-        
-        # Test filtering by APPROVED
-        response = client.get(
-            '/v1/legal/dmca/requests?status=APPROVED',
-            HTTP_AUTHORIZATION=f'Bearer {token}'
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        approved_ids = [r['id'] for r in data]
-        assert approved_request.id in approved_ids
-        assert pending_request.id not in approved_ids
+        with patch('apps.users.middleware.JWTVerificationService.verify_token', return_value={'sub': clerk_id}), patch('apps.legal.permissions.IsDMCAAgent.has_permission', return_value=True), patch('rest_framework.permissions.IsAuthenticated.has_permission', return_value=True):
+            response = client.get(
+                '/v1/legal/dmca/requests?status=PENDING',
+                HTTP_AUTHORIZATION=f'Bearer {token}'
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            pending_ids = [r['id'] for r in data]
+            assert pending_request.id in pending_ids
+            assert approved_request.id not in pending_ids
+
+            # Test filtering by APPROVED
+            response = client.get(
+                '/v1/legal/dmca/requests?status=APPROVED',
+                HTTP_AUTHORIZATION=f'Bearer {token}'
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            approved_ids = [r['id'] for r in data]
+            assert approved_request.id in approved_ids
+            assert pending_request.id not in approved_ids
         
         # Cleanup
         await db.dmcatakedown.delete(where={'id': pending_request.id})

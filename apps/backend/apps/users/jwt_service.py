@@ -140,9 +140,6 @@ class JWTVerificationService:
             JWTVerificationError: For other verification errors
         """
         try:
-            # Get JWKS
-            jwks = cls.get_jwks()
-            
             # Decode header to get key ID (kid)
             try:
                 unverified_header = jwt.get_unverified_header(token)
@@ -152,7 +149,10 @@ class JWTVerificationService:
             kid = unverified_header.get('kid')
             if not kid:
                 raise InvalidTokenError("Token header missing 'kid' field")
-            
+
+            # Get JWKS only after confirming token has a key id
+            jwks = cls.get_jwks()
+             
             # Find matching key in JWKS
             key = None
             for jwk in jwks.get('keys', []):

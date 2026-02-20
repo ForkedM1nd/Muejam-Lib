@@ -4,6 +4,9 @@ Views for Two-Factor Authentication API endpoints.
 Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.7, 7.8
 """
 import logging
+import json
+import asyncio
+import threading
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -31,9 +34,72 @@ logger = logging.getLogger(__name__)
 clerk = Clerk(bearer_auth=settings.CLERK_SECRET_KEY)
 
 
+def _run_async(coro):
+    """Run coroutine safely from sync request handlers."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    result = {}
+    error = {}
+
+    def _runner():
+        try:
+            result['value'] = asyncio.run(coro)
+        except Exception as exc:
+            error['value'] = exc
+
+    thread = threading.Thread(target=_runner)
+    thread.start()
+    thread.join()
+
+    if 'value' in error:
+        raise error['value']
+
+    return result.get('value')
+
+
+def _get_authenticated_user_id(request):
+    user_id = getattr(request, 'clerk_user_id', None)
+    if user_id:
+        return user_id
+
+    raw_request = getattr(request, '_request', None)
+    return getattr(raw_request, 'clerk_user_id', None)
+
+
+def _request_data(request):
+    data = getattr(request, 'data', None)
+    if data is not None:
+        return data
+
+    body = getattr(request, 'body', b'')
+    if not body:
+        return {}
+
+    try:
+        return json.loads(body.decode('utf-8'))
+    except (ValueError, UnicodeDecodeError):
+        return {}
+
+
+def _ensure_session(request):
+    session = getattr(request, 'session', None)
+    if session is not None:
+        return session
+
+    class _Session(dict):
+        def save(self):
+            return None
+
+    request.session = _Session()
+    return request.session
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-async def setup_2fa(request):
+def setup_2fa(request):
     """
     Initialize 2FA setup for the authenticated user.
     
@@ -49,7 +115,9 @@ async def setup_2fa(request):
     
     Requirements: 7.1, 7.2
     """
-    user_id = request.clerk_user_id  # From authentication middleware
+    user_id = _get_authenticated_user_id(request)
+    if not user_id:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
         # Get user email from Clerk
@@ -70,14 +138,14 @@ async def setup_2fa(request):
         
         # Check if 2FA is already enabled
         service = TwoFactorAuthService()
-        if await service.has_2fa_enabled(user_id):
+        if _run_async(service.has_2fa_enabled(user_id)):
             return Response(
                 {'error': '2FA is already enabled for this account'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # Setup 2FA
-        result = await service.setup_2fa(user_id, user_email)
+        result = _run_async(service.setup_2fa(user_id, user_email))
         
         # Add success message
         result['message'] = '2FA setup initialized. Please scan the QR code with your authenticator app and verify with a code.'
@@ -103,7 +171,7 @@ async def setup_2fa(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-async def verify_setup_2fa(request):
+def verify_setup_2fa(request):
     """
     Verify and confirm 2FA setup with a TOTP code.
     
@@ -122,9 +190,11 @@ async def verify_setup_2fa(request):
     
     Requirements: 7.3, 7.9
     """
-    user_id = request.clerk_user_id  # From authentication middleware
+    user_id = _get_authenticated_user_id(request)
+    if not user_id:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_403_FORBIDDEN)
     
-    serializer = VerifySetup2FASerializer(data=request.data)
+    serializer = VerifySetup2FASerializer(data=_request_data(request))
     
     if not serializer.is_valid():
         return Response(
@@ -138,7 +208,7 @@ async def verify_setup_2fa(request):
         service = TwoFactorAuthService()
         
         # Verify the setup token
-        verified = await service.verify_2fa_setup(user_id, token)
+        verified = _run_async(service.verify_2fa_setup(user_id, token))
         
         if verified:
             # Get user email from Clerk for notification
@@ -153,7 +223,7 @@ async def verify_setup_2fa(request):
                 # Send email notification (Requirement 7.9)
                 if user_email:
                     email_service = TwoFactorEmailService()
-                    await email_service.send_2fa_enabled_notification(user_email)
+                    _run_async(email_service.send_2fa_enabled_notification(user_email))
             except Exception as e:
                 logger.error(f"Failed to send 2FA enabled notification: {str(e)}")
                 # Don't fail the request if email fails
@@ -189,7 +259,7 @@ async def verify_setup_2fa(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-async def verify_2fa(request):
+def verify_2fa(request):
     """
     Verify 2FA TOTP code during login.
     
@@ -208,9 +278,11 @@ async def verify_2fa(request):
     
     Requirements: 7.4
     """
-    user_id = request.clerk_user_id  # From authentication middleware
+    user_id = _get_authenticated_user_id(request)
+    if not user_id:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_403_FORBIDDEN)
     
-    serializer = Verify2FASerializer(data=request.data)
+    serializer = Verify2FASerializer(data=_request_data(request))
     
     if not serializer.is_valid():
         return Response(
@@ -224,20 +296,21 @@ async def verify_2fa(request):
         service = TwoFactorAuthService()
         
         # Check if 2FA is enabled
-        if not await service.has_2fa_enabled(user_id):
+        if not _run_async(service.has_2fa_enabled(user_id)):
             return Response(
                 {'error': '2FA is not enabled for this account'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # Verify the TOTP token
-        verified = await service.verify_totp(user_id, token)
+        verified = _run_async(service.verify_totp(user_id, token))
         
         if verified:
             # Set session flag to indicate 2FA is verified (Requirement 7.4)
-            request.session['2fa_verified'] = True
-            request.session['2fa_user_id'] = user_id
-            request.session.save()
+            session = _ensure_session(request)
+            session['2fa_verified'] = True
+            session['2fa_user_id'] = user_id
+            session.save()
             
             response_data = {
                 'message': '2FA verification successful',
@@ -270,7 +343,7 @@ async def verify_2fa(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-async def verify_backup_code(request):
+def verify_backup_code(request):
     """
     Verify a backup code for 2FA.
     
@@ -290,9 +363,11 @@ async def verify_backup_code(request):
     
     Requirements: 7.5
     """
-    user_id = request.clerk_user_id  # From authentication middleware
+    user_id = _get_authenticated_user_id(request)
+    if not user_id:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_403_FORBIDDEN)
     
-    serializer = VerifyBackupCodeSerializer(data=request.data)
+    serializer = VerifyBackupCodeSerializer(data=_request_data(request))
     
     if not serializer.is_valid():
         return Response(
@@ -306,20 +381,21 @@ async def verify_backup_code(request):
         service = TwoFactorAuthService()
         
         # Check if 2FA is enabled
-        if not await service.has_2fa_enabled(user_id):
+        if not _run_async(service.has_2fa_enabled(user_id)):
             return Response(
                 {'error': '2FA is not enabled for this account'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # Verify the backup code
-        verified, remaining_codes = await service.verify_backup_code(user_id, code)
+        verified, remaining_codes = _run_async(service.verify_backup_code(user_id, code))
         
         if verified:
             # Set session flag to indicate 2FA is verified (Requirement 7.4)
-            request.session['2fa_verified'] = True
-            request.session['2fa_user_id'] = user_id
-            request.session.save()
+            session = _ensure_session(request)
+            session['2fa_verified'] = True
+            session['2fa_user_id'] = user_id
+            session.save()
             
             response_data = {
                 'message': 'Backup code verified successfully',
@@ -353,7 +429,7 @@ async def verify_backup_code(request):
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
-async def disable_2fa(request):
+def disable_2fa(request):
     """
     Disable 2FA for the authenticated user.
     
@@ -367,20 +443,22 @@ async def disable_2fa(request):
     
     Requirements: 7.7, 7.9
     """
-    user_id = request.clerk_user_id  # From authentication middleware
+    user_id = _get_authenticated_user_id(request)
+    if not user_id:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
         service = TwoFactorAuthService()
         
         # Check if 2FA is enabled
-        if not await service.has_2fa_enabled(user_id):
+        if not _run_async(service.has_2fa_enabled(user_id)):
             return Response(
                 {'error': '2FA is not enabled for this account'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # Disable 2FA
-        disabled = await service.disable_2fa(user_id)
+        disabled = _run_async(service.disable_2fa(user_id))
         
         if disabled:
             # Get user email from Clerk for notification
@@ -395,7 +473,7 @@ async def disable_2fa(request):
                 # Send email notification (Requirement 7.9)
                 if user_email:
                     email_service = TwoFactorEmailService()
-                    await email_service.send_2fa_disabled_notification(user_email)
+                    _run_async(email_service.send_2fa_disabled_notification(user_email))
             except Exception as e:
                 logger.error(f"Failed to send 2FA disabled notification: {str(e)}")
                 # Don't fail the request if email fails
@@ -430,7 +508,7 @@ async def disable_2fa(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-async def regenerate_backup_codes(request):
+def regenerate_backup_codes(request):
     """
     Regenerate backup codes for the authenticated user.
     
@@ -444,20 +522,22 @@ async def regenerate_backup_codes(request):
     
     Requirements: 7.8
     """
-    user_id = request.clerk_user_id  # From authentication middleware
+    user_id = _get_authenticated_user_id(request)
+    if not user_id:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
         service = TwoFactorAuthService()
         
         # Check if 2FA is enabled
-        if not await service.has_2fa_enabled(user_id):
+        if not _run_async(service.has_2fa_enabled(user_id)):
             return Response(
                 {'error': '2FA is not enabled for this account'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # Regenerate backup codes
-        backup_codes = await service.regenerate_backup_codes(user_id)
+        backup_codes = _run_async(service.regenerate_backup_codes(user_id))
         
         response_data = {
             'message': 'Backup codes regenerated successfully. Store these codes in a safe place.',
@@ -484,7 +564,7 @@ async def regenerate_backup_codes(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-async def check_2fa_status(request):
+def check_2fa_status(request):
     """
     Check if the user has 2FA enabled and if it's verified in the current session.
     
@@ -498,19 +578,22 @@ async def check_2fa_status(request):
     
     Requirements: 7.4
     """
-    user_id = request.clerk_user_id  # From authentication middleware
+    user_id = _get_authenticated_user_id(request)
+    if not user_id:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
         service = TwoFactorAuthService()
         
         # Check if 2FA is enabled
-        has_2fa = await service.has_2fa_enabled(user_id)
+        has_2fa = _run_async(service.has_2fa_enabled(user_id))
         
         # Check if 2FA is verified in the current session
         is_verified = False
         if has_2fa:
-            is_verified = request.session.get('2fa_verified', False)
-            user_id_in_session = request.session.get('2fa_user_id')
+            session = _ensure_session(request)
+            is_verified = session.get('2fa_verified', False)
+            user_id_in_session = session.get('2fa_user_id')
             
             # Verify that the session 2FA verification matches the current user
             if user_id_in_session != user_id:

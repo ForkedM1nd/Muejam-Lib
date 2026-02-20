@@ -13,6 +13,42 @@ from .serializers import (
 logger = logging.getLogger(__name__)
 
 
+def _safe_slice_quote(content, start_offset, end_offset):
+    """Extract a safe quote snippet from chapter content."""
+    if not content:
+        return ""
+
+    content_length = len(content)
+    start = max(0, min(start_offset, content_length))
+    end = max(start, min(end_offset, content_length))
+    return content[start:end]
+
+
+def _serialize_highlight_with_meta(highlight, chapter=None):
+    """Serialize highlight with optional chapter/story metadata."""
+    chapter_obj = chapter or getattr(highlight, 'chapter', None)
+    story_obj = getattr(chapter_obj, 'story', None) if chapter_obj else None
+
+    quote_text = _safe_slice_quote(
+        getattr(chapter_obj, 'content', ''),
+        getattr(highlight, 'start_offset', 0),
+        getattr(highlight, 'end_offset', 0),
+    )
+
+    return {
+        'id': highlight.id,
+        'user_id': highlight.user_id,
+        'chapter_id': highlight.chapter_id,
+        'start_offset': highlight.start_offset,
+        'end_offset': highlight.end_offset,
+        'quote_text': quote_text,
+        'chapter_title': getattr(chapter_obj, 'title', ''),
+        'story_title': getattr(story_obj, 'title', ''),
+        'story_id': getattr(story_obj, 'id', ''),
+        'created_at': highlight.created_at,
+    }
+
+
 @api_view(['GET', 'POST'])
 def highlights(request, chapter_id):
     """
@@ -127,14 +163,13 @@ def _create_highlight(request, chapter_id):
                 'end_offset': validated_data['end_offset']
             }
         )
-        
+
+        response_data = _serialize_highlight_with_meta(highlight, chapter)
+
         db.disconnect()
-        
-        # Serialize response
-        response_serializer = HighlightSerializer(highlight)
-        
+
         return Response(
-            {'data': response_serializer.data},
+            {'data': response_data},
             status=status.HTTP_201_CREATED
         )
         
@@ -208,18 +243,119 @@ def _list_highlights(request, chapter_id):
                 'user_id': user_profile.id,
                 'chapter_id': chapter_id
             },
-            order={'created_at': 'asc'}  # Order by creation time
+            order={'created_at': 'asc'},  # Order by creation time
+            include={
+                'chapter': {
+                    'include': {
+                        'story': True
+                    }
+                }
+            }
         )
-        
+
         db.disconnect()
-        
-        # Serialize response
-        serializer = HighlightSerializer(highlights, many=True)
-        
-        return Response({'data': serializer.data})
+
+        serialized = [_serialize_highlight_with_meta(highlight) for highlight in highlights]
+
+        return Response({'data': serialized})
         
     except Exception as e:
         logger.error(f"Error listing highlights: {e}")
+        db.disconnect()
+        return Response(
+            {
+                'error': {
+                    'code': 'INTERNAL_ERROR',
+                    'message': 'Failed to list highlights',
+                }
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+def user_highlights(request):
+    """
+    List all highlights for the authenticated user with story/chapter metadata.
+
+    GET /v1/highlights?story_id=<id>&start_date=<YYYY-MM-DD>&end_date=<YYYY-MM-DD>&cursor=<id>&page_size=20
+    """
+    user_id = getattr(request, 'clerk_user_id', None)
+    user_profile = getattr(request, 'user_profile', None)
+
+    if not user_id or not user_profile:
+        return Response(
+            {
+                'error': {
+                    'code': 'UNAUTHORIZED',
+                    'message': 'Authentication required',
+                }
+            },
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    story_id = request.query_params.get('story_id')
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+    cursor = request.query_params.get('cursor')
+    page_size = min(int(request.query_params.get('page_size', 20)), 100)
+
+    db = Prisma()
+
+    try:
+        db.connect()
+
+        where = {
+            'user_id': user_profile.id,
+        }
+
+        if story_id:
+            where['chapter'] = {'is': {'story_id': story_id}}
+
+        if start_date or end_date:
+            created_at_filter = {}
+            if start_date:
+                created_at_filter['gte'] = f"{start_date}T00:00:00"
+            if end_date:
+                created_at_filter['lte'] = f"{end_date}T23:59:59"
+            where['created_at'] = created_at_filter
+
+        query_args = {
+            'where': where,
+            'order': {'created_at': 'desc'},
+            'take': page_size + 1,
+            'include': {
+                'chapter': {
+                    'include': {
+                        'story': True
+                    }
+                }
+            }
+        }
+
+        if cursor:
+            query_args['cursor'] = {'id': cursor}
+            query_args['skip'] = 1
+
+        highlights = db.highlight.find_many(**query_args)
+
+        has_next = len(highlights) > page_size
+        if has_next:
+            highlights = highlights[:page_size]
+
+        next_cursor = highlights[-1].id if has_next and highlights else None
+
+        db.disconnect()
+
+        serialized = [_serialize_highlight_with_meta(highlight) for highlight in highlights]
+
+        return Response({
+            'data': serialized,
+            'next_cursor': next_cursor,
+        })
+
+    except Exception as e:
+        logger.error(f"Error listing user highlights: {e}")
         db.disconnect()
         return Response(
             {

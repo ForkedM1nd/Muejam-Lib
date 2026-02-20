@@ -17,6 +17,10 @@ class HighlightSerializer(serializers.Serializer):
     chapter_id = serializers.CharField(read_only=True)
     start_offset = serializers.IntegerField(read_only=True)
     end_offset = serializers.IntegerField(read_only=True)
+    quote_text = serializers.CharField(read_only=True, required=False)
+    chapter_title = serializers.CharField(read_only=True, required=False)
+    story_title = serializers.CharField(read_only=True, required=False)
+    story_id = serializers.CharField(read_only=True, required=False)
     created_at = serializers.DateTimeField(read_only=True)
 
 
@@ -40,6 +44,11 @@ class HighlightCreateSerializer(serializers.Serializer):
         required=True,
         min_value=0,
         help_text="Ending character offset of the highlight"
+    )
+    quote_text = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Optional quoted text for client-side validation"
     )
     
     def validate(self, data):

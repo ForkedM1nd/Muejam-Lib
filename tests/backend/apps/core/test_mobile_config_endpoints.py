@@ -6,8 +6,8 @@ Tests the GET and PUT endpoints for mobile configuration management.
 
 import pytest
 from datetime import datetime
-from django.test import RequestFactory
 from unittest.mock import Mock, patch, AsyncMock
+from rest_framework.test import APIRequestFactory, force_authenticate
 from apps.core.mobile_config_views import (
     get_mobile_config,
     update_mobile_config
@@ -17,28 +17,27 @@ from apps.core.mobile_config_views import (
 @pytest.fixture
 def request_factory():
     """Create a request factory for testing."""
-    return RequestFactory()
+    return APIRequestFactory()
 
 
 @pytest.fixture
-def authenticated_admin_request(request_factory):
-    """Create an authenticated admin request."""
-    request = request_factory.put('/v1/config/mobile')
-    request.clerk_user_id = 'admin_user_123'
-    
-    # Mock user with admin permissions
-    mock_user = Mock()
-    mock_user.is_authenticated = True
-    mock_user.is_staff = True
-    mock_user.is_superuser = True
-    request.user = mock_user
-    
-    request.user_profile = Mock(
-        id='admin_user_123',
-        username='admin',
-        is_admin=True
-    )
-    return request
+def make_admin_request(request_factory):
+    """Factory for authenticated admin PUT requests."""
+    def _make(path, data=None):
+        request = request_factory.put(path, data=data or {}, format='json')
+        request.clerk_user_id = 'admin_user_123'
+
+        mock_user = Mock()
+        mock_user.is_authenticated = True
+        mock_user.is_staff = True
+        mock_user.is_superuser = True
+        mock_user.role = 'ADMINISTRATOR'
+
+        force_authenticate(request, user=mock_user)
+        request.user_profile = Mock(id='admin_user_123', username='admin', is_admin=True)
+        return request
+
+    return _make
 
 
 @pytest.fixture
@@ -48,16 +47,6 @@ def mock_config_service():
         service_instance = Mock()
         mock_service.return_value = service_instance
         yield service_instance
-
-
-@pytest.fixture
-def mock_admin_permission():
-    """Mock the IsAdministrator permission to always allow access."""
-    with patch('apps.core.mobile_config_views.IsAdministrator') as mock_perm:
-        mock_perm_instance = Mock()
-        mock_perm_instance.has_permission.return_value = True
-        mock_perm.return_value = mock_perm_instance
-        yield mock_perm
 
 
 class TestGetMobileConfig:
@@ -216,99 +205,57 @@ class TestGetMobileConfig:
 
 class TestUpdateMobileConfig:
     """Test update_mobile_config endpoint."""
-    
-    @patch('rest_framework.decorators.permission_classes', lambda x: lambda f: f)
+
     def test_update_mobile_config_requires_platform_parameter(
-        self, authenticated_admin_request
+        self, make_admin_request
     ):
         """Test that update_mobile_config requires 'platform' parameter."""
-        authenticated_admin_request.data = {
-            'config': {'features': {}}
-        }
-        
-        response = update_mobile_config(authenticated_admin_request)
-        
+        request = make_admin_request('/v1/config/mobile', {'config': {'features': {}}})
+        response = update_mobile_config(request)
+
         assert response.status_code == 400
         assert response.data['error']['code'] == 'MISSING_PARAMETER'
         assert 'platform' in response.data['error']['message']
-    
-    @patch('rest_framework.decorators.permission_classes', lambda x: lambda f: f)
+
     def test_update_mobile_config_validates_platform(
-        self, request_factory
+        self, make_admin_request
     ):
         """Test that update_mobile_config validates platform parameter."""
-        request = request_factory.put(
-            '/v1/config/mobile?platform=invalid'
+        request = make_admin_request(
+            '/v1/config/mobile?platform=invalid',
+            {'config': {'features': {}}},
         )
-        request.clerk_user_id = 'admin_user_123'
-        request.data = {'config': {'features': {}}}
-        
-        # Mock user with admin permissions
-        mock_user = Mock()
-        mock_user.is_authenticated = True
-        mock_user.is_staff = True
-        request.user = mock_user
-        
         response = update_mobile_config(request)
-        
+
         assert response.status_code == 400
         assert response.data['error']['code'] == 'INVALID_PLATFORM'
-    
-    @patch('rest_framework.decorators.permission_classes', lambda x: lambda f: f)
+
     def test_update_mobile_config_requires_config_field(
-        self, request_factory
+        self, make_admin_request
     ):
         """Test that update_mobile_config requires 'config' field."""
-        request = request_factory.put(
-            '/v1/config/mobile?platform=ios'
-        )
-        request.clerk_user_id = 'admin_user_123'
-        request.data = {}
-        
-        # Mock user with admin permissions
-        mock_user = Mock()
-        mock_user.is_authenticated = True
-        mock_user.is_staff = True
-        request.user = mock_user
-        
+        request = make_admin_request('/v1/config/mobile?platform=ios', {})
         response = update_mobile_config(request)
-        
+
         assert response.status_code == 400
         assert response.data['error']['code'] == 'MISSING_FIELD'
         assert 'config' in response.data['error']['message']
-    
-    @patch('rest_framework.decorators.permission_classes', lambda x: lambda f: f)
+
     def test_update_mobile_config_validates_config_type(
-        self, request_factory
+        self, make_admin_request
     ):
         """Test that update_mobile_config validates config is a dictionary."""
-        request = request_factory.put(
-            '/v1/config/mobile?platform=ios'
-        )
-        request.clerk_user_id = 'admin_user_123'
-        request.data = {'config': 'not a dict'}
-        
-        # Mock user with admin permissions
-        mock_user = Mock()
-        mock_user.is_authenticated = True
-        mock_user.is_staff = True
-        request.user = mock_user
-        
+        request = make_admin_request('/v1/config/mobile?platform=ios', {'config': 'not a dict'})
         response = update_mobile_config(request)
-        
+
         assert response.status_code == 400
         assert response.data['error']['code'] == 'INVALID_FIELD_TYPE'
-    
-    @patch('rest_framework.decorators.permission_classes', lambda x: lambda f: f)
+
     def test_update_mobile_config_updates_ios_config(
-        self, request_factory, mock_config_service
+        self, make_admin_request, mock_config_service
     ):
         """Test that update_mobile_config updates iOS configuration."""
-        request = request_factory.put(
-            '/v1/config/mobile?platform=ios'
-        )
-        request.clerk_user_id = 'admin_user_123'
-        request.data = {
+        request_data = {
             'config': {
                 'features': {
                     'push_notifications': True,
@@ -320,42 +267,32 @@ class TestUpdateMobileConfig:
             },
             'min_version': '1.5.0'
         }
-        
-        # Mock user with admin permissions
-        mock_user = Mock()
-        mock_user.is_authenticated = True
-        mock_user.is_staff = True
-        request.user = mock_user
+        request = make_admin_request('/v1/config/mobile?platform=ios', request_data)
         
         # Mock service response
         mock_updated_config = {
             'id': 'config_123',
             'platform': 'ios',
             'min_version': '1.5.0',
-            'config': request.data['config'],
+            'config': request_data['config'],
             'updated_at': datetime.now().isoformat()
         }
         mock_config_service.update_config = AsyncMock(
             return_value=mock_updated_config
         )
-        
+
         response = update_mobile_config(request)
-        
+
         assert response.status_code == 200
         assert response.data['platform'] == 'ios'
         assert response.data['min_version'] == '1.5.0'
         assert response.data['config']['settings']['max_upload_size_mb'] == 100
-    
-    @patch('rest_framework.decorators.permission_classes', lambda x: lambda f: f)
+
     def test_update_mobile_config_updates_android_config(
-        self, request_factory, mock_config_service
+        self, make_admin_request, mock_config_service
     ):
         """Test that update_mobile_config updates Android configuration."""
-        request = request_factory.put(
-            '/v1/config/mobile?platform=android'
-        )
-        request.clerk_user_id = 'admin_user_123'
-        request.data = {
+        request_data = {
             'config': {
                 'features': {
                     'push_notifications': True,
@@ -363,65 +300,50 @@ class TestUpdateMobileConfig:
                 }
             }
         }
-        
-        # Mock user with admin permissions
-        mock_user = Mock()
-        mock_user.is_authenticated = True
-        mock_user.is_staff = True
-        request.user = mock_user
+        request = make_admin_request('/v1/config/mobile?platform=android', request_data)
         
         # Mock service response
         mock_updated_config = {
             'id': 'config_456',
             'platform': 'android',
             'min_version': '1.0.0',
-            'config': request.data['config'],
+            'config': request_data['config'],
             'updated_at': datetime.now().isoformat()
         }
         mock_config_service.update_config = AsyncMock(
             return_value=mock_updated_config
         )
-        
+
         response = update_mobile_config(request)
-        
+
         assert response.status_code == 200
         assert response.data['platform'] == 'android'
-    
-    @patch('rest_framework.decorators.permission_classes', lambda x: lambda f: f)
+
     def test_update_mobile_config_allows_optional_min_version(
-        self, request_factory, mock_config_service
+        self, make_admin_request, mock_config_service
     ):
         """Test that update_mobile_config allows optional min_version."""
-        request = request_factory.put(
-            '/v1/config/mobile?platform=ios'
-        )
-        request.clerk_user_id = 'admin_user_123'
-        request.data = {
+        request_data = {
             'config': {
                 'features': {'push_notifications': True}
             }
             # No min_version provided
         }
-        
-        # Mock user with admin permissions
-        mock_user = Mock()
-        mock_user.is_authenticated = True
-        mock_user.is_staff = True
-        request.user = mock_user
+        request = make_admin_request('/v1/config/mobile?platform=ios', request_data)
         
         mock_updated_config = {
             'id': 'config_123',
             'platform': 'ios',
             'min_version': '1.0.0',  # Existing version maintained
-            'config': request.data['config'],
+            'config': request_data['config'],
             'updated_at': datetime.now().isoformat()
         }
         mock_config_service.update_config = AsyncMock(
             return_value=mock_updated_config
         )
-        
+
         response = update_mobile_config(request)
-        
+
         assert response.status_code == 200
         # Verify service was called with None for min_version
         mock_config_service.update_config.assert_called_once()
@@ -431,10 +353,9 @@ class TestUpdateMobileConfig:
 
 class TestMobileConfigEndpointsIntegration:
     """Integration tests for mobile config endpoints."""
-    
-    @patch('rest_framework.decorators.permission_classes', lambda x: lambda f: f)
+
     def test_get_and_update_config_workflow(
-        self, request_factory, mock_config_service
+        self, request_factory, make_admin_request, mock_config_service
     ):
         """Test complete workflow of getting and updating config."""
         # First, get the current config
@@ -458,21 +379,12 @@ class TestMobileConfigEndpointsIntegration:
         assert get_response.data['config']['features']['push_notifications'] is False
         
         # Then, update the config
-        put_request = request_factory.put(
-            '/v1/config/mobile?platform=ios'
-        )
-        put_request.clerk_user_id = 'admin_user_123'
-        put_request.data = {
+        put_payload = {
             'config': {
                 'features': {'push_notifications': True}
             }
         }
-        
-        # Mock user with admin permissions
-        mock_user = Mock()
-        mock_user.is_authenticated = True
-        mock_user.is_staff = True
-        put_request.user = mock_user
+        put_request = make_admin_request('/v1/config/mobile?platform=ios', put_payload)
         
         updated_config = {
             'id': 'config_123',
@@ -484,7 +396,7 @@ class TestMobileConfigEndpointsIntegration:
             'updated_at': datetime.now().isoformat()
         }
         mock_config_service.update_config = AsyncMock(return_value=updated_config)
-        
+
         put_response = update_mobile_config(put_request)
         assert put_response.status_code == 200
         assert put_response.data['config']['features']['push_notifications'] is True

@@ -10,10 +10,12 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.utils import timezone
 from datetime import timedelta
 from django.test import TransactionTestCase
+from django.test import override_settings
 from apps.users.password_reset.services.session_manager import SessionManager
 import asyncio
 
 
+@override_settings(DATABASE_ROUTERS=[])
 class TestSessionManager(TransactionTestCase):
     """Test suite for SessionManager using TransactionTestCase for proper DB handling."""
     

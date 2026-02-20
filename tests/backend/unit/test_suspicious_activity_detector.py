@@ -45,7 +45,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_no_suspicious_activity(self, detector, mock_db):
         """Test that normal user activity returns no flags."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             # Mock normal activity
             mock_db.userconsent.find_many = AsyncMock(return_value=[
                 MagicMock(user_id='user1'),
@@ -67,7 +67,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_multiple_accounts_same_ip(self, detector, mock_db):
         """Test detection of multiple accounts from same IP."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             # Mock 5 accounts from same IP (exceeds limit of 3)
             mock_db.userconsent.find_many = AsyncMock(return_value=[
                 MagicMock(user_id='user1'),
@@ -92,7 +92,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_rapid_content_creation(self, detector, mock_db):
         """Test detection of rapid content creation."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             # Mock 25 content items in last hour (exceeds limit of 20)
             mock_db.userconsent.find_many = AsyncMock(return_value=[
                 MagicMock(user_id='user1')
@@ -113,7 +113,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_duplicate_content_detection(self, detector, mock_db):
         """Test detection of duplicate content across accounts."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             # Mock user whispers
             user_whispers = [
                 MagicMock(content='This is duplicate content', user_id='user1')
@@ -150,7 +150,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_bot_behavior_quick_first_post(self, detector, mock_db):
         """Test detection of bot behavior - quick first post after account creation."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             account_created = datetime.now(timezone.utc) - timedelta(days=1)
             first_post = account_created + timedelta(seconds=30)  # 30 seconds after creation
             
@@ -175,7 +175,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_bot_behavior_regular_intervals(self, detector, mock_db):
         """Test detection of bot behavior - too regular posting intervals."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             # Create whispers with exactly 60 second intervals (too regular)
             base_time = datetime.now(timezone.utc)
             regular_whispers = [
@@ -205,7 +205,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_bot_behavior_duplicate_content(self, detector, mock_db):
         """Test detection of bot behavior - high ratio of duplicate content."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             # Create whispers where 80% are identical
             duplicate_whispers = [
                 MagicMock(
@@ -234,7 +234,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_multiple_flags(self, detector, mock_db):
         """Test that multiple suspicious patterns can be detected simultaneously."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             # Mock multiple violations
             mock_db.userconsent.find_many = AsyncMock(return_value=[
                 MagicMock(user_id=f'user{i}') for i in range(5)
@@ -265,7 +265,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_activity_summary(self, detector, mock_db):
         """Test generation of activity summary."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             account_created = datetime.now(timezone.utc) - timedelta(days=10)
             
             mock_db.userprofile.find_unique = AsyncMock(return_value=MagicMock(
@@ -287,7 +287,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_activity_summary_nonexistent_user(self, detector, mock_db):
         """Test activity summary for nonexistent user."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             mock_db.userprofile.find_unique = AsyncMock(return_value=None)
             
             summary = await detector.get_activity_summary('nonexistent')
@@ -334,7 +334,7 @@ class TestSuspiciousActivityDetector:
     @pytest.mark.asyncio
     async def test_no_ip_address_provided(self, detector, mock_db):
         """Test that IP-based checks are skipped when no IP provided."""
-        with patch('infrastructure.suspicious_activity_detector.Prisma', return_value=mock_db):
+        with patch('apps.security.suspicious_activity_detector.Prisma', return_value=mock_db):
             mock_db.story.count = AsyncMock(return_value=0)
             mock_db.chapter.count = AsyncMock(return_value=0)
             mock_db.whisper.count = AsyncMock(return_value=0)

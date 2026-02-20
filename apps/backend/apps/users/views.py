@@ -1,4 +1,7 @@
 """Views for user profile management."""
+import asyncio
+import threading
+from datetime import datetime
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -19,6 +22,36 @@ from .serializers import (
 cache_manager = CacheManager()
 
 
+def _run_async(coro):
+    """Run async Prisma operations safely from sync views."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+
+    result = {}
+    error = {}
+
+    def _runner():
+        try:
+            result['value'] = asyncio.run(coro)
+        except Exception as exc:
+            error['value'] = exc
+
+    thread = threading.Thread(target=_runner)
+    thread.start()
+    thread.join()
+
+    if 'value' in error:
+        raise error['value']
+
+    return result.get('value')
+
+
 def sync_update_profile(user_id: str, update_data: dict):
     """
     Synchronous version of update_profile.
@@ -26,34 +59,32 @@ def sync_update_profile(user_id: str, update_data: dict):
     This replaces the async version to avoid the nest_asyncio anti-pattern
     that was causing performance issues and potential deadlocks.
     """
-    db = Prisma()
-    db.connect()
-    
-    try:
-        # Check handle uniqueness if handle is being updated
-        if 'handle' in update_data:
-            existing = db.userprofile.find_unique(
-                where={'handle': update_data['handle']}
+    async def _update_profile():
+        db = Prisma()
+        await db.connect()
+
+        try:
+            if 'handle' in update_data:
+                existing = await db.userprofile.find_unique(
+                    where={'handle': update_data['handle']}
+                )
+
+                if existing and existing.id != user_id:
+                    return None
+
+            updated_profile = await db.userprofile.update(
+                where={'id': user_id},
+                data=update_data
             )
-            
-            # If handle exists and belongs to different user, reject
-            if existing and existing.id != user_id:
-                return None
-        
-        # Update profile
-        updated_profile = db.userprofile.update(
-            where={'id': user_id},
-            data=update_data
-        )
-        
-        # Invalidate cache for this user
-        cache_manager.invalidate(f'user_profile:{user_id}')
-        cache_manager.invalidate(f'user_profile_by_handle:{updated_profile.handle}')
-        
-        return updated_profile
-        
-    finally:
-        db.disconnect()
+
+            cache_manager.invalidate(f'user_profile:{user_id}')
+            cache_manager.invalidate(f'user_profile_by_handle:{updated_profile.handle}')
+
+            return updated_profile
+        finally:
+            await db.disconnect()
+
+    return _run_async(_update_profile())
 
 
 def sync_get_profile_by_handle(handle: str):
@@ -71,37 +102,37 @@ def sync_get_profile_by_handle(handle: str):
         # Return cached profile (need to convert dict back to Prisma model)
         return type('UserProfile', (), cached_profile)
     
-    db = Prisma()
-    db.connect()
-    
-    try:
-        profile = db.userprofile.find_unique(
-            where={'handle': handle}
-        )
-        
-        # Cache the profile if found
-        if profile:
-            # Convert to dict for caching
-            profile_dict = {
-                'id': profile.id,
-                'clerk_user_id': profile.clerk_user_id,
-                'handle': profile.handle,
-                'display_name': profile.display_name,
-                'bio': profile.bio,
-                'avatar_key': profile.avatar_key,
-                'created_at': profile.created_at.isoformat() if profile.created_at else None,
-                'updated_at': profile.updated_at.isoformat() if profile.updated_at else None,
-            }
-            
-            ttl = cache_manager.get_ttl_for_type('user_profile')
-            cache_manager.set(cache_key, profile_dict, ttl=ttl, tags=[f'user:{profile.id}'])
-        
-        return profile
-        
-    except Exception:
-        return None
-    finally:
-        db.disconnect()
+    async def _get_profile():
+        db = Prisma()
+        await db.connect()
+
+        try:
+            profile = await db.userprofile.find_unique(
+                where={'handle': handle}
+            )
+
+            if profile:
+                profile_dict = {
+                    'id': profile.id,
+                    'clerk_user_id': profile.clerk_user_id,
+                    'handle': profile.handle,
+                    'display_name': profile.display_name,
+                    'bio': profile.bio,
+                    'avatar_key': profile.avatar_key,
+                    'created_at': profile.created_at.isoformat() if profile.created_at else None,
+                    'updated_at': profile.updated_at.isoformat() if profile.updated_at else None,
+                }
+
+                ttl = cache_manager.get_ttl_for_type('user_profile')
+                cache_manager.set(cache_key, profile_dict, ttl=ttl, tags=[f'user:{profile.id}'])
+
+            return profile
+        except Exception:
+            return None
+        finally:
+            await db.disconnect()
+
+    return _run_async(_get_profile())
 
 
 @api_view(['GET'])
@@ -324,7 +355,17 @@ def user_by_handle(request, handle):
     import json
     
     last_modified = profile.updated_at
-    etag = OfflineSupportService.generate_etag(json.dumps(profile_data, default=str))
+    if isinstance(last_modified, str):
+        try:
+            last_modified = datetime.fromisoformat(last_modified.replace('Z', '+00:00'))
+        except ValueError:
+            last_modified = datetime.now()
+
+    if not isinstance(last_modified, datetime):
+        last_modified = datetime.now()
+
+    stable_etag_payload = f"{profile_data.get('id')}:{int(last_modified.timestamp())}"
+    etag = OfflineSupportService.generate_etag(stable_etag_payload)
     
     # Check if client has fresh cached content
     if OfflineSupportService.check_conditional_request(request, last_modified, etag):

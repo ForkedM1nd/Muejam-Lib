@@ -9,11 +9,44 @@ Validates Requirements: 9.1, 9.2, 9.3, 9.4
 
 import pytest
 import json
+import asyncio
+import threading
+import uuid
 from datetime import datetime
 from django.test import RequestFactory
 from django.http import HttpRequest
 from rest_framework.test import APIClient
 from apps.core.offline_support_service import OfflineSupportService
+
+
+def _run_async(coro):
+    """Run async Prisma operations from sync tests."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+
+    result = {}
+    error = {}
+
+    def _runner():
+        try:
+            result['value'] = asyncio.run(coro)
+        except Exception as exc:
+            error['value'] = exc
+
+    thread = threading.Thread(target=_runner)
+    thread.start()
+    thread.join()
+
+    if 'value' in error:
+        raise error['value']
+
+    return result.get('value')
 
 
 @pytest.mark.django_db
@@ -52,31 +85,34 @@ class TestOfflineSupportIntegration:
         Validates: Requirement 9.1, 9.4
         """
         from prisma import Prisma
+        unique = uuid.uuid4().hex[:8]
         
         # Create a test story
         prisma_db = Prisma()
-        prisma_db.connect()
-        
-        # Create test user profile first
-        profile = prisma_db.userprofile.create(
-            data={
-                'clerk_user_id': 'test_user_123',
-                'handle': 'testuser',
-                'display_name': 'Test User',
-            }
-        )
-        
-        story = prisma_db.story.create(
-            data={
-                'title': 'Test Story',
-                'blurb': 'Test blurb',
-                'slug': 'test-story',
-                'author_id': profile.id,
-                'published': True,
-            }
-        )
-        
-        prisma_db.disconnect()
+
+        async def _setup_story():
+            await prisma_db.connect()
+            try:
+                profile = await prisma_db.userprofile.create(
+                    data={
+                        'clerk_user_id': f'test_user_123_{unique}',
+                        'handle': f'testuser_{unique}',
+                        'display_name': 'Test User',
+                    }
+                )
+                return await prisma_db.story.create(
+                    data={
+                        'title': 'Test Story',
+                        'blurb': 'Test blurb',
+                        'slug': f'test-story-{unique}',
+                        'author_id': profile.id,
+                        'published': True,
+                    }
+                )
+            finally:
+                await prisma_db.disconnect()
+
+        story = _run_async(_setup_story())
         
         # Make request to story detail endpoint
         response = self.client.get(f'/v1/stories/{story.slug}')
@@ -93,31 +129,34 @@ class TestOfflineSupportIntegration:
         Validates: Requirement 9.2, 9.3
         """
         from prisma import Prisma
+        unique = uuid.uuid4().hex[:8]
         
         # Create a test story
         prisma_db = Prisma()
-        prisma_db.connect()
-        
-        # Create test user profile first
-        profile = prisma_db.userprofile.create(
-            data={
-                'clerk_user_id': 'test_user_456',
-                'handle': 'testuser2',
-                'display_name': 'Test User 2',
-            }
-        )
-        
-        story = prisma_db.story.create(
-            data={
-                'title': 'Test Story 2',
-                'blurb': 'Test blurb 2',
-                'slug': 'test-story-2',
-                'author_id': profile.id,
-                'published': True,
-            }
-        )
-        
-        prisma_db.disconnect()
+
+        async def _setup_story():
+            await prisma_db.connect()
+            try:
+                profile = await prisma_db.userprofile.create(
+                    data={
+                        'clerk_user_id': f'test_user_456_{unique}',
+                        'handle': f'testuser2_{unique}',
+                        'display_name': 'Test User 2',
+                    }
+                )
+                return await prisma_db.story.create(
+                    data={
+                        'title': 'Test Story 2',
+                        'blurb': 'Test blurb 2',
+                        'slug': f'test-story-2-{unique}',
+                        'author_id': profile.id,
+                        'published': True,
+                    }
+                )
+            finally:
+                await prisma_db.disconnect()
+
+        story = _run_async(_setup_story())
         
         # First request to get ETag
         response1 = self.client.get(f'/v1/stories/{story.slug}')
@@ -142,31 +181,34 @@ class TestOfflineSupportIntegration:
         Validates: Requirement 9.1, 9.4
         """
         from prisma import Prisma
+        unique = uuid.uuid4().hex[:8]
         
         # Create a test story with chapters
         prisma_db = Prisma()
-        prisma_db.connect()
-        
-        # Create test user profile
-        profile = prisma_db.userprofile.create(
-            data={
-                'clerk_user_id': 'test_user_789',
-                'handle': 'testuser3',
-                'display_name': 'Test User 3',
-            }
-        )
-        
-        story = prisma_db.story.create(
-            data={
-                'title': 'Test Story 3',
-                'blurb': 'Test blurb 3',
-                'slug': 'test-story-3',
-                'author_id': profile.id,
-                'published': True,
-            }
-        )
-        
-        prisma_db.disconnect()
+
+        async def _setup_story():
+            await prisma_db.connect()
+            try:
+                profile = await prisma_db.userprofile.create(
+                    data={
+                        'clerk_user_id': f'test_user_789_{unique}',
+                        'handle': f'testuser3_{unique}',
+                        'display_name': 'Test User 3',
+                    }
+                )
+                return await prisma_db.story.create(
+                    data={
+                        'title': 'Test Story 3',
+                        'blurb': 'Test blurb 3',
+                        'slug': f'test-story-3-{unique}',
+                        'author_id': profile.id,
+                        'published': True,
+                    }
+                )
+            finally:
+                await prisma_db.disconnect()
+
+        story = _run_async(_setup_story())
         
         # Make request to chapter list endpoint
         response = self.client.get(f'/v1/stories/{story.id}/chapters')
@@ -183,40 +225,42 @@ class TestOfflineSupportIntegration:
         Validates: Requirement 9.2, 9.3
         """
         from prisma import Prisma
+        unique = uuid.uuid4().hex[:8]
         
         # Create a test chapter
         prisma_db = Prisma()
-        prisma_db.connect()
-        
-        # Create test user profile
-        profile = prisma_db.userprofile.create(
-            data={
-                'clerk_user_id': 'test_user_101',
-                'handle': 'testuser4',
-                'display_name': 'Test User 4',
-            }
-        )
-        
-        story = prisma_db.story.create(
-            data={
-                'title': 'Test Story 4',
-                'blurb': 'Test blurb 4',
-                'slug': 'test-story-4',
-                'author_id': profile.id,
-                'published': True,
-            }
-        )
-        
-        chapter = prisma_db.chapter.create(
-            data={
-                'story_id': story.id,
-                'title': 'Test Chapter',
-                'content': 'Test content',
-                'chapter_number': 1,
-            }
-        )
-        
-        prisma_db.disconnect()
+
+        async def _setup_chapter():
+            await prisma_db.connect()
+            try:
+                profile = await prisma_db.userprofile.create(
+                    data={
+                        'clerk_user_id': f'test_user_101_{unique}',
+                        'handle': f'testuser4_{unique}',
+                        'display_name': 'Test User 4',
+                    }
+                )
+                story = await prisma_db.story.create(
+                    data={
+                        'title': 'Test Story 4',
+                        'blurb': 'Test blurb 4',
+                        'slug': f'test-story-4-{unique}',
+                        'author_id': profile.id,
+                        'published': True,
+                    }
+                )
+                return await prisma_db.chapter.create(
+                    data={
+                        'story_id': story.id,
+                        'title': 'Test Chapter',
+                        'content': 'Test content',
+                        'chapter_number': 1,
+                    }
+                )
+            finally:
+                await prisma_db.disconnect()
+
+        chapter = _run_async(_setup_chapter())
         
         # First request to get ETag
         response1 = self.client.get(f'/v1/chapters/{chapter.id}')
@@ -255,29 +299,34 @@ class TestOfflineSupportIntegration:
         Validates: Requirement 9.2, 9.3
         """
         from prisma import Prisma
+        unique = uuid.uuid4().hex[:8]
         
         # Create a test user profile
         prisma_db = Prisma()
-        prisma_db.connect()
-        
-        profile = prisma_db.userprofile.create(
-            data={
-                'clerk_user_id': 'test_user_202',
-                'handle': 'testuser5',
-                'display_name': 'Test User 5',
-            }
-        )
-        
-        prisma_db.disconnect()
+
+        async def _setup_profile():
+            await prisma_db.connect()
+            try:
+                return await prisma_db.userprofile.create(
+                    data={
+                        'clerk_user_id': f'test_user_202_{unique}',
+                        'handle': f'testuser5_{unique}',
+                        'display_name': 'Test User 5',
+                    }
+                )
+            finally:
+                await prisma_db.disconnect()
+
+        profile = _run_async(_setup_profile())
         
         # First request to get ETag
-        response1 = self.client.get(f'/v1/users/{profile.handle}')
+        response1 = self.client.get(f'/v1/users/{profile.handle}/')
         assert response1.status_code == 200
         etag = response1['ETag']
         
         # Second request with If-None-Match header
         response2 = self.client.get(
-            f'/v1/users/{profile.handle}',
+            f'/v1/users/{profile.handle}/',
             HTTP_IF_NONE_MATCH=etag
         )
         
@@ -294,30 +343,34 @@ class TestOfflineSupportIntegration:
         """
         from prisma import Prisma
         from django.utils.http import http_date
+        unique = uuid.uuid4().hex[:8]
         
         # Create a test story
         prisma_db = Prisma()
-        prisma_db.connect()
-        
-        profile = prisma_db.userprofile.create(
-            data={
-                'clerk_user_id': 'test_user_303',
-                'handle': 'testuser6',
-                'display_name': 'Test User 6',
-            }
-        )
-        
-        story = prisma_db.story.create(
-            data={
-                'title': 'Test Story 5',
-                'blurb': 'Test blurb 5',
-                'slug': 'test-story-5',
-                'author_id': profile.id,
-                'published': True,
-            }
-        )
-        
-        prisma_db.disconnect()
+
+        async def _setup_story():
+            await prisma_db.connect()
+            try:
+                profile = await prisma_db.userprofile.create(
+                    data={
+                        'clerk_user_id': f'test_user_303_{unique}',
+                        'handle': f'testuser6_{unique}',
+                        'display_name': 'Test User 6',
+                    }
+                )
+                return await prisma_db.story.create(
+                    data={
+                        'title': 'Test Story 5',
+                        'blurb': 'Test blurb 5',
+                        'slug': f'test-story-5-{unique}',
+                        'author_id': profile.id,
+                        'published': True,
+                    }
+                )
+            finally:
+                await prisma_db.disconnect()
+
+        story = _run_async(_setup_story())
         
         # First request to get Last-Modified
         response1 = self.client.get(f'/v1/stories/{story.slug}')

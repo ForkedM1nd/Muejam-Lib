@@ -22,8 +22,8 @@ class TestDeviceTokenRegistration:
         service = PushNotificationService()
         
         with patch.object(service, '_ensure_connected', new_callable=AsyncMock), \
-             patch.object(service.prisma.devicetoken, 'find_unique', new_callable=AsyncMock, return_value=None), \
-             patch.object(service.prisma.devicetoken, 'create', new_callable=AsyncMock) as mock_create:
+             patch('prisma.actions.DeviceTokenActions.find_unique', new_callable=AsyncMock, return_value=None), \
+             patch('prisma.actions.DeviceTokenActions.create', new_callable=AsyncMock) as mock_create:
             
             mock_token = Mock()
             mock_token.id = 'device123'
@@ -57,8 +57,8 @@ class TestDeviceTokenRegistration:
         service = PushNotificationService()
         
         with patch.object(service, '_ensure_connected', new_callable=AsyncMock), \
-             patch.object(service.prisma.devicetoken, 'find_unique', new_callable=AsyncMock, return_value=None), \
-             patch.object(service.prisma.devicetoken, 'create', new_callable=AsyncMock) as mock_create:
+             patch('prisma.actions.DeviceTokenActions.find_unique', new_callable=AsyncMock, return_value=None), \
+             patch('prisma.actions.DeviceTokenActions.create', new_callable=AsyncMock) as mock_create:
             
             mock_token = Mock()
             mock_token.id = 'device456'
@@ -103,8 +103,8 @@ class TestDeviceTokenRegistration:
         service = PushNotificationService()
         
         with patch.object(service, '_ensure_connected', new_callable=AsyncMock), \
-             patch.object(service.prisma.devicetoken, 'find_unique', new_callable=AsyncMock) as mock_find, \
-             patch.object(service.prisma.devicetoken, 'update', new_callable=AsyncMock) as mock_update:
+             patch('prisma.actions.DeviceTokenActions.find_unique', new_callable=AsyncMock) as mock_find, \
+             patch('prisma.actions.DeviceTokenActions.update', new_callable=AsyncMock) as mock_update:
             
             # Existing token
             existing_token = Mock()
@@ -149,8 +149,8 @@ class TestDeviceTokenUnregistration:
         service = PushNotificationService()
         
         with patch.object(service, '_ensure_connected', new_callable=AsyncMock), \
-             patch.object(service.prisma.devicetoken, 'find_unique', new_callable=AsyncMock) as mock_find, \
-             patch.object(service.prisma.devicetoken, 'update', new_callable=AsyncMock) as mock_update:
+             patch('prisma.actions.DeviceTokenActions.find_unique', new_callable=AsyncMock) as mock_find, \
+             patch('prisma.actions.DeviceTokenActions.update', new_callable=AsyncMock) as mock_update:
             
             mock_token = Mock()
             mock_token.id = 'device123'
@@ -169,7 +169,7 @@ class TestDeviceTokenUnregistration:
         service = PushNotificationService()
         
         with patch.object(service, '_ensure_connected', new_callable=AsyncMock), \
-             patch.object(service.prisma.devicetoken, 'find_unique', new_callable=AsyncMock, return_value=None):
+             patch('prisma.actions.DeviceTokenActions.find_unique', new_callable=AsyncMock, return_value=None):
             
             result = await service.unregister_device('nonexistent_token')
             
@@ -186,7 +186,7 @@ class TestGetUserDevices:
         service = PushNotificationService()
         
         with patch.object(service, '_ensure_connected', new_callable=AsyncMock), \
-             patch.object(service.prisma.devicetoken, 'find_many', new_callable=AsyncMock) as mock_find:
+             patch('prisma.actions.DeviceTokenActions.find_many', new_callable=AsyncMock) as mock_find:
             
             mock_device1 = Mock()
             mock_device1.id = 'device1'
@@ -215,7 +215,7 @@ class TestGetUserDevices:
         service = PushNotificationService()
         
         with patch.object(service, '_ensure_connected', new_callable=AsyncMock), \
-             patch.object(service.prisma.devicetoken, 'find_many', new_callable=AsyncMock, return_value=[]):
+             patch('prisma.actions.DeviceTokenActions.find_many', new_callable=AsyncMock, return_value=[]):
             
             result = await service.get_user_devices('user123')
             
@@ -361,6 +361,7 @@ class TestFCMIntegration:
         """Test FCM with invalid token."""
         service = PushNotificationService()
         service.fcm_server_key = 'test_key'
+        from apps.notifications.push_service import InvalidTokenException
         
         mock_response = Mock()
         mock_response.status_code = 200
@@ -374,12 +375,12 @@ class TestFCMIntegration:
             
             mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
             
-            result = await service._send_to_fcm(
-                token='invalid_token',
-                payload={'title': 'Test', 'body': 'Message'}
-            )
-            
-            assert result is False
+            with pytest.raises(InvalidTokenException):
+                await service._send_to_fcm(
+                    token='invalid_token',
+                    payload={'title': 'Test', 'body': 'Message'}
+                )
+
             mock_handle.assert_called_once_with('invalid_token')
     
     async def test_send_to_fcm_no_server_key(self):
@@ -426,6 +427,7 @@ class TestAPNsIntegration:
         service.apns_key_id = 'key123'
         service.apns_team_id = 'team123'
         service.apns_bundle_id = 'com.example.app'
+        from apps.notifications.push_service import InvalidTokenException
         
         mock_response = Mock()
         mock_response.status_code = 400
@@ -436,12 +438,12 @@ class TestAPNsIntegration:
             
             mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
             
-            result = await service._send_to_apns(
-                token='invalid_token',
-                payload={'title': 'Test', 'body': 'Message'}
-            )
-            
-            assert result is False
+            with pytest.raises(InvalidTokenException):
+                await service._send_to_apns(
+                    token='invalid_token',
+                    payload={'title': 'Test', 'body': 'Message'}
+                )
+
             mock_handle.assert_called_once_with('invalid_token')
     
     async def test_send_to_apns_incomplete_config(self):
@@ -469,7 +471,7 @@ class TestNotificationLogging:
         service = PushNotificationService()
         
         with patch.object(service, '_ensure_connected', new_callable=AsyncMock), \
-             patch.object(service.prisma.pushnotificationlog, 'create', new_callable=AsyncMock) as mock_create:
+             patch('prisma.actions.PushNotificationLogActions.create', new_callable=AsyncMock) as mock_create:
             
             await service._log_notification(
                 device_token_id='device123',
@@ -489,7 +491,7 @@ class TestNotificationLogging:
         service = PushNotificationService()
         
         with patch.object(service, '_ensure_connected', new_callable=AsyncMock), \
-             patch.object(service.prisma.pushnotificationlog, 'create', new_callable=AsyncMock) as mock_create:
+             patch('prisma.actions.PushNotificationLogActions.create', new_callable=AsyncMock) as mock_create:
             
             await service._log_notification(
                 device_token_id='device123',

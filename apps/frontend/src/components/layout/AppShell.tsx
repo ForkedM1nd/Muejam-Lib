@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { UserButton } from "@clerk/clerk-react";
 import { Search, Menu, X, Bell, Moon, Sun, User, Settings, LogOut, Bookmark } from "lucide-react";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -68,17 +68,25 @@ function SearchBar() {
     staleTime: 30_000,
   });
 
-  const allItems = [
-    ...(suggestions?.stories?.map((s) => ({ type: "story" as const, label: s.title, slug: s.slug })) ?? []),
-    ...(suggestions?.authors?.map((a) => ({ type: "author" as const, label: a.display_name, handle: a.handle })) ?? []),
-    ...(suggestions?.tags?.map((t) => ({ type: "tag" as const, label: t.name, slug: t.slug })) ?? []),
-  ];
+  type SearchItem =
+    | { type: "story"; label: string; slug: string }
+    | { type: "author"; label: string; handle: string }
+    | { type: "tag"; label: string; slug: string };
+
+  const allItems: SearchItem[] = useMemo(
+    () => [
+      ...(suggestions?.stories?.map((s) => ({ type: "story" as const, label: s.title, slug: s.slug })) ?? []),
+      ...(suggestions?.authors?.map((a) => ({ type: "author" as const, label: a.display_name, handle: a.handle })) ?? []),
+      ...(suggestions?.tags?.map((t) => ({ type: "tag" as const, label: t.name, slug: t.slug })) ?? []),
+    ],
+    [suggestions]
+  );
 
   const submit = useCallback(() => {
     if (selectedIdx >= 0 && selectedIdx < allItems.length) {
       const item = allItems[selectedIdx];
       if (item.type === "story") navigate(`/story/${item.slug}`);
-      else if (item.type === "author") navigate(`/u/${(item as any).handle}`);
+      else if (item.type === "author") navigate(`/u/${item.handle}`);
       else navigate(`/search?q=${encodeURIComponent(item.label)}`);
     } else if (query.trim()) {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
@@ -219,7 +227,7 @@ function AuthButtons() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => navigate("/settings")}>
+            <DropdownMenuItem onClick={() => navigate("/settings/profile")}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>

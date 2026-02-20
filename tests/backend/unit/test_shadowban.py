@@ -55,7 +55,7 @@ class TestShadowban:
         mock_db.shadowban.create = AsyncMock(return_value=mock_shadowban)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.apply_shadowban(
                 user_id=user_id,
                 applied_by=applied_by,
@@ -95,7 +95,7 @@ class TestShadowban:
         mock_db.shadowban.find_first = AsyncMock(return_value=mock_shadowban)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.check_shadowban(user_id)
         
         # Assert
@@ -115,7 +115,7 @@ class TestShadowban:
         mock_db.shadowban.find_first = AsyncMock(return_value=None)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.check_shadowban(user_id)
         
         # Assert
@@ -139,7 +139,7 @@ class TestShadowban:
         mock_db.shadowban.find_first = AsyncMock(return_value=mock_shadowban)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.is_shadowbanned(user_id)
         
         # Assert
@@ -157,7 +157,7 @@ class TestShadowban:
         mock_db.shadowban.find_first = AsyncMock(return_value=None)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.is_shadowbanned(user_id)
         
         # Assert
@@ -175,7 +175,7 @@ class TestShadowban:
         mock_db.shadowban.update_many = AsyncMock(return_value=1)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.remove_shadowban(user_id, removed_by)
         
         # Assert
@@ -194,7 +194,7 @@ class TestShadowban:
         mock_db.shadowban.update_many = AsyncMock(return_value=0)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.remove_shadowban(user_id, removed_by)
         
         # Assert
@@ -216,7 +216,7 @@ class TestShadowban:
         mock_db.shadowban.find_many = AsyncMock(return_value=[])
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.filter_shadowbanned_content(
                 content_list,
                 requesting_user_id='user-3'
@@ -247,7 +247,7 @@ class TestShadowban:
         mock_db.moderatorrole.find_first = AsyncMock(return_value=None)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.filter_shadowbanned_content(
                 content_list,
                 requesting_user_id='user-1'
@@ -278,7 +278,7 @@ class TestShadowban:
         mock_db.moderatorrole.find_first = AsyncMock(return_value=None)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.filter_shadowbanned_content(
                 content_list,
                 requesting_user_id='user-2'  # Shadowbanned user viewing their own content
@@ -311,7 +311,7 @@ class TestShadowban:
         mock_db.moderatorrole.find_first = AsyncMock(return_value=mock_moderator_role)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.filter_shadowbanned_content(
                 content_list,
                 requesting_user_id='moderator-1'
@@ -340,7 +340,7 @@ class TestShadowban:
         mock_db.moderatorrole.find_first = AsyncMock(return_value=None)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.filter_shadowbanned_content(
                 content_list,
                 requesting_user_id='user-3'
@@ -378,7 +378,7 @@ class TestShadowban:
         mock_db.shadowban.find_many = AsyncMock(return_value=mock_shadowbans)
         
         # Act
-        with patch('infrastructure.shadowban.Prisma', return_value=mock_db):
+        with patch('apps.moderation.shadowban.Prisma', return_value=mock_db):
             result = await shadowban_service.get_shadowban_history(user_id)
         
         # Assert

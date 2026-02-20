@@ -345,8 +345,8 @@ class BackgroundJobTests(TestCase):
                 )
                 
                 # Create stats with known values
-                today = datetime.now().date()
-                await db.story_stats_daily.create(
+                today = datetime.now()
+                await db.storystatsdaily.create(
                     data={
                         'story_id': story.id,
                         'date': today,
@@ -373,7 +373,7 @@ class BackgroundJobTests(TestCase):
                 self.assertLess(score, expected_max, f"Score {score} should be < {expected_max}")
                 
                 # Cleanup
-                await db.story_stats_daily.delete_many(where={'story_id': story.id})
+                await db.storystatsdaily.delete_many(where={'story_id': story.id})
                 await db.story.delete(where={'id': story.id})
                 await db.userprofile.delete(where={'id': test_user.id})
                 
@@ -494,8 +494,8 @@ class BackgroundJobTests(TestCase):
                 )
                 
                 # Create initial stats
-                today = datetime.now().date()
-                await db.story_stats_daily.create(
+                today = datetime.now()
+                await db.storystatsdaily.create(
                     data={
                         'story_id': story.id,
                         'date': today,
@@ -511,7 +511,7 @@ class BackgroundJobTests(TestCase):
                 update_trending_scores()
                 
                 # Verify score was updated
-                updated_stats = await db.story_stats_daily.find_unique(
+                updated_stats = await db.storystatsdaily.find_unique(
                     where={
                         'story_id_date': {
                             'story_id': story.id,
@@ -527,7 +527,7 @@ class BackgroundJobTests(TestCase):
                 )
                 
                 # Cleanup
-                await db.story_stats_daily.delete_many(where={'story_id': story.id})
+                await db.storystatsdaily.delete_many(where={'story_id': story.id})
                 await db.story.delete(where={'id': story.id})
                 await db.userprofile.delete(where={'id': test_user.id})
                 

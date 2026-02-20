@@ -7,7 +7,12 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, Mock, patch
 from apps.users.password_reset.services.password_reset_service import PasswordResetService
-from apps.users.password_reset.types import TokenData, AuditEventType
+from apps.users.password_reset.types import (
+    AuditEventType,
+    TokenData,
+    TokenValidationResult,
+    ValidationResult,
+)
 
 
 @pytest.fixture
@@ -339,8 +344,6 @@ class TestValidateToken:
         mock_audit_logger
     ):
         """Test validation of a valid token (Requirement 4.1)."""
-        from ..types import TokenValidationResult
-        
         # Mock valid token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=True,
@@ -374,8 +377,6 @@ class TestValidateToken:
         mock_audit_logger
     ):
         """Test validation of an expired token (Requirement 4.2)."""
-        from ..types import TokenValidationResult
-        
         # Mock expired token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=False,
@@ -406,8 +407,6 @@ class TestValidateToken:
         mock_audit_logger
     ):
         """Test validation of an invalid token (Requirement 4.3)."""
-        from ..types import TokenValidationResult
-        
         # Mock invalid token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=False,
@@ -437,8 +436,6 @@ class TestValidateToken:
         mock_audit_logger
     ):
         """Test validation of a previously used token (Requirement 4.4)."""
-        from ..types import TokenValidationResult
-        
         # Mock used token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=False,
@@ -469,8 +466,6 @@ class TestValidateToken:
         mock_audit_logger
     ):
         """Test validation of a manually invalidated token."""
-        from ..types import TokenValidationResult
-        
         # Mock invalidated token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=False,
@@ -509,8 +504,6 @@ class TestResetPassword:
         mock_audit_logger
     ):
         """Test successful password reset flow (Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 8.1, 9.3)."""
-        from ..types import TokenValidationResult
-        
         # Mock valid token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=True,
@@ -581,8 +574,6 @@ class TestResetPassword:
         mock_user_repository
     ):
         """Test password reset with invalid token (Requirement 5.4)."""
-        from ..types import TokenValidationResult
-        
         # Mock invalid token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=False,
@@ -616,8 +607,6 @@ class TestResetPassword:
         mock_user_repository
     ):
         """Test password reset with mismatched passwords (Requirement 5.3)."""
-        from ..types import TokenValidationResult
-        
         # Mock valid token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=True,
@@ -661,8 +650,6 @@ class TestResetPassword:
         mock_user_repository
     ):
         """Test password reset with weak password (Requirement 5.1)."""
-        from ..types import TokenValidationResult, ValidationResult
-        
         # Mock valid token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=True,
@@ -708,8 +695,6 @@ class TestResetPassword:
         mock_user_repository
     ):
         """Test password reset when user is not found."""
-        from ..types import TokenValidationResult
-        
         # Mock valid token
         mock_token_service.validate_token.return_value = TokenValidationResult(
             valid=True,
@@ -749,7 +734,6 @@ class TestResetPassword:
         mock_audit_logger
     ):
         """Test that password is hashed before storage (Requirement 6.5)."""
-        from ..types import TokenValidationResult
         import bcrypt
         
         # Mock valid token

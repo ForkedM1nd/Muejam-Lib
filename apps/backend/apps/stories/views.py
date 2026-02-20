@@ -1,6 +1,8 @@
 """Views for story and chapter management."""
 import logging
 import asyncio
+import threading
+import inspect
 from datetime import datetime
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -31,6 +33,48 @@ logger = logging.getLogger(__name__)
 
 # Initialize cache manager
 cache_manager = CacheManager()
+
+
+def _run_async(coro):
+    """Run async Prisma calls from sync DRF views."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+
+    result = {}
+    error = {}
+
+    def _runner():
+        try:
+            result['value'] = asyncio.run(coro)
+        except Exception as exc:
+            error['value'] = exc
+
+    thread = threading.Thread(target=_runner)
+    thread.start()
+    thread.join()
+
+    if 'value' in error:
+        raise error['value']
+
+    return result.get('value')
+
+
+async def _maybe_await(value):
+    """Await value when needed, otherwise return directly."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
+
+
+def sanitize_markdown(content: str) -> str:
+    """Sanitize story/chapter markdown-derived HTML content."""
+    return ContentSanitizer.sanitize_rich_content(content)
 
 
 @extend_schema(
@@ -380,40 +424,39 @@ def _list_stories(request):
         if blocked_ids:
             where['author_id'] = {'notIn': blocked_ids}
     
-    # Query database
     db = Prisma()
-    
+
     try:
-        db.connect()
-        
-        # Apply cursor pagination
-        query_args = {
-            'where': where,
-            'order': {'created_at': 'desc'},
-            'take': page_size + 1,  # Fetch one extra to check if there's more
-        }
-        
-        if cursor:
-            query_args['cursor'] = {'id': cursor}
-            query_args['skip'] = 1  # Skip the cursor item itself
-        
-        stories = db.story.find_many(**query_args)
-        
-        # Check if there are more results
-        has_next = len(stories) > page_size
-        if has_next:
-            stories = stories[:page_size]
-        
-        # Generate next cursor
-        next_cursor = stories[-1].id if has_next and stories else None
-        
-        # Calculate last modified time from most recent story
-        last_modified = max(
-            (story.updated_at for story in stories),
-            default=datetime.now()
-        ) if stories else datetime.now()
-        
-        db.disconnect()
+        async def _fetch_stories():
+            await _maybe_await(db.connect())
+            try:
+                query_args = {
+                    'where': where,
+                    'order': {'created_at': 'desc'},
+                    'take': page_size + 1,
+                }
+
+                if cursor:
+                    query_args['cursor'] = {'id': cursor}
+                    query_args['skip'] = 1
+
+                fetched_stories = await _maybe_await(db.story.find_many(**query_args))
+
+                has_next_local = len(fetched_stories) > page_size
+                if has_next_local:
+                    fetched_stories = fetched_stories[:page_size]
+
+                next_cursor_local = fetched_stories[-1].id if has_next_local and fetched_stories else None
+                last_modified_local = max(
+                    (story.updated_at for story in fetched_stories),
+                    default=datetime.now()
+                ) if fetched_stories else datetime.now()
+
+                return fetched_stories, next_cursor_local, last_modified_local
+            finally:
+                await _maybe_await(db.disconnect())
+
+        stories, next_cursor, last_modified = _run_async(_fetch_stories())
         
         # Serialize response
         serializer = StoryListSerializer(stories, many=True)
@@ -436,7 +479,6 @@ def _list_stories(request):
         
     except Exception as e:
         logger.error(f"Error listing stories: {e}")
-        db.disconnect()
         return Response(
             {
                 'error': {
@@ -486,20 +528,48 @@ def get_story_by_slug(request, slug):
                     },
                     status=status.HTTP_403_FORBIDDEN
                 )
-        
-        return Response({'data': cached_story})
+
+        from apps.core.offline_support_service import OfflineSupportService
+        import json
+
+        cached_last_modified = cached_story.get('updated_at')
+        if isinstance(cached_last_modified, str):
+            try:
+                cached_last_modified = datetime.fromisoformat(
+                    cached_last_modified.replace('Z', '+00:00')
+                )
+            except ValueError:
+                cached_last_modified = datetime.now()
+        elif not isinstance(cached_last_modified, datetime):
+            cached_last_modified = datetime.now()
+
+        cached_etag = OfflineSupportService.generate_etag(
+            json.dumps(cached_story, default=str)
+        )
+
+        if OfflineSupportService.check_conditional_request(request, cached_last_modified, cached_etag):
+            response = OfflineSupportService.create_not_modified_response()
+            OfflineSupportService.add_cache_headers(response, cached_last_modified, cached_etag)
+            return response
+
+        response = Response({'data': cached_story})
+        OfflineSupportService.add_cache_headers(response, cached_last_modified, cached_etag)
+        return response
     
     db = Prisma()
-    
+
     try:
-        db.connect()
-        
-        story = db.story.find_unique(
-            where={'slug': slug},
-            include={'author': True}
-        )
-        
-        db.disconnect()
+        async def _fetch_story():
+            await _maybe_await(db.connect())
+            try:
+                return await _maybe_await(db.story.find_unique(
+                    where={'slug': slug},
+                    include={'author': True}
+                ))
+            finally:
+                await _maybe_await(db.disconnect())
+
+        story = _run_async(_fetch_story())
         
         if not story or story.deleted_at:
             return Response(
@@ -557,7 +627,6 @@ def get_story_by_slug(request, slug):
         
     except Exception as e:
         logger.error(f"Error getting story: {e}")
-        db.disconnect()
         return Response(
             {
                 'error': {
@@ -955,16 +1024,49 @@ def list_chapters(request, story_id):
     cursor = request.query_params.get('cursor')
     page_size = min(int(request.query_params.get('page_size', 20)), 100)
     
-    # Query database
     db = Prisma()
-    
+
     try:
-        db.connect()
-        
-        # Check if story exists
-        story = db.story.find_unique(where={'id': story_id})
-        if not story or story.deleted_at:
-            db.disconnect()
+        async def _fetch_chapters():
+            await db.connect()
+            try:
+                story = await db.story.find_unique(where={'id': story_id})
+                if not story or story.deleted_at:
+                    return None, None, None
+
+                where = {
+                    'story_id': story_id,
+                    'deleted_at': None
+                }
+
+                query_args = {
+                    'where': where,
+                    'order': {'chapter_number': 'asc'},
+                    'take': page_size + 1,
+                }
+
+                if cursor:
+                    query_args['cursor'] = {'id': cursor}
+                    query_args['skip'] = 1
+
+                fetched_chapters = await db.chapter.find_many(**query_args)
+                has_next_local = len(fetched_chapters) > page_size
+                if has_next_local:
+                    fetched_chapters = fetched_chapters[:page_size]
+
+                next_cursor_local = fetched_chapters[-1].id if has_next_local and fetched_chapters else None
+                last_modified_local = max(
+                    (chapter.updated_at for chapter in fetched_chapters),
+                    default=datetime.now()
+                ) if fetched_chapters else datetime.now()
+
+                return fetched_chapters, next_cursor_local, last_modified_local
+            finally:
+                await db.disconnect()
+
+        chapters, next_cursor, last_modified = _run_async(_fetch_chapters())
+
+        if chapters is None:
             return Response(
                 {
                     'error': {
@@ -974,41 +1076,6 @@ def list_chapters(request, story_id):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
-        
-        # Build where clause
-        where = {
-            'story_id': story_id,
-            'deleted_at': None  # Exclude soft-deleted chapters
-        }
-        
-        # Apply cursor pagination
-        query_args = {
-            'where': where,
-            'order': {'chapter_number': 'asc'},
-            'take': page_size + 1,
-        }
-        
-        if cursor:
-            query_args['cursor'] = {'id': cursor}
-            query_args['skip'] = 1
-        
-        chapters = db.chapter.find_many(**query_args)
-        
-        # Check if there are more results
-        has_next = len(chapters) > page_size
-        if has_next:
-            chapters = chapters[:page_size]
-        
-        # Generate next cursor
-        next_cursor = chapters[-1].id if has_next and chapters else None
-        
-        # Calculate last modified time from most recent chapter
-        last_modified = max(
-            (chapter.updated_at for chapter in chapters),
-            default=datetime.now()
-        ) if chapters else datetime.now()
-        
-        db.disconnect()
         
         # Serialize response
         serializer = ChapterListSerializer(chapters, many=True)
@@ -1031,7 +1098,6 @@ def list_chapters(request, story_id):
         
     except Exception as e:
         logger.error(f"Error listing chapters: {e}")
-        db.disconnect()
         return Response(
             {
                 'error': {
@@ -1061,16 +1127,19 @@ def get_chapter(request, chapter_id):
         - 9.3: Return 304 Not Modified when appropriate
     """
     db = Prisma()
-    
+
     try:
-        db.connect()
-        
-        chapter = db.chapter.find_unique(
-            where={'id': chapter_id},
-            include={'story': True}
-        )
-        
-        db.disconnect()
+        async def _fetch_chapter():
+            await db.connect()
+            try:
+                return await db.chapter.find_unique(
+                    where={'id': chapter_id},
+                    include={'story': True}
+                )
+            finally:
+                await db.disconnect()
+
+        chapter = _run_async(_fetch_chapter())
         
         if not chapter or chapter.deleted_at:
             return Response(
@@ -1109,7 +1178,6 @@ def get_chapter(request, chapter_id):
         
     except Exception as e:
         logger.error(f"Error getting chapter: {e}")
-        db.disconnect()
         return Response(
             {
                 'error': {

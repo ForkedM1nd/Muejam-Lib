@@ -10,7 +10,7 @@ from django.core.cache import cache
 from django.test import TestCase
 import jwt as pyjwt
 
-from .jwt_service import (
+from apps.users.jwt_service import (
     JWTVerificationService,
     JWTVerificationError,
     TokenExpiredError,

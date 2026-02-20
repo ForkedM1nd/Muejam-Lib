@@ -198,14 +198,13 @@ def atomic_api_view(view_func):
     import logging
     from django.db import transaction
     
-    logger = logging.getLogger(__name__)
-    
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         try:
             with transaction.atomic():
                 return view_func(request, *args, **kwargs)
         except Exception as e:
+            logger = logging.getLogger(__name__)
             logger.error(
                 f"Transaction failed in {view_func.__name__}: {e}",
                 exc_info=True,
@@ -254,8 +253,6 @@ def atomic_prisma_view(view_func):
     """
     import logging
     
-    logger = logging.getLogger(__name__)
-    
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         try:
@@ -263,6 +260,7 @@ def atomic_prisma_view(view_func):
             # The view should use a single db connection for all operations
             return view_func(request, *args, **kwargs)
         except Exception as e:
+            logger = logging.getLogger(__name__)
             logger.error(
                 f"Prisma transaction failed in {view_func.__name__}: {e}",
                 exc_info=True,

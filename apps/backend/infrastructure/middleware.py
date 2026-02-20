@@ -229,14 +229,10 @@ class CacheMiddleware(MiddlewareMixin):
             l1_max_size = getattr(settings, 'CACHE_L1_MAX_SIZE', 1000)
             l1_default_ttl = getattr(settings, 'CACHE_L1_DEFAULT_TTL', 60)
             
-            # L2 cache configuration
-            l2_default_ttl = getattr(settings, 'CACHE_L2_DEFAULT_TTL', 300)
-            
             CacheMiddleware._cache_manager = CacheManager(
                 redis_url=redis_url,
                 l1_max_size=l1_max_size,
-                l1_default_ttl=l1_default_ttl,
-                l2_default_ttl=l2_default_ttl
+                l1_default_ttl=l1_default_ttl
             )
             
             # Perform cache warming if configured
@@ -283,9 +279,10 @@ class CacheMiddleware(MiddlewareMixin):
         # Add cache statistics to response headers (for debugging)
         if getattr(settings, 'DEBUG', False) and CacheMiddleware._cache_manager:
             stats = CacheMiddleware._cache_manager.get_stats()
-            response['X-Cache-L1-Hit-Rate'] = f"{stats.l1_hit_rate:.2f}%"
-            response['X-Cache-L2-Hit-Rate'] = f"{stats.l2_hit_rate:.2f}%"
-            response['X-Cache-Overall-Hit-Rate'] = f"{stats.overall_hit_rate:.2f}%"
+            hit_rate = getattr(stats, 'hit_rate', 0.0)
+            response['X-Cache-L1-Hit-Rate'] = f"{hit_rate:.2f}%"
+            response['X-Cache-L2-Hit-Rate'] = f"{hit_rate:.2f}%"
+            response['X-Cache-Overall-Hit-Rate'] = f"{hit_rate:.2f}%"
         
         return response
     

@@ -7,8 +7,8 @@ Requirements: 11.1, 11.2
 import pytest
 from django.test import RequestFactory
 from unittest.mock import patch, MagicMock
-from .certificate_pinning_service import CertificatePinningService
-from .views import get_certificate_fingerprints, verify_certificate_fingerprint
+from apps.security.certificate_pinning_service import CertificatePinningService
+from apps.security.views import get_certificate_fingerprints, verify_certificate_fingerprint
 
 
 class TestCertificatePinningService:

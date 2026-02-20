@@ -12,7 +12,7 @@ Requirements:
 
 import logging
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -231,11 +231,11 @@ def update_mobile_config(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    # Extract request data
-    config_data = request.data.get('config')
-    min_version = request.data.get('min_version')
-    
-    if not config_data:
+    request_data = request.data
+    config_data = request_data.get('config') if hasattr(request_data, 'get') else None
+    min_version = request_data.get('min_version') if hasattr(request_data, 'get') else None
+
+    if config_data is None:
         return Response(
             {
                 'error': {
@@ -289,7 +289,7 @@ def update_mobile_config(request):
             f"Mobile configuration updated by admin",
             extra={
                 'platform': platform,
-                'admin_user_id': request.clerk_user_id,
+                'admin_user_id': getattr(request, 'clerk_user_id', None),
                 'min_version': min_version
             }
         )
@@ -312,7 +312,7 @@ def update_mobile_config(request):
             f"Error updating mobile config: {str(e)}",
             extra={
                 'platform': platform,
-                'admin_user_id': request.clerk_user_id
+                'admin_user_id': getattr(request, 'clerk_user_id', None)
             }
         )
         return Response(

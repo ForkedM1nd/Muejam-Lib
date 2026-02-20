@@ -43,7 +43,7 @@ class TrendingCalculator:
         try:
             # Get today's stats (convert to datetime for Prisma)
             today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            stats = await db.story_stats_daily.find_unique(
+            stats = await db.storystatsdaily.find_unique(
                 where={
                     'story_id_date': {
                         'story_id': story_id,
@@ -98,7 +98,7 @@ class TrendingCalculator:
                 score = await self.calculate_trending_score(story.id)
                 
                 # Update or create today's stats
-                await db.story_stats_daily.upsert(
+                await db.storystatsdaily.upsert(
                     where={
                         'story_id_date': {
                             'story_id': story.id,

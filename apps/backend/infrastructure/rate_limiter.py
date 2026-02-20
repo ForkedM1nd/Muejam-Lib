@@ -366,6 +366,19 @@ class MobileRateLimiter(RateLimiter):
         Returns:
             Requests per minute limit for the client type
         """
+        if DJANGO_AVAILABLE and settings:
+            web_limit = getattr(settings, 'RATE_LIMIT_PER_USER', self.PER_USER_LIMIT)
+            mobile_limit = getattr(
+                settings,
+                'RATE_LIMIT_MOBILE_PER_USER',
+                self.RATE_LIMITS['mobile-ios']
+            )
+
+            if client_type in ('mobile-ios', 'mobile-android'):
+                return mobile_limit
+
+            return web_limit
+
         return self.RATE_LIMITS.get(client_type, self.RATE_LIMITS['default'])
     
     def check_user_limit(self, user_id: str, client_type: str = 'web') -> RateLimitResult:

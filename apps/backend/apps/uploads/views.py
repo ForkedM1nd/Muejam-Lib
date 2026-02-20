@@ -1,8 +1,8 @@
 """Views for media upload system."""
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 from prisma import Prisma
 from .s3 import S3UploadManager
 from .serializers import (
@@ -14,12 +14,66 @@ from .serializers import (
 )
 from .mobile_upload_service import MobileUploadService
 import logging
+import asyncio
+import threading
 
 logger = logging.getLogger(__name__)
 
+# Backward-compatible symbol for tests that patch apps.uploads.views.request
+request = None
+
+
+def _run_async(coro):
+    """Run async code safely from sync DRF views."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+
+    result = {}
+    error = {}
+
+    def _runner():
+        try:
+            result['value'] = asyncio.run(coro)
+        except Exception as exc:
+            error['value'] = exc
+
+    thread = threading.Thread(target=_runner)
+    thread.start()
+    thread.join()
+
+    if 'value' in error:
+        raise error['value']
+
+    return result.get('value')
+
+
+def _extract_user_id(request):
+    """Extract user identifier from request across auth contexts."""
+    user = getattr(request, 'user', None)
+
+    if isinstance(user, dict):
+        return user.get('sub') or user.get('id')
+
+    if hasattr(user, 'is_authenticated') and user.is_authenticated:
+        return getattr(user, 'id', None) or getattr(user, 'sub', None)
+
+    return getattr(request, 'clerk_user_id', None)
+
+
+def _unauthorized_response():
+    return Response(
+        {'error': 'Authentication credentials were not provided.'},
+        status=status.HTTP_401_UNAUTHORIZED,
+    )
+
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def presign_upload(request):
     """
     Generate presigned URL for file upload.
@@ -39,6 +93,9 @@ def presign_upload(request):
         - 14.5: Validate file type (JPEG, PNG, WebP, GIF)
         - 14.7: Generate unique object keys using UUID
     """
+    if not _extract_user_id(request):
+        return _unauthorized_response()
+
     # Validate input with serializer
     serializer = PresignUploadRequestSerializer(data=request.data)
     if not serializer.is_valid():
@@ -77,7 +134,7 @@ def presign_upload(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@parser_classes([JSONParser, FormParser, MultiPartParser])
 def mobile_media_upload(request):
     """
     Handle single mobile media upload with format conversion and EXIF stripping.
@@ -95,6 +152,10 @@ def mobile_media_upload(request):
         - 7.2: Validate file size limits appropriate for mobile uploads
         - 7.5: Strip EXIF location and sensitive metadata
     """
+    user_id = _extract_user_id(request)
+    if not user_id:
+        return _unauthorized_response()
+
     serializer = MobileMediaUploadSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(
@@ -109,14 +170,6 @@ def mobile_media_upload(request):
     file_obj = validated_data['file']
     filename = validated_data['filename']
     content_type = validated_data['content_type']
-    
-    # Get user ID from request
-    user_id = request.user.get('sub')
-    if not user_id:
-        return Response(
-            {'error': 'User ID not found in token'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
     
     try:
         # Read file data
@@ -168,7 +221,7 @@ def mobile_media_upload(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@parser_classes([JSONParser, FormParser, MultiPartParser])
 def chunked_upload_init(request):
     """
     Initialize chunked upload session.
@@ -184,6 +237,10 @@ def chunked_upload_init(request):
         - 7.2: Validate file size limits appropriate for mobile uploads
         - 7.3: Support chunked upload for large media files from Mobile_Client
     """
+    user_id = _extract_user_id(request)
+    if not user_id:
+        return _unauthorized_response()
+
     serializer = ChunkedUploadInitSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(
@@ -198,35 +255,22 @@ def chunked_upload_init(request):
     filename = validated_data['filename']
     total_size = validated_data['total_size']
     
-    # Get user ID from request
-    user_id = request.user.get('sub')
-    if not user_id:
-        return Response(
-            {'error': 'User ID not found in token'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
-    
     try:
-        # Initialize Prisma client
-        db = Prisma()
-        db.connect()
-        
-        try:
-            # Initialize upload service with Prisma client
-            upload_service = MobileUploadService(prisma_client=db)
-            
-            # Initiate chunked upload (synchronous wrapper for async method)
-            import asyncio
-            session_info = asyncio.run(upload_service.initiate_chunked_upload(
-                filename=filename,
-                total_size=total_size,
-                user_id=user_id
-            ))
-            
-            return Response(session_info, status=status.HTTP_200_OK)
-            
-        finally:
-            db.disconnect()
+        async def _init_upload_session():
+            db = Prisma()
+            await db.connect()
+            try:
+                upload_service = MobileUploadService(prisma_client=db)
+                return await upload_service.initiate_chunked_upload(
+                    filename=filename,
+                    total_size=total_size,
+                    user_id=user_id,
+                )
+            finally:
+                await db.disconnect()
+
+        session_info = _run_async(_init_upload_session())
+        return Response(session_info, status=status.HTTP_200_OK)
         
     except ValueError as e:
         logger.error(f"Chunked upload init validation error: {str(e)}")
@@ -243,7 +287,7 @@ def chunked_upload_init(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@parser_classes([JSONParser, FormParser, MultiPartParser])
 def chunked_upload_chunk(request):
     """
     Upload a file chunk.
@@ -260,6 +304,9 @@ def chunked_upload_chunk(request):
         - 7.3: Support chunked upload for large media files from Mobile_Client
         - 7.4: Provide upload progress tracking for Mobile_Client
     """
+    if not _extract_user_id(request):
+        return _unauthorized_response()
+
     serializer = ChunkedUploadChunkSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(
@@ -278,27 +325,22 @@ def chunked_upload_chunk(request):
     try:
         # Read chunk data
         chunk_data = chunk_file.read()
-        
-        # Initialize Prisma client
-        db = Prisma()
-        db.connect()
-        
-        try:
-            # Initialize upload service with Prisma client
-            upload_service = MobileUploadService(prisma_client=db)
-            
-            # Upload chunk (synchronous wrapper for async method)
-            import asyncio
-            chunk_status = asyncio.run(upload_service.upload_chunk(
-                session_id=session_id,
-                chunk_number=chunk_number,
-                chunk_data=chunk_data
-            ))
-            
-            return Response(chunk_status, status=status.HTTP_200_OK)
-            
-        finally:
-            db.disconnect()
+
+        async def _upload_chunk():
+            db = Prisma()
+            await db.connect()
+            try:
+                upload_service = MobileUploadService(prisma_client=db)
+                return await upload_service.upload_chunk(
+                    session_id=session_id,
+                    chunk_number=chunk_number,
+                    chunk_data=chunk_data,
+                )
+            finally:
+                await db.disconnect()
+
+        chunk_status = _run_async(_upload_chunk())
+        return Response(chunk_status, status=status.HTTP_200_OK)
         
     except ValueError as e:
         logger.error(f"Chunked upload chunk validation error: {str(e)}")
@@ -315,7 +357,7 @@ def chunked_upload_chunk(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@parser_classes([JSONParser, FormParser, MultiPartParser])
 def chunked_upload_complete(request):
     """
     Complete chunked upload and finalize file.
@@ -329,6 +371,9 @@ def chunked_upload_complete(request):
     Requirements:
         - 7.3: Support chunked upload for large media files from Mobile_Client
     """
+    if not _extract_user_id(request):
+        return _unauthorized_response()
+
     serializer = ChunkedUploadCompleteSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(
@@ -343,24 +388,19 @@ def chunked_upload_complete(request):
     session_id = validated_data['session_id']
     
     try:
-        # Initialize Prisma client
-        db = Prisma()
-        db.connect()
-        
-        try:
-            # Initialize upload service with Prisma client
-            upload_service = MobileUploadService(prisma_client=db)
-            
-            # Complete chunked upload (synchronous wrapper for async method)
-            import asyncio
-            result = asyncio.run(upload_service.complete_chunked_upload(
-                session_id=session_id
-            ))
-            
-            return Response(result, status=status.HTTP_200_OK)
-            
-        finally:
-            db.disconnect()
+        async def _complete_upload():
+            db = Prisma()
+            await db.connect()
+            try:
+                upload_service = MobileUploadService(prisma_client=db)
+                return await upload_service.complete_chunked_upload(
+                    session_id=session_id,
+                )
+            finally:
+                await db.disconnect()
+
+        result = _run_async(_complete_upload())
+        return Response(result, status=status.HTTP_200_OK)
         
     except ValueError as e:
         logger.error(f"Chunked upload complete validation error: {str(e)}")

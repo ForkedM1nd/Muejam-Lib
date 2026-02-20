@@ -336,11 +336,18 @@ class TestTransactionDocumentation(TransactionTestCase):
     @override_settings(MIDDLEWARE=TEST_MIDDLEWARE)
     def test_transaction_patterns_documented(self):
         """Test that transaction patterns are documented."""
-        import os
-        
-        # Check if transaction patterns documentation exists
-        doc_path = 'docs/TRANSACTION_PATTERNS.md'
-        assert os.path.exists(doc_path), "Transaction patterns documentation should exist"
+        from pathlib import Path
+
+        # Check if transaction patterns documentation exists in known docs locations.
+        project_root = Path(__file__).resolve().parents[3]
+        candidate_paths = [
+            project_root / 'docs' / 'TRANSACTION_PATTERNS.md',
+            project_root / 'docs' / 'backend' / 'TRANSACTION_PATTERNS.md',
+        ]
+
+        assert any(path.exists() for path in candidate_paths), (
+            "Transaction patterns documentation should exist"
+        )
     
     @override_settings(MIDDLEWARE=TEST_MIDDLEWARE)
     def test_atomic_decorator_documented(self):

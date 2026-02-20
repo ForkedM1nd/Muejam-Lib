@@ -55,7 +55,7 @@ class TestAccountSuspension:
         mock_db.accountsuspension.create = AsyncMock(return_value=mock_suspension)
         
         # Act
-        with patch('infrastructure.account_suspension.Prisma', return_value=mock_db):
+        with patch('apps.users.account_suspension.Prisma', return_value=mock_db):
             result = await suspension_service.suspend_account(
                 user_id=user_id,
                 suspended_by=suspended_by,
@@ -100,7 +100,7 @@ class TestAccountSuspension:
         mock_db.accountsuspension.create = AsyncMock(return_value=mock_suspension)
         
         # Act
-        with patch('infrastructure.account_suspension.Prisma', return_value=mock_db):
+        with patch('apps.users.account_suspension.Prisma', return_value=mock_db):
             result = await suspension_service.suspend_account(
                 user_id=user_id,
                 suspended_by=suspended_by,
@@ -134,7 +134,7 @@ class TestAccountSuspension:
         mock_db.accountsuspension.find_first = AsyncMock(return_value=mock_suspension)
         
         # Act
-        with patch('infrastructure.account_suspension.Prisma', return_value=mock_db):
+        with patch('apps.users.account_suspension.Prisma', return_value=mock_db):
             result = await suspension_service.check_suspension(user_id)
         
         # Assert
@@ -154,7 +154,7 @@ class TestAccountSuspension:
         mock_db.accountsuspension.find_first = AsyncMock(return_value=None)
         
         # Act
-        with patch('infrastructure.account_suspension.Prisma', return_value=mock_db):
+        with patch('apps.users.account_suspension.Prisma', return_value=mock_db):
             result = await suspension_service.check_suspension(user_id)
         
         # Assert
@@ -179,7 +179,7 @@ class TestAccountSuspension:
         mock_db.accountsuspension.update = AsyncMock()
         
         # Act
-        with patch('infrastructure.account_suspension.Prisma', return_value=mock_db):
+        with patch('apps.users.account_suspension.Prisma', return_value=mock_db):
             result = await suspension_service.check_suspension(user_id)
         
         # Assert
@@ -200,7 +200,7 @@ class TestAccountSuspension:
         mock_db.accountsuspension.update_many = AsyncMock(return_value=1)
         
         # Act
-        with patch('infrastructure.account_suspension.Prisma', return_value=mock_db):
+        with patch('apps.users.account_suspension.Prisma', return_value=mock_db):
             result = await suspension_service.lift_suspension(user_id, lifted_by)
         
         # Assert
@@ -219,7 +219,7 @@ class TestAccountSuspension:
         mock_db.accountsuspension.update_many = AsyncMock(return_value=0)
         
         # Act
-        with patch('infrastructure.account_suspension.Prisma', return_value=mock_db):
+        with patch('apps.users.account_suspension.Prisma', return_value=mock_db):
             result = await suspension_service.lift_suspension(user_id, lifted_by)
         
         # Assert
@@ -255,7 +255,7 @@ class TestAccountSuspension:
         mock_db.accountsuspension.find_many = AsyncMock(return_value=mock_suspensions)
         
         # Act
-        with patch('infrastructure.account_suspension.Prisma', return_value=mock_db):
+        with patch('apps.users.account_suspension.Prisma', return_value=mock_db):
             result = await suspension_service.get_suspension_history(user_id)
         
         # Assert

@@ -16,6 +16,34 @@ from .serializers import (
 import asyncio
 
 
+def _run_async(coro):
+    """Run async code from sync legal views."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    result = {}
+    error = {}
+
+    def _runner():
+        try:
+            result['value'] = asyncio.run(coro)
+        except Exception as exc:
+            error['value'] = exc
+
+    import threading
+
+    thread = threading.Thread(target=_runner)
+    thread.start()
+    thread.join()
+
+    if 'value' in error:
+        raise error['value']
+
+    return result.get('value')
+
+
 def get_client_ip(request):
     """Extract client IP address from request."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -69,7 +97,7 @@ def get_legal_document(request, document_type):
         )
     
     try:
-        document_data = asyncio.run(
+        document_data = _run_async(
             fetch_legal_document(document_type_upper)
         )
         
@@ -147,7 +175,7 @@ def get_consent_status(request):
     user_id = request.user_profile.id
     
     try:
-        consent_status = asyncio.run(
+        consent_status = _run_async(
             fetch_consent_status(user_id)
         )
         
@@ -241,7 +269,7 @@ def record_consent(request):
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     
     try:
-        consent_data = asyncio.run(
+        consent_data = _run_async(
             create_consent(user_id, document_id, ip_address, user_agent)
         )
         
@@ -367,7 +395,7 @@ def update_cookie_consent(request):
     session_id = request.session.session_key or 'anonymous'
     
     try:
-        consent_data = asyncio.run(
+        consent_data = _run_async(
             update_cookie_consent_record(user_id, session_id, analytics, marketing)
         )
         
@@ -485,7 +513,7 @@ def verify_age(request):
     user_id = request.user_profile.id
     
     try:
-        result = asyncio.run(
+        result = _run_async(
             update_age_verification(user_id, age)
         )
         
@@ -585,7 +613,7 @@ def submit_dmca_takedown(request):
     validated_data = serializer.validated_data
     
     try:
-        takedown_data = asyncio.run(
+        takedown_data = _run_async(
             create_dmca_takedown(validated_data)
         )
         
@@ -598,10 +626,10 @@ def submit_dmca_takedown(request):
         email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', contact_info)
         if email_match:
             requester_email = email_match.group(0)
-            asyncio.run(email_service.send_dmca_confirmation(requester_email, takedown_data['id']))
+            _run_async(email_service.send_dmca_confirmation(requester_email, takedown_data['id']))
         
         # Notify designated DMCA agent (Requirement 31.5)
-        asyncio.run(email_service.send_dmca_agent_notification(takedown_data))
+        _run_async(email_service.send_dmca_agent_notification(takedown_data))
         
         return Response(takedown_data, status=status.HTTP_201_CREATED)
         
@@ -692,7 +720,7 @@ def get_dmca_requests(request):
     status_filter = request.GET.get('status', None)
     
     try:
-        requests_data = asyncio.run(
+        requests_data = _run_async(
             fetch_dmca_requests(status_filter)
         )
         
@@ -801,7 +829,7 @@ def review_dmca_request(request, request_id):
     
     try:
         # Update the DMCA request
-        updated_request = asyncio.run(
+        updated_request = _run_async(
             update_dmca_request_status(request_id, action, reviewer_id, reason)
         )
         
@@ -813,7 +841,7 @@ def review_dmca_request(request, request_id):
         
         # If approved, take down the content (Requirement 31.7)
         if action == 'approve':
-            content_taken_down = asyncio.run(
+            content_taken_down = _run_async(
                 takedown_content(updated_request['infringing_url'])
             )
             
@@ -822,7 +850,7 @@ def review_dmca_request(request, request_id):
                 email_service = LegalEmailService()
                 author_email = content_taken_down.get('author_email')
                 if author_email:
-                    asyncio.run(
+                    _run_async(
                         email_service.send_dmca_takedown_notification(
                             author_email,
                             updated_request['infringing_url'],

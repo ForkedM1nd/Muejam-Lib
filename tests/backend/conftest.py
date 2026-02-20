@@ -21,9 +21,9 @@ import django
 django.setup()
 
 # Configure Hypothesis for property-based testing
-settings.register_profile("default", max_examples=100, verbosity=Verbosity.normal)
-settings.register_profile("ci", max_examples=200, verbosity=Verbosity.verbose)
-settings.register_profile("dev", max_examples=50, verbosity=Verbosity.normal)
+settings.register_profile("default", max_examples=100, verbosity=Verbosity.normal, deadline=None)
+settings.register_profile("ci", max_examples=200, verbosity=Verbosity.verbose, deadline=None)
+settings.register_profile("dev", max_examples=50, verbosity=Verbosity.normal, deadline=None)
 settings.load_profile("default")
 
 

@@ -5,71 +5,37 @@ from rest_framework import status
 from prisma import Prisma
 from datetime import datetime
 from .serializers import NotificationSerializer
-import asyncio
-import nest_asyncio
 
-# Apply nest_asyncio to allow nested event loops
-nest_asyncio.apply()
+
+def _run_async(coro):
+    """Run an async coroutine in an isolated event loop."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
 
 
 def sync_get_notifications(user_id: str, cursor: str = None, page_size: int = 20):
     """Synchronous wrapper for get_notifications."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(get_notifications(user_id, cursor, page_size))
+    return _run_async(get_notifications(user_id, cursor, page_size))
 
 
 def sync_mark_notification_read(notification_id: str, user_id: str):
     """Synchronous wrapper for mark_notification_read."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(mark_notification_read(notification_id, user_id))
+    return _run_async(mark_notification_read(notification_id, user_id))
 
 
 def sync_mark_all_notifications_read(user_id: str):
     """Synchronous wrapper for mark_all_notifications_read."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(mark_all_notifications_read(user_id))
+    return _run_async(mark_all_notifications_read(user_id))
 
 
 def sync_create_notification(user_id: str, notification_type: str, actor_id: str, whisper_id: str = None):
     """Synchronous wrapper for create_notification."""
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import nest_asyncio
-            nest_asyncio.apply()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    return loop.run_until_complete(create_notification(user_id, notification_type, actor_id, whisper_id))
+    return _run_async(create_notification(user_id, notification_type, actor_id, whisper_id))
 
 
 @api_view(['GET'])

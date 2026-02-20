@@ -6,6 +6,7 @@ These are simplified integration tests that verify the configuration logic.
 """
 
 import os
+from pathlib import Path
 import pytest
 from unittest.mock import patch
 
@@ -80,20 +81,19 @@ class TestDatabaseConfiguration:
 
 class TestSecretsManagerDocumentation:
     """Test that secrets manager setup is properly documented"""
+
+    @staticmethod
+    def _doc_path():
+        return Path(__file__).resolve().parents[2] / 'docs' / 'secrets-manager-setup.md'
     
     def test_documentation_exists(self):
         """Test that secrets manager documentation exists"""
-        import os
-        # Path relative to workspace root
-        doc_path = '../../docs/secrets-manager-setup.md'
-        
         # Check if documentation file exists
-        assert os.path.exists(doc_path), "Secrets manager documentation should exist"
+        assert self._doc_path().exists(), "Secrets manager documentation should exist"
     
     def test_documentation_content(self):
         """Test that documentation contains key information"""
-        # Path relative to workspace root
-        with open('../../docs/secrets-manager-setup.md', 'r') as f:
+        with self._doc_path().open('r', encoding='utf-8') as f:
             content = f.read()
         
         # Verify key sections exist

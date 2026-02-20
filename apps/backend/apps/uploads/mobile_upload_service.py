@@ -267,8 +267,8 @@ class MobileUploadService:
         chunks_total = (total_size + self.CHUNK_SIZE - 1) // self.CHUNK_SIZE
         
         # Calculate expiration time (24 hours from now)
-        from datetime import datetime, timedelta
-        expires_at = datetime.utcnow() + timedelta(hours=24)
+        from datetime import datetime, timedelta, timezone
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         
         # Create upload session in database
         if self.prisma is None:
@@ -335,8 +335,13 @@ class MobileUploadService:
             raise ValueError(f"Upload session {session_id} not found")
         
         # Check if session is expired
-        from datetime import datetime
-        if datetime.utcnow() > session.expires_at:
+        from datetime import datetime, timezone
+        current_time = datetime.now(timezone.utc)
+        session_expires_at = session.expires_at
+        if session_expires_at.tzinfo is None:
+            session_expires_at = session_expires_at.replace(tzinfo=timezone.utc)
+
+        if current_time > session_expires_at:
             await self.prisma.uploadsession.update(
                 where={'id': session_id},
                 data={'status': 'failed'}
@@ -409,6 +414,7 @@ class MobileUploadService:
         if self.prisma is None:
             raise RuntimeError("Prisma client not initialized")
         
+        session = None
         try:
             # Retrieve upload session
             session = await self.prisma.uploadsession.find_unique(

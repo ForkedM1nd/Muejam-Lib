@@ -1,6 +1,7 @@
 """Views for whispers micro-posting system."""
 import logging
 import asyncio
+import threading
 from datetime import datetime
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -23,6 +24,41 @@ from apps.notifications.views import sync_create_notification
 from apps.moderation.content_filter_integration import ContentFilterIntegration
 
 logger = logging.getLogger(__name__)
+
+
+def _run_async(coro):
+    """Run async Prisma calls from sync DRF views."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+
+    result = {}
+    error = {}
+
+    def _runner():
+        try:
+            result['value'] = asyncio.run(coro)
+        except Exception as exc:
+            error['value'] = exc
+
+    thread = threading.Thread(target=_runner)
+    thread.start()
+    thread.join()
+
+    if 'value' in error:
+        raise error['value']
+
+    return result.get('value')
+
+
+def sanitize_whisper_content(content: str) -> str:
+    """Sanitize whisper HTML/text payloads."""
+    return ContentSanitizer.sanitize_simple_content(content)
 
 
 @extend_schema(
@@ -359,44 +395,42 @@ def _list_whispers(request):
         if blocked_ids:
             where['user_id'] = {'notIn': blocked_ids}
     
-    # Query database
     db = Prisma()
-    
+
     try:
-        db.connect()
-        
-        # Apply cursor pagination
-        query_args = {
-            'where': where,
-            'order': {'created_at': 'desc'},
-            'take': page_size + 1,
-            'include': {
-                'likes': True,
-                'replies': {'where': {'deleted_at': None}}
-            }
-        }
-        
-        if cursor:
-            query_args['cursor'] = {'id': cursor}
-            query_args['skip'] = 1
-        
-        whispers = db.whisper.find_many(**query_args)
-        
-        # Check if there are more results
-        has_next = len(whispers) > page_size
-        if has_next:
-            whispers = whispers[:page_size]
-        
-        # Generate next cursor
-        next_cursor = whispers[-1].id if has_next and whispers else None
-        
-        # Calculate last modified time from most recent whisper
-        last_modified = max(
-            (whisper.created_at for whisper in whispers),
-            default=datetime.now()
-        ) if whispers else datetime.now()
-        
-        db.disconnect()
+        async def _fetch_whispers():
+            await db.connect()
+            try:
+                query_args = {
+                    'where': where,
+                    'order': {'created_at': 'desc'},
+                    'take': page_size + 1,
+                    'include': {
+                        'likes': True,
+                        'replies': {'where': {'deleted_at': None}}
+                    }
+                }
+
+                if cursor:
+                    query_args['cursor'] = {'id': cursor}
+                    query_args['skip'] = 1
+
+                fetched_whispers = await db.whisper.find_many(**query_args)
+                has_next_local = len(fetched_whispers) > page_size
+                if has_next_local:
+                    fetched_whispers = fetched_whispers[:page_size]
+
+                next_cursor_local = fetched_whispers[-1].id if has_next_local and fetched_whispers else None
+                last_modified_local = max(
+                    (whisper.created_at for whisper in fetched_whispers),
+                    default=datetime.now()
+                ) if fetched_whispers else datetime.now()
+
+                return fetched_whispers, next_cursor_local, last_modified_local
+            finally:
+                await db.disconnect()
+
+        whispers, next_cursor, last_modified = _run_async(_fetch_whispers())
         
         # Add counts to whispers
         whispers_data = []
@@ -436,7 +470,6 @@ def _list_whispers(request):
         
     except Exception as e:
         logger.error(f"Error listing whispers: {e}")
-        db.disconnect()
         return Response(
             {
                 'error': {

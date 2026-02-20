@@ -49,6 +49,7 @@ class CursorPagination(BasePagination):
         # Get page size from request, enforce max
         requested_page_size = int(query_params.get('page_size', default_page_size))
         self.current_page_size = min(requested_page_size, max_page_size)
+        self.page_size = self.current_page_size
         
         # Store request for use in get_paginated_response
         self.request = request
@@ -114,7 +115,8 @@ class CursorPagination(BasePagination):
             Response object with data, next_cursor, and pagination metadata
         """
         # Determine if this is a mobile client
-        client_type = getattr(self.request, 'client_type', 'web')
+        request = getattr(self, 'request', None)
+        client_type = getattr(request, 'client_type', 'web')
         is_mobile = client_type.startswith('mobile-')
         
         # Build response with pagination metadata
