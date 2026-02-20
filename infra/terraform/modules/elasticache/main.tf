@@ -73,8 +73,8 @@ resource "aws_elasticache_parameter_group" "main" {
 
 # ElastiCache Replication Group (Redis Cluster)
 resource "aws_elasticache_replication_group" "main" {
-  replication_group_id          = "${var.environment}-muejam-redis"
-  replication_group_description = "Redis cluster for MueJam Library"
+  replication_group_id = "${var.environment}-muejam-redis"
+  description          = "Redis cluster for MueJam Library"
 
   # Engine configuration
   engine               = "redis"
@@ -104,7 +104,6 @@ resource "aws_elasticache_replication_group" "main" {
   # Encryption
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
-  auth_token_enabled         = var.auth_token_enabled
   auth_token                 = var.auth_token_enabled ? var.auth_token : null
 
   # Notifications
