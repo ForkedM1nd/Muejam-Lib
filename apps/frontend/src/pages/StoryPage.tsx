@@ -18,6 +18,7 @@ import WhisperCard from "@/components/shared/WhisperCard";
 import WhisperComposer from "@/components/shared/WhisperComposer";
 import { PageSkeleton, ChapterListSkeleton } from "@/components/shared/Skeletons";
 import EmptyState from "@/components/shared/EmptyState";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 import { SimilarStories } from "@/components/discovery";
 import { BookOpen, Bookmark, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
@@ -101,7 +102,7 @@ export default function StoryPage() {
   });
 
   const likeMutation = useMutation({
-    mutationFn: async (whisperId: string, isLiked: boolean) => {
+    mutationFn: async ({ whisperId, isLiked }: { whisperId: string; isLiked: boolean }) => {
       if (isLiked) {
         await api.unlikeWhisper(whisperId);
       } else {
@@ -153,71 +154,79 @@ export default function StoryPage() {
   if (isLoading) return <PageSkeleton />;
   if (isError || !story) return <EmptyState title="Story not found" />;
 
+  const publishedChapters = chapters?.filter((chapter) => chapter.status === "published") ?? [];
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-6">
-        {story.cover_url && (
-          <div className="sm:w-48 flex-shrink-0">
-            <img
-              src={story.cover_url}
-              alt={story.title}
-              className="w-full rounded-lg object-cover aspect-[2/3]"
-              loading="lazy"
-            />
-          </div>
-        )}
-        <div className="space-y-3 flex-1">
-          <h1 className="text-3xl font-semibold" style={{ fontFamily: "var(--font-display)" }}>{story.title}</h1>
-          <Link to={`/u/${story.author.handle}`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            by {story.author.display_name}
-          </Link>
-          {story.blurb && <p className="text-sm text-muted-foreground leading-relaxed">{story.blurb}</p>}
-          {story.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {story.tags.map((t) => <TagPill key={t.id} name={t.name} />)}
+    <div className="mx-auto max-w-4xl space-y-6">
+      <SurfacePanel className="p-5 sm:p-6">
+        <div className="grid gap-6 sm:grid-cols-[170px_minmax(0,1fr)] sm:items-start">
+          {story.cover_url && (
+            <div className="overflow-hidden rounded-xl border border-border bg-secondary/35">
+              <img
+                src={story.cover_url}
+                alt={story.title}
+                className="aspect-[2/3] w-full object-cover"
+                loading="lazy"
+              />
             </div>
           )}
-          <div className="flex items-center gap-2 pt-2">
-            {chapters && chapters.length > 0 && (
-              <Link to={`/read/${chapters[0].id}`}>
-                <Button size="sm"><BookOpen className="h-4 w-4 mr-1" /> Start Reading</Button>
-              </Link>
+          <div className="space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Story</p>
+            <h1 className="text-3xl font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+              {story.title}
+            </h1>
+            <Link to={`/u/${story.author.handle}`} className="inline-flex text-sm text-muted-foreground hover:text-foreground transition-colors">
+              by {story.author.display_name}
+            </Link>
+            {story.blurb && <p className="text-sm leading-relaxed text-muted-foreground">{story.blurb}</p>}
+            {story.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {story.tags.map((t) => <TagPill key={t.id} name={t.name} />)}
+              </div>
             )}
-            {isSignedIn ? (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={addToShelfMutation.isPending || createShelfMutation.isPending}
-                onClick={() => {
-                  setSelectedShelfId(shelves?.[0]?.id ?? "");
-                  setNewShelfName("");
-                  setShowShelfDialog(true);
-                }}
-              >
-                <Bookmark className="h-4 w-4 mr-1" /> Save
-              </Button>
-            ) : (
-              <Button variant="outline" size="sm" disabled>
-                <Bookmark className="h-4 w-4 mr-1" /> Sign in to Save
-              </Button>
-            )}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              {publishedChapters.length > 0 && (
+                <Link to={`/read/${publishedChapters[0].id}`}>
+                  <Button size="sm"><BookOpen className="h-4 w-4 mr-1" /> Start Reading</Button>
+                </Link>
+              )}
+              {isSignedIn ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={addToShelfMutation.isPending || createShelfMutation.isPending}
+                  onClick={() => {
+                    setSelectedShelfId(shelves?.[0]?.id ?? "");
+                    setNewShelfName("");
+                    setShowShelfDialog(true);
+                  }}
+                >
+                  <Bookmark className="h-4 w-4 mr-1" /> Save
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" disabled>
+                  <Bookmark className="h-4 w-4 mr-1" /> Sign in to Save
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </SurfacePanel>
 
-      {/* Chapters */}
-      <section>
-        <h2 className="text-lg font-medium mb-3" style={{ fontFamily: "var(--font-display)" }}>Chapters</h2>
+      <SurfacePanel className="p-5 sm:p-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-medium" style={{ fontFamily: "var(--font-display)" }}>Chapters</h2>
+          <span className="text-xs text-muted-foreground">{publishedChapters.length} published</span>
+        </div>
         {chaptersLoading ? (
           <ChapterListSkeleton />
-        ) : chapters && chapters.length > 0 ? (
-          <div className="divide-y divide-border">
-            {chapters.filter(c => c.status === "published").map((ch, i) => (
+        ) : publishedChapters.length > 0 ? (
+          <div className="divide-y divide-border rounded-xl border border-border">
+            {publishedChapters.map((ch, i) => (
               <Link
                 key={ch.id}
                 to={`/read/${ch.id}`}
-                className="flex items-center justify-between py-3 group hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors"
+                className="group flex items-center justify-between px-3 py-3 transition-colors hover:bg-secondary/45"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground w-6 text-right">{i + 1}</span>
@@ -230,10 +239,9 @@ export default function StoryPage() {
         ) : (
           <EmptyState title="No chapters yet" description="The author hasn't published any chapters." />
         )}
-      </section>
+      </SurfacePanel>
 
-      {/* Story Whispers */}
-      <section className="space-y-4">
+      <SurfacePanel className="space-y-4 p-5 sm:p-6">
         <h2 className="text-lg font-medium" style={{ fontFamily: "var(--font-display)" }}>
           Whispers about this story
         </h2>
@@ -249,12 +257,12 @@ export default function StoryPage() {
         )}
 
         {whispers?.results && whispers.results.filter((w) => !w.author.is_blocked).length > 0 ? (
-          <div className="space-y-0 divide-y divide-border">
+          <div className="divide-y divide-border rounded-xl border border-border">
             {whispers.results.filter((w) => !w.author.is_blocked).map((whisper) => (
               <WhisperCard
                 key={whisper.id}
                 whisper={whisper}
-                onLike={() => likeMutation.mutate(whisper.id, whisper.is_liked ?? false)}
+                onLike={() => likeMutation.mutate({ whisperId: whisper.id, isLiked: whisper.is_liked ?? false })}
                 onReply={async (content) => {
                   await replyMutation.mutateAsync({ whisperId: whisper.id, content });
                 }}
@@ -267,15 +275,14 @@ export default function StoryPage() {
             description="Be the first to share a thought about this story."
           />
         )}
-      </section>
+      </SurfacePanel>
 
-      {/* Similar Stories */}
-      <section className="space-y-4">
+      <SurfacePanel className="space-y-4 p-5 sm:p-6">
         <h2 className="text-lg font-medium" style={{ fontFamily: "var(--font-display)" }}>
           Similar Stories
         </h2>
         <SimilarStories storyId={story.id} />
-      </section>
+      </SurfacePanel>
 
       <Dialog open={showShelfDialog} onOpenChange={setShowShelfDialog}>
         <DialogContent>

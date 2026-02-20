@@ -66,34 +66,34 @@ function ShelfDetail({ shelf, onBack }: { shelf: Shelf; onBack: () => void }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Library
-        </Button>
-      </div>
+      <Button variant="ghost" size="sm" onClick={onBack} className="w-fit">
+        <ArrowLeft className="mr-1 h-4 w-4" /> Back to Library
+      </Button>
 
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold mb-1" style={{ fontFamily: "var(--font-display)" }}>
-            {shelf.name}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {shelf.story_count} {shelf.story_count === 1 ? "story" : "stories"}
-          </p>
+      <SurfacePanel className="p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+              {shelf.name}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {shelf.story_count} {shelf.story_count === 1 ? "story" : "stories"}
+            </p>
+          </div>
+          <ShelfManager shelf={shelf} onShelfDeleted={onBack} />
         </div>
-        <ShelfManager shelf={shelf} onShelfDeleted={onBack} />
-      </div>
+      </SurfacePanel>
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => <StoryCardSkeleton key={i} />)}
         </div>
       ) : items && items.length > 0 ? (
-        <div className="space-y-4">
+        <SurfacePanel className="space-y-4 p-4">
           {items.map((item) => (
-            <div key={item.story.id} className="border rounded-lg p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
+            <div key={item.story.id} className="rounded-xl border border-border p-4">
+              <div className="flex items-start gap-4">
+                <div className="flex-1 min-w-0">
                   <StoryCard story={item.story} />
                 </div>
                 <StoryRemovalButton
@@ -104,7 +104,7 @@ function ShelfDetail({ shelf, onBack }: { shelf: Shelf; onBack: () => void }) {
               </div>
             </div>
           ))}
-        </div>
+        </SurfacePanel>
       ) : (
         <EmptyState
           title="Empty shelf"
@@ -146,7 +146,7 @@ export default function LibraryPage() {
       />
 
       {showCreate && (
-        <SurfacePanel className="p-4">
+        <SurfacePanel className="p-4 sm:p-5">
           <h3 className="text-sm font-medium mb-3">Create a new shelf</h3>
           <CreateShelfForm onCreated={() => setShowCreate(false)} />
         </SurfacePanel>

@@ -6,12 +6,13 @@ import StoryCard from "@/components/shared/StoryCard";
 import { PageSkeleton, StoryCardSkeleton } from "@/components/shared/Skeletons";
 import EmptyState from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { UserPlus, UserMinus, ShieldBan, Settings, Twitter, Instagram, Globe, Award, BookOpen, Heart, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { BlockConfirmDialog } from "@/components/shared/BlockConfirmDialog";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { Story } from "@/types";
+import SurfacePanel from "@/components/shared/SurfacePanel";
+import PageHeader from "@/components/shared/PageHeader";
 
 interface ProfileBadge {
   id: string;
@@ -212,194 +213,190 @@ export default function ProfilePage() {
   if (isLoading) return <PageSkeleton />;
   if (isError || !profile) return <EmptyState title="User not found" />;
 
-  const badgeIcons: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-    VERIFIED_AUTHOR: { icon: <Award className="h-3 w-3" />, label: "Verified Author", color: "bg-blue-500" },
-    TOP_CONTRIBUTOR: { icon: <Award className="h-3 w-3" />, label: "Top Contributor", color: "bg-purple-500" },
-    EARLY_ADOPTER: { icon: <Award className="h-3 w-3" />, label: "Early Adopter", color: "bg-green-500" },
-    PROLIFIC_WRITER: { icon: <BookOpen className="h-3 w-3" />, label: "Prolific Writer", color: "bg-orange-500" },
-    POPULAR_AUTHOR: { icon: <Users className="h-3 w-3" />, label: "Popular Author", color: "bg-pink-500" },
-    COMMUNITY_CHAMPION: { icon: <Heart className="h-3 w-3" />, label: "Community Champion", color: "bg-red-500" },
+  const badgeIcons: Record<string, { icon: ReactNode; label: string; color: string }> = {
+    VERIFIED_AUTHOR: { icon: <Award className="h-3 w-3" />, label: "Verified Author", color: "bg-primary/15 text-primary border border-primary/25" },
+    TOP_CONTRIBUTOR: { icon: <Award className="h-3 w-3" />, label: "Top Contributor", color: "bg-secondary text-foreground border border-border" },
+    EARLY_ADOPTER: { icon: <Award className="h-3 w-3" />, label: "Early Adopter", color: "bg-accent text-foreground border border-border" },
+    PROLIFIC_WRITER: { icon: <BookOpen className="h-3 w-3" />, label: "Prolific Writer", color: "bg-primary/10 text-primary border border-primary/20" },
+    POPULAR_AUTHOR: { icon: <Users className="h-3 w-3" />, label: "Popular Author", color: "bg-secondary text-foreground border border-border" },
+    COMMUNITY_CHAMPION: { icon: <Heart className="h-3 w-3" />, label: "Community Champion", color: "bg-accent text-foreground border border-border" },
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-      {/* Banner */}
-      {profile.banner_key && (
-        <div className="w-full h-48 rounded-lg overflow-hidden">
-          <img
-            src={`/api/media/${profile.banner_key}`}
-            alt=""
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        </div>
-      )}
+    <div className="mx-auto max-w-5xl space-y-6">
+      <PageHeader
+        title={profile.display_name}
+        eyebrow="Profile"
+        description={`@${profile.handle}`}
+        action={isSignedIn ? (
+          isOwnProfile ? (
+            <Link to="/settings/profile">
+              <Button variant="outline" size="sm">
+                <Settings className="mr-1 h-3.5 w-3.5" /> Edit Profile
+              </Button>
+            </Link>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant={profile.is_following ? "outline" : "default"}
+                size="sm"
+                onClick={() => followMutation.mutate()}
+              >
+                {profile.is_following ? <><UserMinus className="mr-1 h-3.5 w-3.5" /> Unfollow</> : <><UserPlus className="mr-1 h-3.5 w-3.5" /> Follow</>}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleBlockClick}>
+                <ShieldBan className="mr-1 h-3.5 w-3.5" /> {profile.is_blocked ? "Unblock" : "Block"}
+              </Button>
+            </div>
+          )
+        ) : undefined}
+      />
 
-      {/* Profile header */}
-      <div className="flex items-start gap-6">
-        {profile.avatar_url ? (
-          <img
-            src={profile.avatar_url}
-            alt=""
-            className="w-24 h-24 rounded-full object-cover border-4 border-background"
-            style={{ borderColor: profile.theme_color || '#6366f1' }}
-            loading="lazy"
-          />
-        ) : (
-          <div
-            className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-medium text-white border-4 border-background"
-            style={{ backgroundColor: profile.theme_color || '#6366f1' }}
-          >
-            {profile.display_name.charAt(0)}
+      <SurfacePanel className="overflow-hidden">
+        {profile.banner_key ? (
+          <div className="h-44 w-full overflow-hidden border-b border-border">
+            <img
+              src={`/api/media/${profile.banner_key}`}
+              alt=""
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
           </div>
+        ) : (
+          <div className="h-16 w-full border-b border-border bg-secondary/40" />
         )}
-        <div className="flex-1 space-y-2">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-semibold" style={{ fontFamily: "var(--font-display)" }}>
-              {profile.display_name}
-            </h1>
-            {badges && badges.length > 0 && (
-              <div className="flex gap-1">
-                {badges.slice(0, 3).map((badge) => {
-                  const badgeInfo = badgeIcons[badge.badge_type];
-                  return badgeInfo ? (
-                    <div
-                      key={badge.id}
-                      className={`${badgeInfo.color} text-white p-1 rounded-full`}
-                      title={badgeInfo.label}
-                    >
-                      {badgeInfo.icon}
-                    </div>
-                  ) : null;
-                })}
+
+        <div className="p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="-mt-12 h-24 w-24 rounded-full border-4 border-background object-cover"
+                style={{ borderColor: profile.theme_color || "#3a9679" }}
+                loading="lazy"
+              />
+            ) : (
+              <div
+                className="-mt-12 flex h-24 w-24 items-center justify-center rounded-full border-4 border-background text-3xl font-medium text-white"
+                style={{ backgroundColor: profile.theme_color || "#3a9679" }}
+              >
+                {profile.display_name.charAt(0)}
               </div>
             )}
-          </div>
-          <p className="text-sm text-muted-foreground">@{profile.handle}</p>
-          {profile.bio && <p className="text-sm mt-2">{profile.bio}</p>}
 
-          {/* Social links */}
-          {(profile.twitter_url || profile.instagram_url || profile.website_url) && (
-            <div className="flex gap-3 mt-2">
-              {profile.twitter_url && (
-                <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
-                  <Twitter className="h-4 w-4" />
-                </a>
-              )}
-              {profile.instagram_url && (
-                <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
-                  <Instagram className="h-4 w-4" />
-                </a>
-              )}
-              {profile.website_url && (
-                <a href={profile.website_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
-                  <Globe className="h-4 w-4" />
-                </a>
-              )}
-            </div>
-          )}
+            <div className="flex-1 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm text-muted-foreground">@{profile.handle}</p>
+                {badges && badges.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {badges.slice(0, 4).map((badge) => {
+                      const badgeInfo = badgeIcons[badge.badge_type];
+                      return badgeInfo ? (
+                        <span
+                          key={badge.id}
+                          className={`${badgeInfo.color} inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]`}
+                          title={badgeInfo.label}
+                        >
+                          {badgeInfo.icon}
+                          {badgeInfo.label}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+              </div>
 
-          {/* Statistics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-            <Link to={`/users/${handle}/followers`}>
-              <Card className="cursor-pointer hover:bg-accent transition-colors">
-                <CardContent className="p-3 text-center">
-                  <div className="text-2xl font-bold">{profile.follower_count}</div>
-                  <div className="text-xs text-muted-foreground">Followers</div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to={`/users/${handle}/following`}>
-              <Card className="cursor-pointer hover:bg-accent transition-colors">
-                <CardContent className="p-3 text-center">
-                  <div className="text-2xl font-bold">{profile.following_count}</div>
-                  <div className="text-xs text-muted-foreground">Following</div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-2xl font-bold">{statistics?.total_stories || stories?.results?.length || 0}</div>
-                <div className="text-xs text-muted-foreground">Stories</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-2xl font-bold">{statistics?.total_whispers || 0}</div>
-                <div className="text-xs text-muted-foreground">Whispers</div>
-              </CardContent>
-            </Card>
-          </div>
+              {profile.bio && <p className="text-sm leading-relaxed text-muted-foreground">{profile.bio}</p>}
 
-          {/* Social Proof - Mutual Followers */}
-          {mutualFollowers && mutualFollowers.length > 0 && (
-            <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span>
-                Followed by{" "}
-                {mutualFollowers.map((user, idx) => (
-                  <span key={user.id}>
-                    <Link to={`/u/${user.handle}`} className="font-medium text-foreground hover:underline">
-                      {user.display_name}
-                    </Link>
-                    {idx < mutualFollowers.length - 1 && (idx === mutualFollowers.length - 2 ? " and " : ", ")}
+              {(profile.twitter_url || profile.instagram_url || profile.website_url) && (
+                <div className="flex gap-3">
+                  {profile.twitter_url && (
+                    <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                      <Twitter className="h-4 w-4" />
+                    </a>
+                  )}
+                  {profile.instagram_url && (
+                    <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                      <Instagram className="h-4 w-4" />
+                    </a>
+                  )}
+                  {profile.website_url && (
+                    <a href={profile.website_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                      <Globe className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {mutualFollowers && mutualFollowers.length > 0 && (
+                <div className="flex items-start gap-2 rounded-lg bg-secondary/45 px-3 py-2 text-sm text-muted-foreground">
+                  <Users className="mt-0.5 h-4 w-4" />
+                  <span>
+                    Followed by{" "}
+                    {mutualFollowers.map((user, idx) => (
+                      <span key={user.id}>
+                        <Link to={`/u/${user.handle}`} className="font-medium text-foreground hover:underline">
+                          {user.display_name}
+                        </Link>
+                        {idx < mutualFollowers.length - 1 && (idx === mutualFollowers.length - 2 ? " and " : ", ")}
+                      </span>
+                    ))}
                   </span>
-                ))}
-              </span>
-            </div>
-          )}
-
-          {isSignedIn && (
-            <div className="flex gap-2 mt-4">
-              {isOwnProfile ? (
-                <Link to="/settings/profile">
-                  <Button variant="outline" size="sm">
-                    <Settings className="h-3.5 w-3.5 mr-1" /> Edit Profile
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Button
-                    variant={profile.is_following ? "outline" : "default"}
-                    size="sm"
-                    onClick={() => followMutation.mutate()}
-                  >
-                    {profile.is_following ? <><UserMinus className="h-3.5 w-3.5 mr-1" /> Unfollow</> : <><UserPlus className="h-3.5 w-3.5 mr-1" /> Follow</>}
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={handleBlockClick}>
-                    <ShieldBan className="h-3.5 w-3.5 mr-1" /> {profile.is_blocked ? "Unblock" : "Block"}
-                  </Button>
-                </>
+                </div>
               )}
             </div>
-          )}
+          </div>
         </div>
+      </SurfacePanel>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Link to={`/users/${handle}/followers`}>
+          <SurfacePanel className="p-4 text-center transition-colors hover:bg-secondary/55">
+            <div className="text-2xl font-bold">{profile.follower_count}</div>
+            <div className="text-xs text-muted-foreground">Followers</div>
+          </SurfacePanel>
+        </Link>
+        <Link to={`/users/${handle}/following`}>
+          <SurfacePanel className="p-4 text-center transition-colors hover:bg-secondary/55">
+            <div className="text-2xl font-bold">{profile.following_count}</div>
+            <div className="text-xs text-muted-foreground">Following</div>
+          </SurfacePanel>
+        </Link>
+        <SurfacePanel className="p-4 text-center">
+          <div className="text-2xl font-bold">{statistics?.total_stories || stories?.results?.length || 0}</div>
+          <div className="text-xs text-muted-foreground">Stories</div>
+        </SurfacePanel>
+        <SurfacePanel className="p-4 text-center">
+          <div className="text-2xl font-bold">{statistics?.total_whispers || 0}</div>
+          <div className="text-xs text-muted-foreground">Whispers</div>
+        </SurfacePanel>
       </div>
 
-      {/* Pinned Stories */}
       {pinnedStories && pinnedStories.length > 0 && (
-        <section>
-          <h2 className="text-xl font-medium mb-4 flex items-center gap-2" style={{ fontFamily: "var(--font-display)" }}>
-            <Award className="h-5 w-5" />
+        <SurfacePanel className="p-5 sm:p-6">
+          <h2 className="mb-4 flex items-center gap-2 text-xl font-medium" style={{ fontFamily: "var(--font-display)" }}>
+            <Award className="h-5 w-5 text-primary" />
             Featured Stories
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {pinnedStories.map((story) => <StoryCard key={story.id} story={story} />)}
           </div>
-        </section>
+        </SurfacePanel>
       )}
 
-      {/* All Stories */}
-      <section>
-        <h2 className="text-xl font-medium mb-4" style={{ fontFamily: "var(--font-display)" }}>Published Stories</h2>
+      <SurfacePanel className="p-5 sm:p-6">
+        <h2 className="mb-4 text-xl font-medium" style={{ fontFamily: "var(--font-display)" }}>
+          Published Stories
+        </h2>
         {stories?.results && stories.results.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {stories.results.map((s) => <StoryCard key={s.id} story={s} />)}
           </div>
         ) : (
           <EmptyState title="No stories yet" description="This author hasn't published any stories." />
         )}
-      </section>
+      </SurfacePanel>
 
       {/* Block Confirmation Dialog */}
       <BlockConfirmDialog

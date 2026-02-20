@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { useSafeAuth } from "@/hooks/useSafeAuth";
 import { api } from "@/lib/api";
@@ -123,72 +124,96 @@ export default function WhispersPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-5">
       <PageHeader title="Whispers" eyebrow="Threads" description="Share quick thoughts with the community." />
 
-      {isSignedIn && (
-        <SurfacePanel className="p-4">
-          <WhisperComposer
-            onSubmit={async (content, mediaFile, _scope, _storyId, _highlightId, recaptchaToken) => {
-              await createMutation.mutateAsync({ content, mediaFile, recaptchaToken });
-            }}
-            submitting={createMutation.isPending}
-          />
-        </SurfacePanel>
-      )}
-
-      {isLoading ? (
-        <SurfacePanel className="space-y-4 p-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <WhisperSkeleton key={i} />
-          ))}
-        </SurfacePanel>
-      ) : isError ? (
-        <EmptyState
-          title="Failed to load whispers"
-          description="Something went wrong. Please try again."
-          action={<Button variant="outline" onClick={() => refetch()}>Retry</Button>}
-        />
-      ) : filteredWhispers.length === 0 ? (
-        <EmptyState
-          title="No whispers yet"
-          description="Be the first to share your thoughts!"
-        />
-      ) : (
-        <SurfacePanel className="overflow-hidden">
-          <div className="divide-y divide-border/70">
-            {filteredWhispers.map((whisper) => (
-              <WhisperCard
-                key={whisper.id}
-                whisper={whisper}
-                onLike={() => likeMutation.mutate(whisper)}
-                onReply={async (content) => {
-                  await replyMutation.mutateAsync({ whisperId: whisper.id, content });
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_250px]">
+        <div className="space-y-4">
+          {isSignedIn ? (
+            <SurfacePanel className="p-4">
+              <WhisperComposer
+                onSubmit={async (content, mediaFile, _scope, _storyId, _highlightId, recaptchaToken) => {
+                  await createMutation.mutateAsync({ content, mediaFile, recaptchaToken });
                 }}
+                submitting={createMutation.isPending}
               />
-            ))}
-          </div>
-        </SurfacePanel>
-      )}
+            </SurfacePanel>
+          ) : (
+            <SurfacePanel className="p-4">
+              <p className="text-sm text-muted-foreground">Sign in to post whispers and join the conversation.</p>
+              <div className="mt-3">
+                <Link to="/sign-in">
+                  <Button size="sm">Sign In</Button>
+                </Link>
+              </div>
+            </SurfacePanel>
+          )}
 
-      {hasNextPage && (
-        <div className="flex justify-center py-6">
-          <Button
-            variant="outline"
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-          >
-            {isFetchingNextPage ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              "Load more"
-            )}
-          </Button>
+          {isLoading ? (
+            <SurfacePanel className="space-y-4 p-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <WhisperSkeleton key={i} />
+              ))}
+            </SurfacePanel>
+          ) : isError ? (
+            <EmptyState
+              title="Failed to load whispers"
+              description="Something went wrong. Please try again."
+              action={<Button variant="outline" onClick={() => refetch()}>Retry</Button>}
+            />
+          ) : filteredWhispers.length === 0 ? (
+            <EmptyState
+              title="No whispers yet"
+              description="Be the first to share your thoughts!"
+            />
+          ) : (
+            <SurfacePanel className="overflow-hidden">
+              <div className="divide-y divide-border/70">
+                {filteredWhispers.map((whisper) => (
+                  <WhisperCard
+                    key={whisper.id}
+                    whisper={whisper}
+                    onLike={() => likeMutation.mutate(whisper)}
+                    onReply={async (content) => {
+                      await replyMutation.mutateAsync({ whisperId: whisper.id, content });
+                    }}
+                  />
+                ))}
+              </div>
+            </SurfacePanel>
+          )}
+
+          {hasNextPage && (
+            <div className="flex justify-center py-2">
+              <Button
+                variant="outline"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "Load more"
+                )}
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+
+        <SurfacePanel className="hidden h-fit p-4 lg:block">
+          <h3 className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+            Whisper Tips
+          </h3>
+          <ul className="mt-2 space-y-2 text-xs text-muted-foreground">
+            <li>Keep posts short and specific.</li>
+            <li>Tag spoilers clearly when needed.</li>
+            <li>Respond to chapters to boost discovery.</li>
+          </ul>
+        </SurfacePanel>
+      </div>
     </div>
   );
 }

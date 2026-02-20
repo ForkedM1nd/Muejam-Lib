@@ -181,7 +181,7 @@ export default function DiscoverPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Discover"
         eyebrow="Reader feed"
@@ -190,7 +190,7 @@ export default function DiscoverPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link to="/discover/trending">
-          <SurfacePanel className="h-full p-4 transition hover:-translate-y-0.5 hover:bg-accent/40">
+          <SurfacePanel className="h-full p-4 transition-colors hover:bg-secondary/60">
             <div className="flex items-center gap-3">
               <TrendingUp className="h-5 w-5 text-primary" />
               <div>
@@ -203,7 +203,7 @@ export default function DiscoverPage() {
         </Link>
 
         <Link to="/discover/new">
-          <SurfacePanel className="h-full p-4 transition hover:-translate-y-0.5 hover:bg-accent/40">
+          <SurfacePanel className="h-full p-4 transition-colors hover:bg-secondary/60">
             <div className="flex items-center gap-3">
               <Sparkles className="h-5 w-5 text-primary" />
               <div>
@@ -216,7 +216,7 @@ export default function DiscoverPage() {
         </Link>
 
         <Link to="/discover/recommended">
-          <SurfacePanel className="h-full p-4 transition hover:-translate-y-0.5 hover:bg-accent/40">
+          <SurfacePanel className="h-full p-4 transition-colors hover:bg-secondary/60">
             <div className="flex items-center gap-3">
               <Star className="h-5 w-5 text-primary" />
               <div>
@@ -229,7 +229,7 @@ export default function DiscoverPage() {
         </Link>
 
         <Link to="/discover/staff-picks">
-          <SurfacePanel className="h-full p-4 transition hover:-translate-y-0.5 hover:bg-accent/40">
+          <SurfacePanel className="h-full p-4 transition-colors hover:bg-secondary/60">
             <div className="flex items-center gap-3">
               <Award className="h-5 w-5 text-primary" />
               <div>
@@ -242,7 +242,7 @@ export default function DiscoverPage() {
         </Link>
       </div>
 
-      <SurfacePanel className="p-4">
+      <SurfacePanel className="p-4 sm:p-5">
         <form onSubmit={handleSearch} className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -266,7 +266,7 @@ export default function DiscoverPage() {
         </form>
 
         {(currentTag || currentSearch) && (
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span className="text-sm text-muted-foreground">Filters:</span>
             {currentTag && (
               <Badge variant="secondary" className="gap-1">
@@ -294,23 +294,46 @@ export default function DiscoverPage() {
         )}
       </SurfacePanel>
 
-      <Tabs value={currentTab} onValueChange={handleTabChange}>
-        <TabsList className="mb-6 rounded-xl border border-border/70 bg-card/80 p-1">
-          <TabsTrigger value="trending">Trending</TabsTrigger>
-          <TabsTrigger value="new">New</TabsTrigger>
-          <TabsTrigger value="for-you">For You</TabsTrigger>
-        </TabsList>
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
+        <SurfacePanel className="p-1.5">
+          <TabsList className="h-auto w-full justify-start rounded-xl bg-transparent p-0">
+            <TabsTrigger
+              value="trending"
+              className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              Trending
+            </TabsTrigger>
+            <TabsTrigger
+              value="new"
+              className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              New
+            </TabsTrigger>
+            <TabsTrigger
+              value="for-you"
+              className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              For You
+            </TabsTrigger>
+          </TabsList>
+        </SurfacePanel>
 
-        <TabsContent value="trending">
-          <StoryFeed tab="trending" tag={currentTag} searchQuery={currentSearch} />
+        <TabsContent value="trending" className="mt-0">
+          <SurfacePanel className="p-4 sm:p-5">
+            <StoryFeed tab="trending" tag={currentTag} searchQuery={currentSearch} />
+          </SurfacePanel>
         </TabsContent>
 
-        <TabsContent value="new">
-          <StoryFeed tab="new" tag={currentTag} searchQuery={currentSearch} />
+        <TabsContent value="new" className="mt-0">
+          <SurfacePanel className="p-4 sm:p-5">
+            <StoryFeed tab="new" tag={currentTag} searchQuery={currentSearch} />
+          </SurfacePanel>
         </TabsContent>
 
-        <TabsContent value="for-you">
-          <ForYouTab tag={currentTag} searchQuery={currentSearch} />
+        <TabsContent value="for-you" className="mt-0">
+          <SurfacePanel className="p-4 sm:p-5">
+            <ForYouTab tag={currentTag} searchQuery={currentSearch} />
+          </SurfacePanel>
         </TabsContent>
       </Tabs>
     </div>

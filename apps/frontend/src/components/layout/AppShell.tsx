@@ -365,14 +365,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background">
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--secondary)/0.7),_hsl(var(--background))_52%)]" />
-        <div className="absolute -top-24 left-1/2 h-[26rem] w-[26rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute bottom-10 right-[-5rem] h-64 w-64 rounded-full bg-secondary/50 blur-2xl" />
-      </div>
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--secondary)/0.9)_24%,hsl(var(--background))_68%)]" />
 
       <header className="pointer-events-none fixed inset-x-0 top-0 z-50">
-        <div className="pointer-events-auto mx-auto mt-3 w-[min(1120px,calc(100%-1rem))] rounded-2xl border border-border/70 bg-background/90 shadow-[0_20px_60px_-35px_hsl(var(--foreground)/0.55)] backdrop-blur-xl">
+        <div className="pointer-events-auto mx-auto mt-3 w-[min(1120px,calc(100%-1rem))] rounded-2xl border border-border bg-background/95 shadow-[0_14px_32px_-24px_hsl(var(--foreground)/0.45)] backdrop-blur">
           <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
             <Link to="/" className="rounded-xl px-2 py-1 text-xl font-semibold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
               MueJam
@@ -386,7 +382,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   className={cn(
                     "rounded-xl px-3 py-1.5 text-sm font-medium transition-all",
                     isPathActive(location.pathname, link.to)
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary/15 text-primary"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
@@ -425,7 +421,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   className={cn(
                     "rounded-xl px-3 py-2 text-sm font-medium transition-colors",
                     isPathActive(location.pathname, link.to)
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary/15 text-primary"
                       : "bg-accent/40 text-foreground"
                   )}
                 >
@@ -441,7 +437,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main className="relative mx-auto w-full max-w-6xl px-4 pb-44 pt-24 sm:px-6 sm:pt-28 lg:px-8">{children}</main>
+      <main className="relative mx-auto w-full max-w-6xl px-4 pb-44 pt-24 sm:px-6 sm:pt-28 lg:px-10">{children}</main>
 
       <FloatingFooter navLinks={visibleNavLinks} utilityLinks={UTILITY_LINKS} pathname={location.pathname} />
     </div>

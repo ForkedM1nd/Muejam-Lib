@@ -10,7 +10,7 @@ export default function SurfacePanel({ children, className }: SurfacePanelProps)
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/70 bg-card/90 shadow-[0_16px_40px_-32px_hsl(var(--foreground)/0.7)] backdrop-blur-sm",
+        "rounded-2xl border border-border bg-card shadow-[0_10px_28px_-24px_hsl(var(--foreground)/0.45)]",
         className
       )}
     >

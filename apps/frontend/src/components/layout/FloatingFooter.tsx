@@ -29,7 +29,7 @@ export default function FloatingFooter({ navLinks, utilityLinks, pathname }: Flo
 
   return (
     <footer className="pointer-events-none fixed inset-x-0 bottom-3 z-50">
-      <div className="pointer-events-auto mx-auto w-[min(1120px,calc(100%-1rem))] rounded-2xl border border-border/70 bg-card/92 backdrop-blur-xl shadow-[0_18px_55px_-30px_hsl(var(--foreground)/0.7)]">
+      <div className="pointer-events-auto mx-auto w-[min(1120px,calc(100%-1rem))] rounded-2xl border border-border bg-card/95 shadow-[0_12px_30px_-24px_hsl(var(--foreground)/0.45)] backdrop-blur">
         <div className="hidden items-center justify-between gap-4 px-4 py-3 md:flex">
           <nav className="flex items-center gap-1">
             {navLinks.map((link) => {
@@ -43,7 +43,7 @@ export default function FloatingFooter({ navLinks, utilityLinks, pathname }: Flo
                   className={cn(
                     "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition-all",
                     active
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-primary/15 text-primary"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
@@ -78,7 +78,7 @@ export default function FloatingFooter({ navLinks, utilityLinks, pathname }: Flo
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-medium transition-colors",
                   active
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary/15 text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >
