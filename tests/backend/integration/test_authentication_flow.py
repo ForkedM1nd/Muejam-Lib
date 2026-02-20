@@ -12,7 +12,7 @@ Requirements: 1.1, 5.1
 
 import pytest
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django.test import Client, override_settings
 from django.contrib.auth.models import User
 from unittest.mock import patch, MagicMock
@@ -49,8 +49,8 @@ class TestAuthenticationFlow:
         payload = {
             'sub': 'user_test123',
             'email': 'test@example.com',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow(),
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc),
             'aud': 'test_audience'
         }
         # Create a test token (not verified in tests)

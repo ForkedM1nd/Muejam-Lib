@@ -9,7 +9,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from unittest.mock import patch, MagicMock
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 class AuthorizationSecurityTest(TestCase):
@@ -26,8 +26,8 @@ class AuthorizationSecurityTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': user_id,
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow(),
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc),
             'is_admin': is_admin,
             'is_moderator': is_moderator
         }
@@ -140,8 +140,8 @@ class PrivilegeEscalationTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': user_id,
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     
@@ -215,8 +215,8 @@ class ResourceOwnershipTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': user_id,
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     
@@ -283,8 +283,8 @@ class HorizontalPrivilegeEscalationTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': user_id,
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     
@@ -340,8 +340,8 @@ class InsecureDirectObjectReferenceTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': user_id,
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     

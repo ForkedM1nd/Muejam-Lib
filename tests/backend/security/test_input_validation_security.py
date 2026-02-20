@@ -7,7 +7,7 @@ Tests SQL injection, XSS, command injection, path traversal, and other input val
 import pytest
 from django.test import TestCase, Client
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 class SQLInjectionTest(TestCase):
@@ -21,8 +21,8 @@ class SQLInjectionTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': 'test_user',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     
@@ -95,8 +95,8 @@ class XSSTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': 'test_user',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     
@@ -176,8 +176,8 @@ class CommandInjectionTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': 'test_user',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     
@@ -221,8 +221,8 @@ class PathTraversalTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': 'test_user',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     
@@ -257,8 +257,8 @@ class InputLengthValidationTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': 'test_user',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     
@@ -321,8 +321,8 @@ class DataTypeValidationTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': 'test_user',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     
@@ -370,8 +370,8 @@ class MassAssignmentTest(TestCase):
         """Generate test JWT token"""
         payload = {
             'sub': 'test_user',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     

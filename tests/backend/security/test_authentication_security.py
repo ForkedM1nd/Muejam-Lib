@@ -7,7 +7,7 @@ Tests JWT verification, token validation, and authentication bypass attempts.
 import pytest
 import jwt
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django.test import TestCase, Client
 from django.conf import settings
 from unittest.mock import patch, MagicMock
@@ -27,8 +27,8 @@ class AuthenticationSecurityTest(TestCase):
         # In real tests, use actual Clerk token or mock properly
         payload = {
             'sub': 'test_user_123',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow(),
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc),
             'aud': 'test_audience'
         }
         # This is a test token - in real tests, use proper signing
@@ -38,8 +38,8 @@ class AuthenticationSecurityTest(TestCase):
         """Generate an expired JWT token"""
         payload = {
             'sub': 'test_user_123',
-            'exp': datetime.utcnow() - timedelta(hours=1),  # Expired
-            'iat': datetime.utcnow() - timedelta(hours=2),
+            'exp': datetime.now(timezone.utc) - timedelta(hours=1),  # Expired
+            'iat': datetime.now(timezone.utc) - timedelta(hours=2),
             'aud': 'test_audience'
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
@@ -48,8 +48,8 @@ class AuthenticationSecurityTest(TestCase):
         """Generate a token with invalid signature"""
         payload = {
             'sub': 'test_user_123',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow(),
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc),
             'aud': 'test_audience'
         }
         # Sign with wrong key
@@ -117,8 +117,8 @@ class AuthenticationSecurityTest(TestCase):
         """Test that tokens with wrong audience are rejected"""
         payload = {
             'sub': 'test_user_123',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow(),
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc),
             'aud': 'wrong_audience'  # Wrong audience
         }
         wrong_aud_token = jwt.encode(payload, 'test_secret', algorithm='HS256')
@@ -135,8 +135,8 @@ class AuthenticationSecurityTest(TestCase):
         """Test that tokens without sub claim are rejected"""
         payload = {
             # Missing 'sub' claim
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow(),
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc),
             'aud': 'test_audience'
         }
         no_sub_token = jwt.encode(payload, 'test_secret', algorithm='HS256')
@@ -194,8 +194,8 @@ class JWTVerificationTest(TestCase):
         # Create a token with invalid signature
         payload = {
             'sub': 'test_user',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         invalid_token = jwt.encode(payload, 'wrong_key', algorithm='HS256')
         
@@ -239,8 +239,8 @@ class RateLimitSecurityTest(TestCase):
         """Generate test token"""
         payload = {
             'sub': 'test_user_123',
-            'exp': datetime.utcnow() + timedelta(hours=1),
-            'iat': datetime.utcnow()
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'iat': datetime.now(timezone.utc)
         }
         return jwt.encode(payload, 'test_secret', algorithm='HS256')
     

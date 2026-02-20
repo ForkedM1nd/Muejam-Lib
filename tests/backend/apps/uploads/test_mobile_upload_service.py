@@ -244,7 +244,7 @@ class TestChunkedUpload:
     @pytest.mark.asyncio
     async def test_initiate_chunked_upload_success(self, service_with_prisma, mock_prisma):
         """Test successful chunked upload initiation."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         # Mock the database response
         mock_session = MagicMock()
@@ -256,7 +256,7 @@ class TestChunkedUpload:
         mock_session.chunks_total = 5
         mock_session.chunks_uploaded = 0
         mock_session.status = 'in_progress'
-        mock_session.expires_at = datetime.utcnow() + timedelta(hours=24)
+        mock_session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         
         mock_prisma.uploadsession.create.return_value = mock_session
         
@@ -310,7 +310,7 @@ class TestChunkedUpload:
     @pytest.mark.asyncio
     async def test_initiate_chunked_upload_chunk_calculation(self, service_with_prisma, mock_prisma):
         """Test chunk calculation for various file sizes."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         test_cases = [
             (5 * 1024 * 1024, 1),      # Exactly 1 chunk
@@ -324,7 +324,7 @@ class TestChunkedUpload:
             mock_session = MagicMock()
             mock_session.id = 'session_123'
             mock_session.chunks_total = expected_chunks
-            mock_session.expires_at = datetime.utcnow() + timedelta(hours=24)
+            mock_session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
             mock_prisma.uploadsession.create.return_value = mock_session
             
             result = await service_with_prisma.initiate_chunked_upload(
@@ -339,7 +339,7 @@ class TestChunkedUpload:
     @pytest.mark.asyncio
     async def test_upload_chunk_success(self, service_with_prisma, mock_prisma):
         """Test successful chunk upload."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         # Mock session retrieval
         mock_session = MagicMock()
@@ -350,7 +350,7 @@ class TestChunkedUpload:
         mock_session.chunks_total = 2
         mock_session.chunks_uploaded = 0
         mock_session.status = 'in_progress'
-        mock_session.expires_at = datetime.utcnow() + timedelta(hours=24)
+        mock_session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         
         mock_prisma.uploadsession.find_unique.return_value = mock_session
         
@@ -400,13 +400,13 @@ class TestChunkedUpload:
     @pytest.mark.asyncio
     async def test_upload_chunk_session_expired(self, service_with_prisma, mock_prisma):
         """Test chunk upload with expired session."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         # Mock expired session
         mock_session = MagicMock()
         mock_session.id = 'session_123'
         mock_session.status = 'in_progress'
-        mock_session.expires_at = datetime.utcnow() - timedelta(hours=1)  # Expired 1 hour ago
+        mock_session.expires_at = datetime.now(timezone.utc) - timedelta(hours=1)  # Expired 1 hour ago
         
         mock_prisma.uploadsession.find_unique.return_value = mock_session
         
@@ -428,13 +428,13 @@ class TestChunkedUpload:
     @pytest.mark.asyncio
     async def test_upload_chunk_invalid_chunk_number(self, service_with_prisma, mock_prisma):
         """Test chunk upload with invalid chunk number."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         mock_session = MagicMock()
         mock_session.id = 'session_123'
         mock_session.chunks_total = 5
         mock_session.status = 'in_progress'
-        mock_session.expires_at = datetime.utcnow() + timedelta(hours=24)
+        mock_session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         
         mock_prisma.uploadsession.find_unique.return_value = mock_session
         
@@ -459,7 +459,7 @@ class TestChunkedUpload:
     @pytest.mark.asyncio
     async def test_upload_chunk_oversized_chunk(self, service_with_prisma, mock_prisma):
         """Test chunk upload with chunk exceeding expected size."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         mock_session = MagicMock()
         mock_session.id = 'session_123'
@@ -468,7 +468,7 @@ class TestChunkedUpload:
         mock_session.chunks_total = 2
         mock_session.chunks_uploaded = 0
         mock_session.status = 'in_progress'
-        mock_session.expires_at = datetime.utcnow() + timedelta(hours=24)
+        mock_session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         
         mock_prisma.uploadsession.find_unique.return_value = mock_session
         
@@ -487,7 +487,7 @@ class TestChunkedUpload:
     @pytest.mark.asyncio
     async def test_upload_chunk_last_chunk_smaller(self, service_with_prisma, mock_prisma):
         """Test uploading last chunk which can be smaller than chunk size."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         # 12MB file = 2 full chunks (5MB each) + 1 partial chunk (2MB)
         mock_session = MagicMock()
@@ -497,7 +497,7 @@ class TestChunkedUpload:
         mock_session.chunks_total = 3
         mock_session.chunks_uploaded = 2
         mock_session.status = 'in_progress'
-        mock_session.expires_at = datetime.utcnow() + timedelta(hours=24)
+        mock_session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         
         mock_prisma.uploadsession.find_unique.return_value = mock_session
         
@@ -607,7 +607,7 @@ class TestChunkedUpload:
     @pytest.mark.asyncio
     async def test_get_upload_progress(self, service_with_prisma, mock_prisma):
         """Test getting upload progress."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         mock_session = MagicMock()
         mock_session.id = 'session_123'
@@ -616,8 +616,8 @@ class TestChunkedUpload:
         mock_session.total_size = 25 * 1024 * 1024
         mock_session.chunks_uploaded = 3
         mock_session.chunks_total = 5
-        mock_session.created_at = datetime.utcnow()
-        mock_session.expires_at = datetime.utcnow() + timedelta(hours=24)
+        mock_session.created_at = datetime.now(timezone.utc)
+        mock_session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         
         mock_prisma.uploadsession.find_unique.return_value = mock_session
         
@@ -649,13 +649,13 @@ class TestChunkedUpload:
     @pytest.mark.asyncio
     async def test_chunked_upload_full_workflow(self, service_with_prisma, mock_prisma):
         """Test complete chunked upload workflow from initiation to completion."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         # Step 1: Initiate upload
         mock_init_session = MagicMock()
         mock_init_session.id = 'session_123'
         mock_init_session.chunks_total = 3
-        mock_init_session.expires_at = datetime.utcnow() + timedelta(hours=24)
+        mock_init_session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         mock_prisma.uploadsession.create.return_value = mock_init_session
         
         init_result = await service_with_prisma.initiate_chunked_upload(
@@ -676,7 +676,7 @@ class TestChunkedUpload:
             mock_session.chunks_total = 3
             mock_session.chunks_uploaded = chunk_num
             mock_session.status = 'in_progress'
-            mock_session.expires_at = datetime.utcnow() + timedelta(hours=24)
+            mock_session.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
             mock_prisma.uploadsession.find_unique.return_value = mock_session
             
             mock_updated = MagicMock()
