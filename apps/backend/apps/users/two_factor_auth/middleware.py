@@ -98,7 +98,17 @@ class TwoFactorAuthMiddleware:
     
     def _is_exempt_path(self, path: str) -> bool:
         """Check if the path is exempt from 2FA verification."""
+        normalized_path = self._normalize_path(path)
         for exempt_path in self.EXEMPT_PATHS:
-            if path.startswith(exempt_path):
+            if normalized_path.startswith(exempt_path):
                 return True
         return False
+
+    @staticmethod
+    def _normalize_path(path: str) -> str:
+        """Normalize compatibility paths to canonical API v1 paths."""
+        if path.startswith('/api/v1/'):
+            return path[4:]
+        if path == '/api/v1':
+            return '/v1'
+        return path

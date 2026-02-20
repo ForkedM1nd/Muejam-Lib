@@ -33,14 +33,14 @@ def verify_redis_connection():
         cache.set('test_key', 'test_value', 10)
         value = cache.get('test_key')
         if value == 'test_value':
-            print("   ✓ Redis connection successful")
+            print("   PASS Redis connection successful")
             cache.delete('test_key')
             return True
         else:
-            print("   ✗ Redis connection failed: value mismatch")
+            print("   FAIL Redis connection failed: value mismatch")
             return False
     except Exception as e:
-        print(f"   ✗ Redis connection failed: {e}")
+        print(f"   FAIL Redis connection failed: {e}")
         return False
 
 
@@ -58,9 +58,9 @@ def verify_ratelimit_settings():
     for setting_name, expected_value in checks:
         actual_value = getattr(settings, setting_name, None)
         if actual_value == expected_value:
-            print(f"   ✓ {setting_name} = {actual_value}")
+            print(f"   PASS {setting_name} = {actual_value}")
         else:
-            print(f"   ✗ {setting_name} = {actual_value} (expected {expected_value})")
+            print(f"   FAIL {setting_name} = {actual_value} (expected {expected_value})")
             all_passed = False
     
     return all_passed
@@ -109,7 +109,7 @@ def verify_ratelimit_functionality():
         )
         
         if not limited1 and not limited2 and limited3:
-            print("   ✓ Rate limiting working correctly")
+            print("   PASS Rate limiting working correctly")
             print(f"     - Request 1: Not limited (expected)")
             print(f"     - Request 2: Not limited (expected)")
             print(f"     - Request 3: Limited (expected)")
@@ -120,14 +120,14 @@ def verify_ratelimit_functionality():
             
             return True
         else:
-            print("   ✗ Rate limiting not working as expected")
+            print("   FAIL Rate limiting not working as expected")
             print(f"     - Request 1: {'Limited' if limited1 else 'Not limited'}")
             print(f"     - Request 2: {'Limited' if limited2 else 'Not limited'}")
             print(f"     - Request 3: {'Limited' if limited3 else 'Not limited'}")
             return False
             
     except Exception as e:
-        print(f"   ✗ Rate limiting test failed: {e}")
+        print(f"   FAIL Rate limiting test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -153,7 +153,7 @@ def main():
     
     all_passed = True
     for check_name, passed in results:
-        status = "✓ PASS" if passed else "✗ FAIL"
+        status = "PASS" if passed else "FAIL"
         print(f"{status}: {check_name}")
         if not passed:
             all_passed = False
@@ -161,10 +161,10 @@ def main():
     print("=" * 60)
     
     if all_passed:
-        print("\n✓ All checks passed! django-ratelimit is properly configured with Redis.")
+        print("\nPASS: All checks passed! django-ratelimit is properly configured with Redis.")
         return 0
     else:
-        print("\n✗ Some checks failed. Please review the output above.")
+        print("\nFAIL: Some checks failed. Please review the output above.")
         return 1
 
 

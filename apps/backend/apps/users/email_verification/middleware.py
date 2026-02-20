@@ -29,14 +29,14 @@ class EmailVerificationMiddleware:
     
     # Content creation endpoints that require email verification
     PROTECTED_ENDPOINTS = [
-        '/api/v1/stories',  # Create story
-        '/api/v1/stories/',  # Create story (with trailing slash)
-        '/api/v1/whispers',  # Create whisper
-        '/api/v1/whispers/',  # Create whisper (with trailing slash)
+        '/v1/stories',  # Create story
+        '/v1/stories/',  # Create story (with trailing slash)
+        '/v1/whispers',  # Create whisper
+        '/v1/whispers/',  # Create whisper (with trailing slash)
     ]
     
     # Patterns for chapter creation (dynamic story_id)
-    CHAPTER_ENDPOINT_PATTERN = '/api/v1/stories/'
+    CHAPTER_ENDPOINT_PATTERN = '/v1/stories/'
     CHAPTER_ENDPOINT_SUFFIX = '/chapters'
     
     def __init__(self, get_response):
@@ -104,14 +104,27 @@ class EmailVerificationMiddleware:
         Returns:
             True if the endpoint requires email verification, False otherwise
         """
+        normalized_path = self._normalize_path(path)
+
         # Check exact matches
-        if path in self.PROTECTED_ENDPOINTS:
+        if normalized_path in self.PROTECTED_ENDPOINTS:
             return True
         
         # Check for chapter creation endpoint pattern
-        # Format: /api/v1/stories/{story_id}/chapters
-        if (path.startswith(self.CHAPTER_ENDPOINT_PATTERN) and 
-            path.endswith(self.CHAPTER_ENDPOINT_SUFFIX)):
+        # Format: /v1/stories/{story_id}/chapters
+        if (
+            normalized_path.startswith(self.CHAPTER_ENDPOINT_PATTERN)
+            and normalized_path.endswith(self.CHAPTER_ENDPOINT_SUFFIX)
+        ):
             return True
-        
+
         return False
+
+    @staticmethod
+    def _normalize_path(path: str) -> str:
+        """Normalize compatibility paths to canonical API v1 paths."""
+        if path.startswith('/api/v1/'):
+            return path[4:]
+        if path == '/api/v1':
+            return '/v1'
+        return path

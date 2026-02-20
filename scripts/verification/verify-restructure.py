@@ -16,7 +16,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import List, Optional
 
 # Colors for terminal output
 GREEN = '\033[92m'
@@ -35,7 +35,7 @@ class VerificationResult:
         self.message = message
     
     def __str__(self) -> str:
-        status = f"{GREEN}✓ PASS{RESET}" if self.passed else f"{RED}✗ FAIL{RESET}"
+        status = f"{GREEN}PASS{RESET}" if self.passed else f"{RED}FAIL{RESET}"
         msg = f": {self.message}" if self.message else ""
         return f"{status} {self.name}{msg}"
 
@@ -52,10 +52,10 @@ class RestructureVerifier:
         """Log a message if verbose mode is enabled."""
         if self.verbose:
             prefix = {
-                "info": f"{BLUE}ℹ{RESET}",
-                "success": f"{GREEN}✓{RESET}",
-                "error": f"{RED}✗{RESET}",
-                "warning": f"{YELLOW}⚠{RESET}",
+                "info": f"{BLUE}[INFO]{RESET}",
+                "success": f"{GREEN}[PASS]{RESET}",
+                "error": f"{RED}[FAIL]{RESET}",
+                "warning": f"{YELLOW}[WARN]{RESET}",
             }.get(level, "")
             print(f"{prefix} {message}")
     
@@ -327,7 +327,7 @@ class RestructureVerifier:
         )
         return all_exist
     
-    def run_all_checks(self, checks: List[str] = None) -> bool:
+    def run_all_checks(self, checks: Optional[List[str]] = None) -> bool:
         """Run all verification checks."""
         available_checks = {
             "structure": self.check_directory_structure,
@@ -370,9 +370,9 @@ class RestructureVerifier:
         
         print(f"\n{BLUE}{'='*60}{RESET}")
         if passed == total:
-            print(f"{GREEN}✓ All checks passed ({passed}/{total}){RESET}")
+            print(f"{GREEN}PASS: All checks passed ({passed}/{total}){RESET}")
         else:
-            print(f"{RED}✗ Some checks failed ({passed}/{total} passed){RESET}")
+            print(f"{RED}FAIL: Some checks failed ({passed}/{total} passed){RESET}")
         print(f"{BLUE}{'='*60}{RESET}\n")
 
 
@@ -395,7 +395,7 @@ def main():
     
     args = parser.parse_args()
     
-    checks = args.checks.split(",") if args.checks else None
+    checks: Optional[List[str]] = args.checks.split(",") if args.checks else None
     
     verifier = RestructureVerifier(verbose=args.verbose)
     success = verifier.run_all_checks(checks)

@@ -277,7 +277,7 @@ describe("Profile - Enhanced Social Features", () => {
         renderComponent("currentuser");
 
         await waitFor(() => {
-            expect(screen.getByText("@currentuser")).toBeInTheDocument();
+            expect(screen.getByRole("heading", { name: "Current User" })).toBeInTheDocument();
         });
 
         // Check that edit profile button is present instead of follow/block

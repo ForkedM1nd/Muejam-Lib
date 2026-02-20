@@ -23,18 +23,18 @@ async def check_tables():
     try:
         # Check Story table
         story_count = await db.story.count()
-        print(f"✓ Story table exists with {story_count} records")
+        print(f"PASS Story table exists with {story_count} records")
         
         # Check User table
         user_count = await db.userprofile.count()
-        print(f"✓ UserProfile table exists with {user_count} records")
+        print(f"PASS UserProfile table exists with {user_count} records")
         
         # Check Chapter table
         chapter_count = await db.chapter.count()
-        print(f"✓ Chapter table exists with {chapter_count} records")
+        print(f"PASS Chapter table exists with {chapter_count} records")
         
     except Exception as e:
-        print(f"✗ Error: {e}")
+        print(f"FAIL Error: {e}")
     finally:
         await db.disconnect()
 

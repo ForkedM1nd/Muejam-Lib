@@ -19,13 +19,15 @@ settings.register_profile(
 settings.load_profile("password_reset")
 
 
-@pytest.fixture(scope='package', autouse=True)
+@pytest.fixture(scope='function', autouse=True)
 def disable_database_router():
     """Disable database router for tests to avoid replica connection issues."""
-    original_routers = django_settings.DATABASE_ROUTERS
+    original_routers = list(django_settings.DATABASE_ROUTERS)
     django_settings.DATABASE_ROUTERS = []
-    yield
-    django_settings.DATABASE_ROUTERS = original_routers
+    try:
+        yield
+    finally:
+        django_settings.DATABASE_ROUTERS = original_routers
 
 
 @pytest.fixture

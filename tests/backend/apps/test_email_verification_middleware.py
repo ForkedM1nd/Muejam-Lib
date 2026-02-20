@@ -14,6 +14,22 @@ from apps.users.email_verification.middleware import EmailVerificationMiddleware
 
 class TestEmailVerificationMiddleware:
     """Test email verification middleware functionality."""
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            '/v1/stories',
+            '/api/v1/stories',
+            '/v1/whispers',
+            '/api/v1/whispers',
+            '/v1/stories/123e4567-e89b-12d3-a456-426614174000/chapters',
+            '/api/v1/stories/123e4567-e89b-12d3-a456-426614174000/chapters',
+        ],
+    )
+    def test_recognizes_web_and_mobile_protected_paths(self, path):
+        """Protected content creation paths are detected for both prefixes."""
+        middleware = EmailVerificationMiddleware(Mock())
+        assert middleware._is_protected_endpoint(path) is True
     
     def test_allows_non_post_requests(self):
         """Test that GET requests are not blocked."""
@@ -109,6 +125,27 @@ class TestEmailVerificationMiddleware:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data['error']['code'] == 'EMAIL_NOT_VERIFIED'
         assert 'email verification' in response.data['error']['message'].lower()
+
+    @patch('apps.users.email_verification.middleware.EmailVerificationService')
+    def test_blocks_unverified_user_story_creation_on_v1_path(self, mock_service_class):
+        """Test that unverified users are blocked on canonical /v1 paths."""
+        mock_service = Mock()
+        mock_service.is_email_verified_sync.return_value = False
+        mock_service_class.return_value = mock_service
+
+        request = Mock()
+        request.method = 'POST'
+        request.path = '/v1/stories'
+        request.user_profile = Mock(id='user123')
+
+        get_response = Mock()
+        middleware = EmailVerificationMiddleware(get_response)
+
+        response = middleware(request)
+
+        get_response.assert_not_called()
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data['error']['code'] == 'EMAIL_NOT_VERIFIED'
     
     @patch('apps.users.email_verification.middleware.EmailVerificationService')
     def test_blocks_unverified_user_whisper_creation(self, mock_service_class):

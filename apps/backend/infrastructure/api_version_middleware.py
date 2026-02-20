@@ -28,7 +28,7 @@ class APIVersionMiddleware(MiddlewareMixin):
     # API version configuration
     CURRENT_VERSION = 'v1'
     DEPRECATED_VERSIONS = []  # List of deprecated versions, e.g., ['v0']
-    VERSION_PATTERN = re.compile(r'^/v(\d+)/')
+    VERSION_PATTERN = re.compile(r'^/(?:api/)?v(\d+)/')
     
     # Deprecation configuration
     DEPRECATION_MESSAGES = {

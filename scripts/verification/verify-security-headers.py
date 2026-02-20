@@ -13,6 +13,7 @@ Usage:
 import os
 import sys
 from pathlib import Path
+from typing import Any
 import django
 
 # Add backend to path and setup Django environment
@@ -37,23 +38,23 @@ def verify_security_settings():
     print("1. HTTP Strict Transport Security (HSTS) - Requirement 6.4")
     print(f"   SECURE_HSTS_SECONDS: {settings.SECURE_HSTS_SECONDS}")
     print(f"   Expected: 31536000 (1 year)")
-    print(f"   ✓ PASS" if settings.SECURE_HSTS_SECONDS == 31536000 else f"   ✗ FAIL")
+    print(f"   PASS" if settings.SECURE_HSTS_SECONDS == 31536000 else f"   FAIL")
     print(f"   SECURE_HSTS_INCLUDE_SUBDOMAINS: {settings.SECURE_HSTS_INCLUDE_SUBDOMAINS}")
-    print(f"   ✓ PASS" if settings.SECURE_HSTS_INCLUDE_SUBDOMAINS else f"   ✗ FAIL")
+    print(f"   PASS" if settings.SECURE_HSTS_INCLUDE_SUBDOMAINS else f"   FAIL")
     print()
     
     # Check X-Frame-Options
     print("2. X-Frame-Options - Requirement 6.5")
     print(f"   X_FRAME_OPTIONS: {settings.X_FRAME_OPTIONS}")
     print(f"   Expected: DENY")
-    print(f"   ✓ PASS" if settings.X_FRAME_OPTIONS == 'DENY' else f"   ✗ FAIL")
+    print(f"   PASS" if settings.X_FRAME_OPTIONS == 'DENY' else f"   FAIL")
     print()
     
     # Check X-Content-Type-Options
     print("3. X-Content-Type-Options - Requirement 6.6")
     print(f"   SECURE_CONTENT_TYPE_NOSNIFF: {settings.SECURE_CONTENT_TYPE_NOSNIFF}")
     print(f"   Expected: True")
-    print(f"   ✓ PASS" if settings.SECURE_CONTENT_TYPE_NOSNIFF else f"   ✗ FAIL")
+    print(f"   PASS" if settings.SECURE_CONTENT_TYPE_NOSNIFF else f"   FAIL")
     print()
     
     # Check CSP settings
@@ -61,7 +62,7 @@ def verify_security_settings():
     print(f"   CSP_DEFAULT_SRC: {settings.CSP_DEFAULT_SRC}")
     print(f"   CSP_SCRIPT_SRC: {settings.CSP_SCRIPT_SRC}")
     print(f"   CSP_FRAME_ANCESTORS: {settings.CSP_FRAME_ANCESTORS}")
-    print(f"   ✓ PASS - CSP configured")
+    print(f"   PASS - CSP configured")
     print()
     
     # Check middleware
@@ -77,42 +78,45 @@ def verify_security_settings():
         if middleware in middleware_checks:
             middleware_checks[middleware] = True
     
-    for middleware, enabled in middleware_checks.items():
-        status = "✓ PASS" if enabled else "✗ FAIL"
+    for middleware in middleware_checks:
+        enabled = middleware_checks[middleware]
+        status = "PASS" if enabled else "FAIL"
         print(f"   {status} - {middleware.split('.')[-1]}")
     print()
     
     # Test actual response headers
     print("6. Response Headers Test")
-    client = Client()
+    client = Client(HTTP_HOST='localhost')
     try:
-        response = client.get('/health/')
+        response: Any = client.get('/health/')
+        response_headers = dict(getattr(response, 'headers', {}))
         
-        headers_to_check = {
-            'X-Frame-Options': 'DENY',
-            'X-Content-Type-Options': 'nosniff',
-            'Content-Security-Policy': None,  # Just check presence
-        }
-        
-        for header, expected_value in headers_to_check.items():
-            if header in response.headers:
-                actual_value = response.headers[header]
+        headers_to_check = [
+            ('X-Frame-Options', 'DENY'),
+            ('X-Content-Type-Options', 'nosniff'),
+            ('Content-Security-Policy', None),  # Just check presence
+        ]
+
+        for header, expected_value in headers_to_check:
+            actual_value = response_headers.get(header)
+            if actual_value is not None:
                 if expected_value:
-                    status = "✓ PASS" if actual_value == expected_value else "✗ FAIL"
+                    status = "PASS" if str(actual_value) == expected_value else "FAIL"
                     print(f"   {status} - {header}: {actual_value}")
                 else:
-                    print(f"   ✓ PASS - {header}: Present")
+                    print(f"   PASS - {header}: Present")
             else:
-                print(f"   ✗ FAIL - {header}: Missing")
+                print(f"   FAIL - {header}: Missing")
         
         # Note about HSTS
-        if 'Strict-Transport-Security' not in response.headers:
-            print(f"   ℹ INFO - Strict-Transport-Security: Not present (only sent over HTTPS)")
+        hsts_value = response_headers.get('Strict-Transport-Security')
+        if hsts_value is None:
+            print(f"   INFO - Strict-Transport-Security: Not present (only sent over HTTPS)")
         else:
-            print(f"   ✓ PASS - Strict-Transport-Security: {response.headers['Strict-Transport-Security']}")
+            print(f"   PASS - Strict-Transport-Security: {hsts_value}")
             
     except Exception as e:
-        print(f"   ✗ ERROR - Could not test response headers: {e}")
+        print(f"   ERROR - Could not test response headers: {e}")
     
     print()
     print("=" * 70)

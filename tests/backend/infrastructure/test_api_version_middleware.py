@@ -170,13 +170,21 @@ class TestAPIVersionMiddleware:
         assert request.api_version == 'v1'
         assert response['X-API-Version'] == 'v1'
     
-    def test_version_not_extracted_from_middle_of_path(self, factory, middleware):
-        """Test that version is only extracted from start of path."""
+    def test_extracts_version_from_api_prefix_path(self, factory, middleware):
+        """Test that version is extracted from compatibility /api/vN paths."""
         request = factory.get('/api/v1/stories/')
         
         response = middleware(request)
         
-        # Should not match v1 in middle of path
+        assert request.api_version == 'v1'
+        assert response['X-API-Version'] == 'v1'
+
+    def test_version_not_extracted_from_non_api_path_middle(self, factory, middleware):
+        """Test that version-like segments in non-prefix paths are ignored."""
+        request = factory.get('/internal/v1/stories/')
+
+        response = middleware(request)
+
         assert request.api_version is None
         assert 'X-API-Version' not in response
     
