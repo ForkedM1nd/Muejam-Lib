@@ -4,15 +4,25 @@ import { useSafeAuth } from "@/hooks/useSafeAuth";
 import { api } from "@/lib/api";
 import { uploadFile } from "@/lib/upload";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import TagPill from "@/components/shared/TagPill";
 import WhisperCard from "@/components/shared/WhisperCard";
 import WhisperComposer from "@/components/shared/WhisperComposer";
 import { PageSkeleton, ChapterListSkeleton } from "@/components/shared/Skeletons";
 import EmptyState from "@/components/shared/EmptyState";
 import { SimilarStories } from "@/components/discovery";
-import { BookOpen, Bookmark, ChevronRight } from "lucide-react";
+import { BookOpen, Bookmark, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import type { ApiError } from "@/types";
 
 export default function StoryPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -37,7 +47,15 @@ export default function StoryPage() {
     enabled: !!story?.id,
   });
 
-  const [savingShelf, setSavingShelf] = useState(false);
+  const { data: shelves } = useQuery({
+    queryKey: ["shelves"],
+    queryFn: () => api.getShelves(),
+    enabled: isSignedIn,
+  });
+
+  const [showShelfDialog, setShowShelfDialog] = useState(false);
+  const [selectedShelfId, setSelectedShelfId] = useState("");
+  const [newShelfName, setNewShelfName] = useState("");
 
   const createWhisperMutation = useMutation({
     mutationFn: async ({ content, mediaFile }: { content: string; mediaFile?: File }) => {
@@ -56,7 +74,7 @@ export default function StoryPage() {
       queryClient.invalidateQueries({ queryKey: ["story-whispers", story?.id] });
       toast({ title: "Whisper posted successfully!" });
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       toast({
         title: "Failed to post whisper",
         description: error?.error?.message || "Please try again",
@@ -73,7 +91,7 @@ export default function StoryPage() {
       queryClient.invalidateQueries({ queryKey: ["story-whispers", story?.id] });
       toast({ title: "Reply posted successfully!" });
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       toast({
         title: "Failed to post reply",
         description: error?.error?.message || "Please try again",
@@ -92,6 +110,43 @@ export default function StoryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["story-whispers", story?.id] });
+    },
+  });
+
+  const addToShelfMutation = useMutation({
+    mutationFn: (shelfId: string) => api.addToShelf(shelfId, story.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shelves"] });
+      queryClient.invalidateQueries({ queryKey: ["shelf-items", selectedShelfId] });
+      setShowShelfDialog(false);
+      toast({ title: "Saved to shelf" });
+    },
+    onError: (error: ApiError) => {
+      const duplicateStory = error?.status === 409 || error?.error?.code === "CONFLICT";
+      toast({
+        title: duplicateStory ? "Already on this shelf" : "Couldn't save story",
+        description: duplicateStory
+          ? "This story is already saved to that shelf."
+          : error?.error?.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createShelfMutation = useMutation({
+    mutationFn: () => api.createShelf({ name: newShelfName.trim() }),
+    onSuccess: (shelf) => {
+      queryClient.invalidateQueries({ queryKey: ["shelves"] });
+      setSelectedShelfId(shelf.id);
+      setNewShelfName("");
+      toast({ title: `Shelf "${shelf.name}" created` });
+    },
+    onError: (error: ApiError) => {
+      toast({
+        title: "Couldn't create shelf",
+        description: error?.error?.message || "Please try again",
+        variant: "destructive",
+      });
     },
   });
 
@@ -133,9 +188,11 @@ export default function StoryPage() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={savingShelf}
-                onClick={async () => {
-                  toast({ title: "Save to shelf", description: "Shelf picker coming soon!" });
+                disabled={addToShelfMutation.isPending || createShelfMutation.isPending}
+                onClick={() => {
+                  setSelectedShelfId(shelves?.[0]?.id ?? "");
+                  setNewShelfName("");
+                  setShowShelfDialog(true);
                 }}
               >
                 <Bookmark className="h-4 w-4 mr-1" /> Save
@@ -219,6 +276,71 @@ export default function StoryPage() {
         </h2>
         <SimilarStories storyId={story.id} />
       </section>
+
+      <Dialog open={showShelfDialog} onOpenChange={setShowShelfDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save to shelf</DialogTitle>
+            <DialogDescription>
+              Pick a shelf for "{story.title}".
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              {shelves && shelves.length > 0 ? (
+                shelves.map((shelf) => (
+                  <button
+                    key={shelf.id}
+                    onClick={() => setSelectedShelfId(shelf.id)}
+                    className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                      selectedShelfId === shelf.id
+                        ? "border-primary bg-accent/50"
+                        : "border-border hover:bg-accent/30"
+                    }`}
+                  >
+                    <p className="font-medium">{shelf.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {shelf.story_count} {shelf.story_count === 1 ? "story" : "stories"}
+                    </p>
+                  </button>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No shelves yet. Create one below.</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Input
+                value={newShelfName}
+                onChange={(e) => setNewShelfName(e.target.value)}
+                placeholder="New shelf name"
+                maxLength={50}
+              />
+              <Button
+                variant="outline"
+                onClick={() => createShelfMutation.mutate()}
+                disabled={!newShelfName.trim() || createShelfMutation.isPending}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {createShelfMutation.isPending ? "Creating..." : "Create"}
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowShelfDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => addToShelfMutation.mutate(selectedShelfId)}
+              disabled={!selectedShelfId || addToShelfMutation.isPending}
+            >
+              {addToShelfMutation.isPending ? "Saving..." : "Save story"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -17,7 +17,7 @@ export default function UserCard({ user, showFollowButton = false, onFollowToggl
     };
 
     return (
-        <Link to={`/profile/${user.handle}`} className="group block">
+        <Link to={`/u/${user.handle}`} className="group block">
             <div className="border border-border rounded-lg overflow-hidden bg-card hover:shadow-md transition-shadow p-4">
                 <div className="flex items-start gap-4">
                     <Avatar className="h-16 w-16 flex-shrink-0">

@@ -7,11 +7,16 @@ import { PageSkeleton, StoryCardSkeleton } from "@/components/shared/Skeletons";
 import EmptyState from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { UserPlus, UserMinus, ShieldBan, Settings, Twitter, Instagram, Globe, Award, BookOpen, MessageSquare, Heart, Users } from "lucide-react";
+import { UserPlus, UserMinus, ShieldBan, Settings, Twitter, Instagram, Globe, Award, BookOpen, Heart, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { BlockConfirmDialog } from "@/components/shared/BlockConfirmDialog";
 import { useState } from "react";
+import type { Story } from "@/types";
+
+interface ProfileBadge {
+  id: string;
+  badge_type: string;
+}
 
 export default function ProfilePage() {
   const { handle } = useParams<{ handle: string }>();
@@ -50,17 +55,6 @@ export default function ProfilePage() {
     enabled: !!handle,
   });
 
-  // Fetch whispers count for this user
-  const { data: whispersData } = useQuery({
-    queryKey: ["profile-whispers-count", handle],
-    queryFn: async () => {
-      // Fetch first page to get total count
-      const response = await api.getWhispers({ page_size: 1 });
-      return response;
-    },
-    enabled: !!handle && !isOwnProfile,
-  });
-
   // Fetch mutual followers (social proof)
   const { data: mutualFollowers } = useQuery({
     queryKey: ["profile-mutual-followers", handle],
@@ -81,22 +75,28 @@ export default function ProfilePage() {
   });
 
   // Fetch pinned stories
-  const { data: pinnedStories } = useQuery({
+  const { data: pinnedStories } = useQuery<Story[]>({
     queryKey: ["profile-pinned", handle],
     queryFn: async () => {
       const response = await fetch(`/v1/users/${handle}/pinned/`);
-      if (response.ok) return response.json();
+      if (response.ok) {
+        const payload = await response.json();
+        return Array.isArray(payload) ? (payload as Story[]) : [];
+      }
       return [];
     },
     enabled: !!handle,
   });
 
   // Fetch user badges
-  const { data: badges } = useQuery({
+  const { data: badges } = useQuery<ProfileBadge[]>({
     queryKey: ["profile-badges", handle],
     queryFn: async () => {
       const response = await fetch(`/v1/users/${handle}/badges/`);
-      if (response.ok) return response.json();
+      if (response.ok) {
+        const payload = await response.json();
+        return Array.isArray(payload) ? (payload as ProfileBadge[]) : [];
+      }
       return [];
     },
     enabled: !!handle,
@@ -116,11 +116,14 @@ export default function ProfilePage() {
       await queryClient.cancelQueries({ queryKey: ["profile", handle] });
       const previousProfile = queryClient.getQueryData(["profile", handle]);
 
-      queryClient.setQueryData(["profile", handle], (old: any) => ({
-        ...old,
-        is_following: !old?.is_following,
-        follower_count: old?.is_following ? old.follower_count - 1 : old.follower_count + 1,
-      }));
+      queryClient.setQueryData(["profile", handle], (old: typeof profile | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          is_following: !old.is_following,
+          follower_count: old.is_following ? old.follower_count - 1 : old.follower_count + 1,
+        };
+      });
 
       return { previousProfile };
     },
@@ -157,10 +160,13 @@ export default function ProfilePage() {
       await queryClient.cancelQueries({ queryKey: ["profile", handle] });
       const previousProfile = queryClient.getQueryData(["profile", handle]);
 
-      queryClient.setQueryData(["profile", handle], (old: any) => ({
-        ...old,
-        is_blocked: !old?.is_blocked,
-      }));
+      queryClient.setQueryData(["profile", handle], (old: typeof profile | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          is_blocked: !old.is_blocked,
+        };
+      });
 
       return { previousProfile };
     },
@@ -254,7 +260,7 @@ export default function ProfilePage() {
             </h1>
             {badges && badges.length > 0 && (
               <div className="flex gap-1">
-                {badges.slice(0, 3).map((badge: any) => {
+                {badges.slice(0, 3).map((badge) => {
                   const badgeInfo = badgeIcons[badge.badge_type];
                   return badgeInfo ? (
                     <div
@@ -333,7 +339,7 @@ export default function ProfilePage() {
                 Followed by{" "}
                 {mutualFollowers.map((user, idx) => (
                   <span key={user.id}>
-                    <Link to={`/users/${user.handle}`} className="font-medium text-foreground hover:underline">
+                    <Link to={`/u/${user.handle}`} className="font-medium text-foreground hover:underline">
                       {user.display_name}
                     </Link>
                     {idx < mutualFollowers.length - 1 && (idx === mutualFollowers.length - 2 ? " and " : ", ")}
@@ -378,7 +384,7 @@ export default function ProfilePage() {
             Featured Stories
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {pinnedStories.map((story: any) => <StoryCard key={story.id} story={story} />)}
+            {pinnedStories.map((story) => <StoryCard key={story.id} story={story} />)}
           </div>
         </section>
       )}

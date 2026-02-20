@@ -4,8 +4,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { ActivityFeedItem } from "@/types";
+import type { ActivityFeedItem, ApiError } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
@@ -25,6 +26,7 @@ export function ActivityFeed() {
         isLoading,
         isError,
         error,
+        refetch,
     } = useInfiniteQuery({
         queryKey: ["activity-feed"],
         queryFn: ({ pageParam }) =>
@@ -67,15 +69,15 @@ export function ActivityFeed() {
 
     // Real-time updates via WebSocket (placeholder for future implementation)
     useEffect(() => {
-        const handleNewActivity = (event: CustomEvent<ActivityFeedItem>) => {
+        const handleNewActivity = () => {
             // Invalidate query to refetch with new activity
             queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
         };
 
-        window.addEventListener("activity:new" as any, handleNewActivity);
+        window.addEventListener("activity:new", handleNewActivity as EventListener);
 
         return () => {
-            window.removeEventListener("activity:new" as any, handleNewActivity);
+            window.removeEventListener("activity:new", handleNewActivity as EventListener);
         };
     }, [queryClient]);
 
@@ -108,9 +110,12 @@ export function ActivityFeed() {
                     </p>
                     {error && (
                         <p className="text-xs text-muted-foreground mt-2">
-                            {(error as any).error?.message || "Unknown error"}
+                            {(error as ApiError).error?.message || "Unknown error"}
                         </p>
                     )}
+                    <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
+                        Try again
+                    </Button>
                 </CardContent>
             </Card>
         );
@@ -176,7 +181,7 @@ function ActivityFeedItemCard({ activity }: { activity: ActivityFeedItem }) {
         <Card className="hover:bg-accent/50 transition-colors">
             <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                    <Link to={`/profile/${activity.actor.handle}`}>
+                    <Link to={`/u/${activity.actor.handle}`}>
                         <Avatar className="h-10 w-10">
                             <AvatarImage src={activity.actor.avatar_url} />
                             <AvatarFallback>
@@ -191,7 +196,7 @@ function ActivityFeedItemCard({ activity }: { activity: ActivityFeedItem }) {
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm">
                                     <Link
-                                        to={`/profile/${activity.actor.handle}`}
+                                        to={`/u/${activity.actor.handle}`}
                                         className="font-medium hover:underline"
                                     >
                                         {activity.actor.display_name}
@@ -229,7 +234,7 @@ function getActivityIcon(type: ActivityFeedItem["type"]) {
         case "chapter_published":
             return <FileText className="h-4 w-4 text-green-500" />;
         case "whisper_created":
-            return <MessageCircle className="h-4 w-4 text-purple-500" />;
+            return <MessageCircle className="h-4 w-4 text-cyan-600" />;
         case "user_followed":
             return <UserPlus className="h-4 w-4 text-orange-500" />;
         default:
@@ -259,11 +264,11 @@ function getActivityLink(activity: ActivityFeedItem): string | null {
         case "story":
             return activity.target.slug ? `/story/${activity.target.slug}` : null;
         case "chapter":
-            return activity.target.id ? `/chapter/${activity.target.id}` : null;
+            return activity.target.id ? `/read/${activity.target.id}` : null;
         case "whisper":
             return "/whispers"; // Could be more specific if we have whisper detail pages
         case "user":
-            return activity.target.id ? `/profile/${activity.target.id}` : null;
+            return null;
         default:
             return null;
     }

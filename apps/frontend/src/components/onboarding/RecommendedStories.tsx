@@ -3,18 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { BookOpen, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-interface Story {
-    id: string;
-    slug: string;
-    title: string;
-    blurb: string;
-    author: {
-        display_name: string;
-        handle: string;
-    };
-    tags: string[];
-}
+import { api } from '@/lib/api';
+import type { Story } from '@/types';
 
 interface RecommendedStoriesProps {
     interests?: string[];
@@ -31,20 +21,11 @@ export function RecommendedStories({ interests = [] }: RecommendedStoriesProps) 
     const fetchRecommendedStories = async () => {
         try {
             setLoading(true);
-            // If user has interests, fetch stories matching those interests
-            // Otherwise, fetch popular/trending stories
-            const endpoint = interests.length > 0
-                ? `/v1/discover/recommended?interests=${interests.join(',')}`
-                : '/v1/discover/trending';
-
-            const response = await fetch(endpoint, {
-                credentials: 'include',
+            const feed = await api.getDiscoverFeed({
+                tab: interests.length > 0 ? 'for-you' : 'trending',
+                page_size: 3,
             });
-
-            if (response.ok) {
-                const data = await response.json();
-                setStories(data.slice(0, 3)); // Show top 3 recommendations
-            }
+            setStories(feed.results.slice(0, 3));
         } catch (error) {
             console.error('Failed to fetch recommended stories:', error);
         } finally {
@@ -89,7 +70,7 @@ export function RecommendedStories({ interests = [] }: RecommendedStoriesProps) 
                         <div className="flex items-start justify-between">
                             <div className="space-y-1 flex-1">
                                 <Link
-                                    to={`/stories/${story.slug}`}
+                                    to={`/story/${story.slug}`}
                                     className="font-semibold hover:underline"
                                 >
                                     {story.title}
@@ -100,20 +81,20 @@ export function RecommendedStories({ interests = [] }: RecommendedStoriesProps) 
                             </div>
                             <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                         </div>
-                        <p className="text-sm line-clamp-2">{story.blurb}</p>
-                        {story.tags && story.tags.length > 0 && (
+                        <p className="text-sm line-clamp-2">{story.blurb || 'No description yet.'}</p>
+                        {story.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                                 {story.tags.slice(0, 3).map((tag) => (
                                     <span
-                                        key={tag}
+                                        key={tag.id}
                                         className="text-xs bg-muted px-2 py-1 rounded"
                                     >
-                                        {tag}
+                                        {tag.name}
                                     </span>
                                 ))}
                             </div>
                         )}
-                        <Link to={`/stories/${story.slug}`}>
+                        <Link to={`/story/${story.slug}`}>
                             <Button size="sm" variant="outline" className="w-full">
                                 Start Reading
                             </Button>

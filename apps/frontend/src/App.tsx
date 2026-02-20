@@ -156,9 +156,12 @@ function AppRoutes() {
           <Route path="/discover/genre/:genre" element={<AppShell><GenreDiscovery /></AppShell>} />
           <Route path="/activity" element={<AppShell><ProtectedRoute><Activity /></ProtectedRoute></AppShell>} />
           <Route path="/story/:slug" element={<AppShell><StoryPage /></AppShell>} />
+          <Route path="/stories/:slug" element={<AppShell><StoryPage /></AppShell>} />
           <Route path="/read/:chapterId" element={<Reader />} />
+          <Route path="/chapter/:chapterId" element={<Reader />} />
           <Route path="/whispers" element={<AppShell><Whispers /></AppShell>} />
           <Route path="/u/:handle" element={<AppShell><Profile /></AppShell>} />
+          <Route path="/profile/:handle" element={<AppShell><Profile /></AppShell>} />
           <Route path="/users/:handle/followers" element={<AppShell><Followers /></AppShell>} />
           <Route path="/users/:handle/following" element={<AppShell><Following /></AppShell>} />
           <Route path="/search" element={<AppShell><Search /></AppShell>} />

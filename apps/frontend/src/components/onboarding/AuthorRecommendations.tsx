@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserPlus, Check } from 'lucide-react';
+import { api } from '@/lib/api';
+import type { UserProfile } from '@/types';
 
 interface Author {
     id: string;
@@ -28,6 +30,18 @@ interface AuthorRecommendationsProps {
     interests: string[];
 }
 
+function isUserProfile(value: unknown): value is UserProfile {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        'id' in value &&
+        'handle' in value &&
+        'display_name' in value &&
+        'follower_count' in value &&
+        'following_count' in value
+    );
+}
+
 export function AuthorRecommendations({ open, onClose, onComplete, interests }: AuthorRecommendationsProps) {
     const [authors, setAuthors] = useState<Author[]>([]);
     const [followedAuthors, setFollowedAuthors] = useState<Set<string>>(new Set());
@@ -42,17 +56,53 @@ export function AuthorRecommendations({ open, onClose, onComplete, interests }: 
     const fetchRecommendedAuthors = async () => {
         try {
             setLoading(true);
-            // TODO: Replace with actual API endpoint that takes interests into account
-            const response = await fetch('/v1/users/recommended/', {
-                credentials: 'include',
+            const searchPage = await api.search({
+                q: interests.length > 0 ? interests.join(' ') : 'stories',
+                type: 'users',
+                page_size: 12,
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                setAuthors(data.results || data);
+            const matchedAuthors = searchPage.results
+                .filter(isUserProfile)
+                .map((user) => ({
+                    id: user.id,
+                    handle: user.handle,
+                    display_name: user.display_name,
+                    avatar_url: user.avatar_url,
+                    bio: user.bio,
+                    follower_count: user.follower_count,
+                    story_count: 0,
+                }));
+
+            if (matchedAuthors.length > 0) {
+                setAuthors(matchedAuthors.slice(0, 12));
+                return;
             }
+
+            const discoverFeed = await api.getDiscoverFeed({ tab: 'trending', page_size: 24 });
+            const dedupedAuthors = new Map<string, Author>();
+
+            for (const story of discoverFeed.results) {
+                const existing = dedupedAuthors.get(story.author.id);
+                if (existing) {
+                    existing.story_count += 1;
+                } else {
+                    dedupedAuthors.set(story.author.id, {
+                        id: story.author.id,
+                        handle: story.author.handle,
+                        display_name: story.author.display_name,
+                        avatar_url: story.author.avatar_url,
+                        bio: undefined,
+                        follower_count: 0,
+                        story_count: 1,
+                    });
+                }
+            }
+
+            setAuthors(Array.from(dedupedAuthors.values()).slice(0, 12));
         } catch (error) {
             console.error('Failed to fetch recommended authors:', error);
+            setAuthors([]);
         } finally {
             setLoading(false);
         }
@@ -62,22 +112,21 @@ export function AuthorRecommendations({ open, onClose, onComplete, interests }: 
         const isFollowing = followedAuthors.has(authorId);
 
         try {
-            const response = await fetch(`/v1/users/${authorId}/follow/`, {
-                method: isFollowing ? 'DELETE' : 'POST',
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                setFollowedAuthors(prev => {
-                    const newSet = new Set(prev);
-                    if (isFollowing) {
-                        newSet.delete(authorId);
-                    } else {
-                        newSet.add(authorId);
-                    }
-                    return newSet;
-                });
+            if (isFollowing) {
+                await api.unfollowUser(authorId);
+            } else {
+                await api.followUser(authorId);
             }
+
+            setFollowedAuthors(prev => {
+                const newSet = new Set(prev);
+                if (isFollowing) {
+                    newSet.delete(authorId);
+                } else {
+                    newSet.add(authorId);
+                }
+                return newSet;
+            });
         } catch (error) {
             console.error('Failed to toggle follow:', error);
         }
