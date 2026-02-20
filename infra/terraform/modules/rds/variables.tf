@@ -115,7 +115,7 @@ variable "replica_count" {
   description = "Number of read replicas to create (1 or 2)"
   type        = number
   default     = 1
-  
+
   validation {
     condition     = var.replica_count >= 1 && var.replica_count <= 2
     error_message = "Replica count must be 1 or 2"

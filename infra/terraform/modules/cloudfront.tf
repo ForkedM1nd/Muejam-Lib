@@ -12,7 +12,7 @@ resource "aws_cloudfront_distribution" "main" {
   is_ipv6_enabled     = true
   comment             = "MueJam Library CDN"
   default_root_object = "index.html"
-  price_class         = "PriceClass_All"  # Requirement 27.2: Edge locations in NA, EU, Asia
+  price_class         = "PriceClass_All" # Requirement 27.2: Edge locations in NA, EU, Asia
 
   # Origin for static assets from S3
   origin {
@@ -64,9 +64,9 @@ resource "aws_cloudfront_distribution" "main" {
 
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 0
-    default_ttl            = 31536000  # 1 year for versioned assets (Requirement 27.3)
+    default_ttl            = 31536000 # 1 year for versioned assets (Requirement 27.3)
     max_ttl                = 31536000
-    compress               = true      # Requirement 27.6: gzip and brotli compression
+    compress               = true # Requirement 27.6: gzip and brotli compression
 
     # Lambda@Edge for custom headers (optional)
     # lambda_function_association {
@@ -92,7 +92,7 @@ resource "aws_cloudfront_distribution" "main" {
 
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 0
-    default_ttl            = 3600  # 1 hour for HTML (Requirement 27.3)
+    default_ttl            = 3600 # 1 hour for HTML (Requirement 27.3)
     max_ttl                = 3600
     compress               = true
   }
@@ -105,7 +105,7 @@ resource "aws_cloudfront_distribution" "main" {
     target_origin_id = "S3-user-uploads"
 
     forwarded_values {
-      query_string = true  # For image transformations
+      query_string = true # For image transformations
 
       cookies {
         forward = "none"
@@ -114,7 +114,7 @@ resource "aws_cloudfront_distribution" "main" {
 
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 0
-    default_ttl            = 86400  # 1 day for user uploads
+    default_ttl            = 86400 # 1 day for user uploads
     max_ttl                = 31536000
     compress               = true
   }
@@ -137,7 +137,7 @@ resource "aws_cloudfront_distribution" "main" {
 
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 0
-    default_ttl            = 0  # No caching for API
+    default_ttl            = 0 # No caching for API
     max_ttl                = 0
     compress               = true
   }

@@ -203,7 +203,7 @@ variable "s3_backup_retention_days" {
 variable "s3_bucket_size_alert_threshold" {
   description = "Alert threshold for bucket size in bytes"
   type        = number
-  default     = 107374182400  # 100 GB
+  default     = 107374182400 # 100 GB
 }
 
 # ElastiCache Redis Variables

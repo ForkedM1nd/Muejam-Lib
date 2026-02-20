@@ -81,7 +81,7 @@ resource "aws_lb_target_group" "app" {
   # Sticky sessions for WebSocket connections
   stickiness {
     type            = "lb_cookie"
-    cookie_duration = 86400  # 1 day
+    cookie_duration = 86400 # 1 day
     enabled         = true
   }
 
