@@ -412,12 +412,12 @@ If issues occur:
 
 ### Documentation Links
 
-- [Requirements Document](.kiro/specs/production-readiness-audit/requirements.md)
-- [Design Document](.kiro/specs/production-readiness-audit/design.md)
-- [Tasks List](.kiro/specs/production-readiness-audit/tasks.md)
+- [Deployment checklist](../deployment/checklist.md)
+- [CI/CD pipeline](../deployment/ci-cd.md)
+- [Verification guide](../deployment/verification.md)
 - [Operations Runbook](../backend/infrastructure/operations-runbook.md)
 - [Deployment Checklist](../deployment/checklist.md)
-- [Disaster Recovery Plan](disaster-recovery.md)
+- [Disaster Recovery Plan](../deployment/disaster-recovery.md)
 
 ### Contact Information
 

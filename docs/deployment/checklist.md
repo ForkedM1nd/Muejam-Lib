@@ -552,8 +552,8 @@ Update `CHANGELOG.md` with:
 
 ## References
 
-- [Deployment Scripts Repository](./scripts/)
-- [Infrastructure as Code](./terraform/)
-- [Disaster Recovery Runbook](./DISASTER_RECOVERY_RUNBOOK.md)
-- [Secrets Management Guide](./SECRETS_MANAGEMENT.md)
-- [Monitoring and Alerting Guide](./MONITORING.md)
+- [Deployment scripts](../../scripts/deployment/)
+- [Infrastructure as code](../../infra/terraform/)
+- [Disaster recovery runbook](./disaster-recovery.md)
+- [Secrets management guide](./secrets-management.md)
+- [Monitoring and alerting guide](../monitoring/README.md)

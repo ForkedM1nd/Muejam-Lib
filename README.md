@@ -183,4 +183,5 @@ Key points:
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+This repository currently does not publish a standalone license file.
+Contact the maintainers for usage and distribution permissions.

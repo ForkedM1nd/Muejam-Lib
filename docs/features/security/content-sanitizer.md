@@ -211,8 +211,8 @@ class ContentSanitizer:
 
 ## Related Documentation
 
-- [Security Hardening](../../docs/security-hardening.md)
-- [XSS Prevention Guide](../../docs/xss-prevention.md)
+- [Security hardening](../../backend/SECURITY_HARDENING.md)
+- [Validation rules](../../backend/VALIDATION_RULES.md)
 - [Content Filtering](../moderation/content-filters.md)
 
 ## Support

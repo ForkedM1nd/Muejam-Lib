@@ -50,7 +50,7 @@ module "rds" {
 }
 ```
 
-See [RDS Module README](../../../infra/terraform/modules/rds/README.md) for detailed Terraform configuration.
+See [RDS Module README](../../infra/terraform/modules/rds/README.md) for detailed Terraform configuration.
 
 ## Application Configuration
 
@@ -476,11 +476,11 @@ CloudWatch alarms are configured for:
 
 ## Related Documentation
 
-- [Database Configuration](./README_DATABASE_CONFIG.md)
-- [Database Caching](./README_DATABASE_CACHE.md)
-- [Database Indexes](./README_DATABASE_INDEXES.md)
-- [Connection Pooling](./connection_pool.py)
-- [RDS Terraform Module](../../../infra/terraform/modules/rds/README.md)
+- [Django integration](../backend/infrastructure/django-integration.md)
+- [Database caching](./database-cache.md)
+- [Search and indexing architecture](./search.md)
+- [Connection pooling](../../apps/backend/infrastructure/connection_pool.py)
+- [RDS Terraform module](../../infra/terraform/modules/rds/README.md)
 
 ## Support
 

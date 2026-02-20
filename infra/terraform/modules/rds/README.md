@@ -442,10 +442,10 @@ backup_retention_period = 30
 
 ## Related Documentation
 
-- [Database Configuration](../../../apps/backend/infrastructure/README_DATABASE_CONFIG.md)
-- [Database Indexes](../../../apps/backend/infrastructure/README_DATABASE_INDEXES.md)
-- [Database Caching](../../../apps/backend/infrastructure/README_DATABASE_CACHE.md)
-- [Connection Pooling](../../../apps/backend/infrastructure/connection_pool.py)
+- [Database and cache architecture](../../../../docs/architecture/database-cache.md)
+- [Search and indexing architecture](../../../../docs/architecture/search.md)
+- [Read replicas architecture](../../../../docs/architecture/read-replicas.md)
+- [Connection pooling implementation](../../../../apps/backend/infrastructure/connection_pool.py)
 
 ## Support
 

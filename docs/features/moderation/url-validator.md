@@ -337,5 +337,5 @@ Potential improvements for future versions:
 ## References
 
 - [Google Safe Browsing API Documentation](https://developers.google.com/safe-browsing/v4)
-- [Production Readiness Specification](/.kiro/specs/production-readiness/requirements.md)
+- [Production readiness review](../../operations/PRODUCTION_READINESS_REVIEW.md)
 - [Content Filter Integration](./filter-integration.md)

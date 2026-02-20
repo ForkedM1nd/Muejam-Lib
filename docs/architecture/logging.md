@@ -560,7 +560,7 @@ def test_structured_logger():
 
 ## References
 
-- [Requirements 15.1-15.12](../../.kiro/specs/production-readiness/requirements.md#requirement-15-logging-and-log-aggregation)
+- [Production readiness review](../operations/PRODUCTION_READINESS_REVIEW.md)
 - [CloudWatch Logs Documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/)
 - [Python Logging Documentation](https://docs.python.org/3/library/logging.html)
 - [Watchtower Documentation](https://github.com/kislyuk/watchtower)

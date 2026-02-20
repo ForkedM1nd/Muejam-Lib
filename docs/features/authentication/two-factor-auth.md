@@ -152,7 +152,7 @@ print(f"User has {count} backup codes remaining")
 
 - Secrets are encrypted at rest using Fernet symmetric encryption
 - Encryption key is stored in environment variable `ENCRYPTION_KEY`
-- See [Encryption Documentation](../../../../../docs/features/security/encryption.md) for key management
+- See [Encryption documentation](../security/encryption.md) for key management
 
 ### Backup Code Storage
 
@@ -284,16 +284,18 @@ async def test_backup_code_single_use():
 
 ## API Integration
 
-This service is designed to be used by API endpoints. See the API implementation for:
-- POST /api/auth/2fa/setup
-- POST /api/auth/2fa/verify-setup
-- POST /api/auth/2fa/verify
-- POST /api/auth/2fa/backup-code
-- DELETE /api/auth/2fa
-- POST /api/auth/2fa/regenerate-backup-codes
+This service is designed to be used by API endpoints. Canonical endpoints are:
+- POST /v1/users/2fa/setup
+- POST /v1/users/2fa/verify-setup
+- POST /v1/users/2fa/verify
+- POST /v1/users/2fa/backup-code
+- DELETE /v1/users/2fa/
+- POST /v1/users/2fa/regenerate-backup-codes
+
+Compatibility aliases under `/api/v1/...` are also supported for legacy mobile clients.
 
 ## Related Documentation
 
-- [Encryption Utilities](../../../../../docs/features/security/encryption.md)
-- [Requirements Document](../../../../.kiro/specs/production-readiness/requirements.md)
-- [Design Document](../../../../.kiro/specs/production-readiness/design.md)
+- [Encryption utilities](../security/encryption.md)
+- [Two-factor login flow](./two-factor-login-flow.md)
+- [Production readiness review](../../operations/PRODUCTION_READINESS_REVIEW.md)

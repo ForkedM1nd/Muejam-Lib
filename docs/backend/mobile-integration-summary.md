@@ -23,10 +23,10 @@ This document provides an overview of the mobile backend integration for the Mue
 
 ### For Backend Developers
 
-3. **[Mobile Backend Integration Spec](.kiro/specs/mobile-backend-integration/)** - Technical specification
-   - [Requirements](../../.kiro/specs/mobile-backend-integration/requirements.md)
-   - [Design Document](../../.kiro/specs/mobile-backend-integration/design.md)
-   - [Implementation Tasks](../../.kiro/specs/mobile-backend-integration/tasks.md)
+3. **[Mobile API documentation](./mobile-api.md)** - Technical API reference
+   - [Quick start guide](./mobile-quick-start.md)
+   - [Integration summary](./mobile-integration-summary.md)
+   - [General API architecture](../architecture/api.md)
 
 ### General API Documentation
 
@@ -312,9 +312,9 @@ muejam://profile/{user_id}
 
 To contribute to mobile backend integration:
 
-1. Review the [requirements](../../.kiro/specs/mobile-backend-integration/requirements.md)
-2. Check the [design document](../../.kiro/specs/mobile-backend-integration/design.md)
-3. Follow the [implementation tasks](../../.kiro/specs/mobile-backend-integration/tasks.md)
+1. Review the [mobile API reference](./mobile-api.md)
+2. Check the [mobile quick start](./mobile-quick-start.md)
+3. Follow the backend contribution workflow in [CONTRIBUTING.md](../../CONTRIBUTING.md)
 4. Update documentation as needed
 5. Write tests for new features
 6. Submit pull request with clear description

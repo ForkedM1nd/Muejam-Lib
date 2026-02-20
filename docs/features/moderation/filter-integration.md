@@ -239,6 +239,6 @@ pytest apps/moderation/test_content_filter_integration.py -v
 
 ## Related Documentation
 
-- [Content Filtering System](content-filters.md)
-- [Filter Configuration Service](filter_config_service.py)
-- [Moderation Dashboard](dashboard.md)
+- [Content filtering system](content-filters.md)
+- [Filter configuration service](../../../apps/backend/apps/moderation/filter_config_service.py)
+- [Moderation dashboard](dashboard.md)

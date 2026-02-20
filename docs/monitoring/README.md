@@ -6,8 +6,8 @@ This directory contains comprehensive documentation for monitoring rate limiting
 
 1. **For Operators**: Start with [Quick Reference Guide](./rate-limiting-quick-reference.md)
 2. **For Setup**: Read the [Full Monitoring Guide](./rate-limiting-monitoring.md)
-3. **For Dashboards**: Import [Grafana Dashboard](./grafana-rate-limiting-dashboard.json)
-4. **For Alerts**: Configure [Alert Rules](./rate-limiting-alerts.yaml)
+3. **For Dashboards**: Import [Grafana Dashboard](../../infra/monitoring/grafana-rate-limiting-dashboard.json)
+4. **For Alerts**: Configure [Alert Rules](../../infra/monitoring/rate-limiting-alerts.yaml)
 
 ## Documentation Files
 
@@ -35,7 +35,7 @@ This directory contains comprehensive documentation for monitoring rate limiting
 
 **Use this for**: Day-to-day operations and incident response.
 
-### [grafana-rate-limiting-dashboard.json](./grafana-rate-limiting-dashboard.json)
+### [grafana-rate-limiting-dashboard.json](../../infra/monitoring/grafana-rate-limiting-dashboard.json)
 **Grafana dashboard configuration** including:
 - Rate limit hit rate
 - 429 response tracking
@@ -46,7 +46,7 @@ This directory contains comprehensive documentation for monitoring rate limiting
 
 **Use this for**: Importing into Grafana for visual monitoring.
 
-### [rate-limiting-alerts.yaml](./rate-limiting-alerts.yaml)
+### [rate-limiting-alerts.yaml](../../infra/monitoring/rate-limiting-alerts.yaml)
 **Alert rules configuration** including:
 - Critical alerts (Redis down, high hit rate)
 - Warning alerts (elevated rate limiting, suspicious admin activity)
@@ -197,8 +197,8 @@ For troubleshooting guidance, see:
 - **Implementation**: `apps/backend/infrastructure/rate_limit_middleware.py`
 - **Rate Limiter**: `apps/backend/infrastructure/rate_limiter.py`
 - **Configuration**: `apps/backend/config/settings.py`
-- **Design Document**: `.kiro/specs/production-readiness-audit/design.md`
-- **Requirements**: `.kiro/specs/production-readiness-audit/requirements.md`
+- **Production readiness review**: `docs/operations/PRODUCTION_READINESS_REVIEW.md`
+- **Deployment checklist**: `docs/deployment/checklist.md`
 
 ## Support
 

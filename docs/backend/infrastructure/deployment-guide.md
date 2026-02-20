@@ -809,11 +809,11 @@ tail -f /var/log/postgresql/postgresql-14-main.log | grep "duration:"
 
 ## Additional Resources
 
-- [Database Replication Setup](DATABASE_REPLICATION_SETUP.md)
-- [Valkey Configuration](VALKEY_CONFIGURATION.md)
-- [Django Integration](DJANGO_INTEGRATION.md)
-- [Monitoring Guide](../monitoring/README.md)
-- [Configuration Guide](../monitoring/CONFIGURATION_GUIDE.md)
+- [Database replication setup](database-replication-setup.md)
+- [Valkey configuration](valkey-configuration.md)
+- [Django integration](django-integration.md)
+- [Monitoring overview](../monitoring/overview.md)
+- [Monitoring configuration guide](../monitoring/configuration-guide.md)
 
 ## Support
 

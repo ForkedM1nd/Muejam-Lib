@@ -234,5 +234,5 @@ This ensures:
 ## Related Documentation
 
 - [Cryptography Library Documentation](https://cryptography.io/en/latest/fernet/)
-- [TOTP Implementation](../users/README_2FA.md) (to be created)
-- [Security Best Practices](../../docs/SECURITY.md) (to be created)
+- [TOTP implementation](../authentication/two-factor-auth.md)
+- [Security hardening guide](../../backend/SECURITY_HARDENING.md)

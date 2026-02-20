@@ -9,8 +9,8 @@ A modern, feature-rich frontend for the MueJam Library serial fiction platform.
 npm install
 
 # Set up environment variables
-cp .env.example .env
-# Edit .env and add your Clerk publishable key
+cp .env.example .env.local
+# Edit .env.local and add your Clerk publishable key
 
 # Start development server
 npm run dev
@@ -26,7 +26,7 @@ Visit http://localhost:5173
 ### Other Documentation
 - **[API Client](../../docs/frontend/api-client.md)** - API integration guide
 - **[Frontend Setup](../../docs/frontend/setup.md)** - Detailed setup instructions
-- **[Components](components.json)** - UI component configuration
+- **[Components](../../apps/frontend/components.json)** - UI component configuration
 
 ## ✨ Features
 
@@ -172,7 +172,7 @@ The application includes comprehensive monitoring and performance tracking:
 - **Bundle Analysis**: Tools for analyzing and optimizing bundle size
 - **Lighthouse Audits**: Automated performance, accessibility, and SEO audits
 
-For detailed information, see [Monitoring Documentation](docs/MONITORING.md).
+For detailed information, see [Monitoring Documentation](../monitoring/README.md).
 
 ## 🎨 Customization
 

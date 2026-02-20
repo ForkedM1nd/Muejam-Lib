@@ -269,6 +269,6 @@ The following features are planned for future phases:
 
 ## Related Documentation
 
-- [Moderation Queue Service](./queue.md) - Priority calculation algorithm
-- [Production Readiness Requirements](../../../../.kiro/specs/production-readiness/requirements.md)
-- [Production Readiness Design](../../../../.kiro/specs/production-readiness/design.md)
+- [Moderation queue service](./queue.md) - Priority calculation algorithm
+- [Production readiness review](../../operations/PRODUCTION_READINESS_REVIEW.md)
+- [Deployment checklist](../../deployment/checklist.md)

@@ -150,7 +150,7 @@ CELERY_BEAT_SCHEDULE = {
 
 ## Disaster Recovery Procedures
 
-See [DISASTER_RECOVERY_RUNBOOK.md](./DISASTER_RECOVERY_RUNBOOK.md) for detailed procedures.
+See [disaster recovery runbook](../../deployment/disaster-recovery.md) for detailed procedures.
 
 ### Quick Reference
 
@@ -351,7 +351,7 @@ Disaster recovery procedures must be tested quarterly:
 4. Measure RTO/RPO compliance
 5. Document results and update procedures
 
-See [DISASTER_RECOVERY_RUNBOOK.md](./DISASTER_RECOVERY_RUNBOOK.md) for detailed testing procedures.
+See [disaster recovery runbook](../../deployment/disaster-recovery.md) for detailed testing procedures.
 
 ## Compliance
 

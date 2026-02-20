@@ -477,9 +477,9 @@ def test_cache_query():
 
 ## Related Documentation
 
-- [Cache Manager](./cache_manager.py) - Core caching implementation
-- [Database Configuration](./README_DATABASE_CONFIG.md) - Database setup and connection pooling
-- [Database Indexes](./README_DATABASE_INDEXES.md) - Index optimization
+- [Cache Manager](../../apps/backend/infrastructure/cache_manager.py) - Core caching implementation
+- [Django integration](../backend/infrastructure/django-integration.md) - Database setup and connection pooling
+- [Database indexes](../../apps/backend/infrastructure/database_indexes.py) - Index optimization
 
 ## Support
 

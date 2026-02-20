@@ -645,6 +645,6 @@ def test_maintenance_window():
 
 ## References
 
-- [Requirements 16.1-16.13](../../.kiro/specs/production-readiness/requirements.md#requirement-16-alerting-system)
+- [Production readiness review](../operations/PRODUCTION_READINESS_REVIEW.md)
 - [PagerDuty Events API Documentation](https://developer.pagerduty.com/docs/ZG9jOjExMDI5NTgw-events-api-v2-overview)
 - [PagerDuty REST API Documentation](https://developer.pagerduty.com/api-reference/)

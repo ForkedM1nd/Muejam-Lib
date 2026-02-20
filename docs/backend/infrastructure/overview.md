@@ -34,15 +34,15 @@ cp .env.example .env
 
 ### 3. Set Up Database Replication
 
-Follow the [Database Replication Setup Guide](DATABASE_REPLICATION_SETUP.md).
+Follow the [database replication setup guide](database-replication-setup.md).
 
 ### 4. Configure Redis/Valkey
 
-Follow the [Valkey Configuration Guide](VALKEY_CONFIGURATION.md).
+Follow the [Valkey configuration guide](valkey-configuration.md).
 
 ### 5. Enable Django Integration
 
-Follow the [Django Integration Guide](DJANGO_INTEGRATION.md).
+Follow the [Django integration guide](django-integration.md).
 
 ### 6. Start Monitoring
 
@@ -68,29 +68,29 @@ open http://localhost:3000  # Grafana
 
 ### Getting Started
 
-- [Deployment Guide](DEPLOYMENT_GUIDE.md) - Complete deployment instructions
-- [Django Integration](DJANGO_INTEGRATION.md) - Integrate with Django application
-- [Quick Start Tutorial](QUICKSTART.md) - Get up and running in 15 minutes
+- [Deployment guide](deployment-guide.md) - Complete deployment instructions
+- [Django integration](django-integration.md) - Integrate with Django application
+- [Quick start section](deployment-guide.md#quick-start) - Get up and running in 15 minutes
 
 ### Configuration
 
-- [Connection Pool Tuning](TUNING_GUIDE.md) - Optimize connection pool parameters
-- [Rate Limiting Configuration](RATE_LIMITING_GUIDE.md) - Configure rate limits
-- [Database Replication Setup](DATABASE_REPLICATION_SETUP.md) - Set up replication
-- [Valkey Configuration](VALKEY_CONFIGURATION.md) - Configure Redis/Valkey
-- [Monitoring Configuration](../monitoring/CONFIGURATION_GUIDE.md) - Set up monitoring
+- [Connection pool tuning](tuning-guide.md) - Optimize connection pool parameters
+- [Rate limiting configuration](rate-limiting-guide.md) - Configure rate limits
+- [Database replication setup](database-replication-setup.md) - Set up replication
+- [Valkey configuration](valkey-configuration.md) - Configure Redis/Valkey
+- [Monitoring configuration](../monitoring/configuration-guide.md) - Set up monitoring
 
 ### Operations
 
-- [Operations Runbook](OPERATIONS_RUNBOOK.md) - Daily operations and incident response
-- [Monitoring Guide](../monitoring/README.md) - Monitoring and alerting
-- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions
+- [Operations runbook](operations-runbook.md) - Daily operations and incident response
+- [Monitoring overview](../monitoring/overview.md) - Monitoring and alerting
+- [Troubleshooting section](operations-runbook.md#troubleshooting) - Common issues and solutions
 
 ### Architecture
 
-- [Design Document](../.kiro/specs/db-cache-optimization/design.md) - Architecture and design
-- [Requirements](../.kiro/specs/db-cache-optimization/requirements.md) - Functional requirements
-- [API Documentation](API_DOCUMENTATION.md) - Component APIs
+- [Architecture overview](../../architecture/infrastructure.md) - High-level infrastructure design
+- [Production readiness review](../../operations/PRODUCTION_READINESS_REVIEW.md) - Operational requirements status
+- [API documentation](../../architecture/api.md) - Endpoint and contract details
 
 ## Architecture
 
@@ -149,7 +149,7 @@ CONNECTION_POOL_CONFIG = {
 }
 ```
 
-**Documentation**: [Tuning Guide](TUNING_GUIDE.md)
+**Documentation**: [Tuning guide](tuning-guide.md)
 
 ### Workload Isolator
 
@@ -170,7 +170,7 @@ WORKLOAD_ISOLATION = {
 }
 ```
 
-**Documentation**: [Django Integration](DJANGO_INTEGRATION.md)
+**Documentation**: [Django integration](django-integration.md)
 
 ### Cache Manager
 
@@ -193,7 +193,7 @@ CACHE_CONFIG = {
 }
 ```
 
-**Documentation**: [Valkey Configuration](VALKEY_CONFIGURATION.md)
+**Documentation**: [Valkey configuration](valkey-configuration.md)
 
 ### Rate Limiter
 
@@ -214,7 +214,7 @@ RATE_LIMITING = {
 }
 ```
 
-**Documentation**: [Rate Limiting Guide](RATE_LIMITING_GUIDE.md)
+**Documentation**: [Rate limiting guide](rate-limiting-guide.md)
 
 ### Health Monitor
 
@@ -235,7 +235,7 @@ HEALTH_MONITORING = {
 }
 ```
 
-**Documentation**: [Operations Runbook](OPERATIONS_RUNBOOK.md)
+**Documentation**: [Operations runbook](operations-runbook.md)
 
 ### Load Balancer
 
@@ -256,7 +256,7 @@ LOAD_BALANCING = {
 }
 ```
 
-**Documentation**: [Deployment Guide](DEPLOYMENT_GUIDE.md)
+**Documentation**: [Deployment guide](deployment-guide.md)
 
 ### Query Optimizer
 
@@ -277,7 +277,7 @@ QUERY_OPTIMIZATION = {
 }
 ```
 
-**Documentation**: [Query Optimizer Integration](QUERY_OPTIMIZER_INTEGRATION.md)
+**Documentation**: [Query optimizer integration](query-optimizer-integration.md)
 
 ### Circuit Breaker
 
@@ -298,7 +298,7 @@ CIRCUIT_BREAKER = {
 }
 ```
 
-**Documentation**: [Django Integration](DJANGO_INTEGRATION.md)
+**Documentation**: [Django integration](django-integration.md)
 
 ### Metrics Collector
 
@@ -315,7 +315,7 @@ Collects and exposes metrics for monitoring.
 - `/metrics/json` - JSON format
 - `/health` - Health check
 
-**Documentation**: [Monitoring Guide](../monitoring/README.md)
+**Documentation**: [Monitoring overview](../monitoring/overview.md)
 
 ## Monitoring
 
@@ -443,10 +443,10 @@ locust -f tests/locustfile.py --host=http://localhost:8000
 
 ### Common Issues
 
-1. **Connection Pool Exhausted**: See [Tuning Guide](TUNING_GUIDE.md#scenario-1-pool-exhaustion)
-2. **High Replication Lag**: See [Operations Runbook](OPERATIONS_RUNBOOK.md#replication-lag)
-3. **Low Cache Hit Rate**: See [Operations Runbook](OPERATIONS_RUNBOOK.md#cache-issues)
-4. **Rate Limiting Issues**: See [Rate Limiting Guide](RATE_LIMITING_GUIDE.md#troubleshooting)
+1. **Connection Pool Exhausted**: See [Tuning guide](tuning-guide.md)
+2. **High Replication Lag**: See [Operations runbook](operations-runbook.md#replication-lag)
+3. **Low Cache Hit Rate**: See [Operations runbook](operations-runbook.md#cache-issues)
+4. **Rate Limiting Issues**: See [Rate limiting guide](rate-limiting-guide.md#troubleshooting)
 
 ### Debug Commands
 
@@ -474,25 +474,25 @@ tail -f /var/log/gunicorn/error.log
 
 ### Documentation
 
-- [Deployment Guide](DEPLOYMENT_GUIDE.md)
-- [Operations Runbook](OPERATIONS_RUNBOOK.md)
-- [Troubleshooting Guide](TROUBLESHOOTING.md)
-- [API Documentation](API_DOCUMENTATION.md)
+- [Deployment guide](deployment-guide.md)
+- [Operations runbook](operations-runbook.md)
+- [Troubleshooting section](operations-runbook.md#troubleshooting)
+- [API documentation](../../architecture/api.md)
 
 ### Contact
 
 - **Issues**: Create issue in repository
 - **Questions**: Contact DevOps team
-- **Emergency**: Follow [Operations Runbook](OPERATIONS_RUNBOOK.md)
+- **Emergency**: Follow [Operations runbook](operations-runbook.md)
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](../../../CONTRIBUTING.md) for guidelines.
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+See [README license section](../../../README.md#license) for repository licensing details.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for version history.
+Release history is tracked in Git commit history.

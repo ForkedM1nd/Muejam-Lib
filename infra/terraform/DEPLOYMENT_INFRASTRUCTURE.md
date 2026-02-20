@@ -602,8 +602,8 @@ terraform show
 
 - [Auto Scaling](./AUTO_SCALING.md)
 - [RDS Module](./modules/rds/README.md)
-- [Database Configuration](../../apps/backend/infrastructure/README_DATABASE_CONFIG.md)
-- [Read Replicas](../../apps/backend/infrastructure/README_READ_REPLICAS.md)
+- [Database and cache architecture](../../docs/architecture/database-cache.md)
+- [Read replicas architecture](../../docs/architecture/read-replicas.md)
 
 ## Support
 

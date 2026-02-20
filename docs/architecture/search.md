@@ -593,10 +593,10 @@ Popular queries are automatically cached for 5 minutes.
 
 ## Related Documentation
 
-- [Database Indexes](./database_indexes.py)
-- [Database Caching](./README_DATABASE_CACHE.md)
-- [Search Indexes](./search_indexes.py)
-- [Search Service](./search_service.py)
+- [Database indexes](../../apps/backend/infrastructure/database_indexes.py)
+- [Database caching](./database-cache.md)
+- [Search indexes](../../apps/backend/infrastructure/search_indexes.py)
+- [Search service](../../apps/backend/infrastructure/search_service.py)
 
 ## Support
 
