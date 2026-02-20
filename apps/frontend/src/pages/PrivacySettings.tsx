@@ -12,6 +12,8 @@ import { Info, Shield } from "lucide-react";
 import { ConsentHistory } from "@/components/gdpr/ConsentHistory";
 import { DataExport } from "@/components/gdpr/DataExport";
 import { AccountDeletion } from "@/components/gdpr/AccountDeletion";
+import PageHeader from "@/components/shared/PageHeader";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 
 export default function PrivacySettings() {
     const [settings, setSettings] = useState<PrivacySettingsType | null>(null);
@@ -65,58 +67,49 @@ export default function PrivacySettings() {
 
     if (loading) {
         return (
-            <div className="container max-w-4xl py-8">
-                <div className="space-y-6">
-                    <div>
-                        <Skeleton className="h-8 w-64 mb-2" />
-                        <Skeleton className="h-4 w-96" />
+            <div className="mx-auto max-w-4xl space-y-5">
+                <SurfacePanel className="p-6">
+                    <Skeleton className="mb-2 h-8 w-64" />
+                    <Skeleton className="h-4 w-96" />
+                </SurfacePanel>
+                <SurfacePanel className="p-6">
+                    <div className="space-y-4">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex items-center justify-between">
+                                <Skeleton className="h-4 w-64" />
+                                <Skeleton className="h-6 w-12" />
+                            </div>
+                        ))}
                     </div>
-                    <Card>
-                        <CardHeader>
-                            <Skeleton className="h-6 w-48" />
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="flex items-center justify-between">
-                                    <Skeleton className="h-4 w-64" />
-                                    <Skeleton className="h-6 w-12" />
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                </div>
+                </SurfacePanel>
             </div>
         );
     }
 
     if (!settings) {
         return (
-            <div className="container max-w-4xl py-8">
-                <Alert variant="destructive">
-                    <AlertDescription>
-                        Failed to load privacy settings. Please refresh the page.
-                    </AlertDescription>
-                </Alert>
+            <div className="mx-auto max-w-4xl">
+                <SurfacePanel className="p-6">
+                    <Alert variant="destructive">
+                        <AlertDescription>
+                            Failed to load privacy settings. Please refresh the page.
+                        </AlertDescription>
+                    </Alert>
+                </SurfacePanel>
             </div>
         );
     }
 
     return (
-        <div className="container max-w-4xl py-8">
-            <div className="space-y-6">
-                {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-                        <Shield className="h-8 w-8" />
-                        Privacy Settings
-                    </h1>
-                    <p className="text-muted-foreground mt-2">
-                        Control how your information is shared and used on the platform.
-                    </p>
-                </div>
+        <div className="mx-auto max-w-4xl space-y-5">
+            <PageHeader
+                title="Privacy Settings"
+                eyebrow="Settings"
+                description="Control how your information is shared and used on the platform."
+                action={<Shield className="h-5 w-5 text-primary" />}
+            />
 
-                {/* Profile Visibility */}
-                <Card>
+                <Card className="border-border shadow-none">
                     <CardHeader>
                         <CardTitle>Profile Visibility</CardTitle>
                         <CardDescription>
@@ -189,8 +182,7 @@ export default function PrivacySettings() {
                     </CardContent>
                 </Card>
 
-                {/* Personalization */}
-                <Card>
+                <Card className="border-border shadow-none">
                     <CardHeader>
                         <CardTitle>Personalization</CardTitle>
                         <CardDescription>
@@ -224,8 +216,7 @@ export default function PrivacySettings() {
                     </CardContent>
                 </Card>
 
-                {/* Communications */}
-                <Card>
+                <Card className="border-border shadow-none">
                     <CardHeader>
                         <CardTitle>Communications</CardTitle>
                         <CardDescription>
@@ -264,7 +255,6 @@ export default function PrivacySettings() {
                         .
                     </AlertDescription>
                 </Alert>
-            </div>
         </div>
     );
 }

@@ -92,7 +92,7 @@ export function InterestSelection({ open, onClose, onComplete }: InterestSelecti
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto border-border bg-card">
                 <DialogHeader>
                     <DialogTitle>What are you interested in?</DialogTitle>
                     <DialogDescription>
@@ -116,7 +116,7 @@ export function InterestSelection({ open, onClose, onComplete }: InterestSelecti
                                     <Badge
                                         key={genre}
                                         variant={isSelected ? 'default' : 'outline'}
-                                        className="cursor-pointer px-3 py-2 text-sm hover:scale-105 transition-transform"
+                                        className="cursor-pointer px-3 py-2 text-sm"
                                         onClick={() => toggleGenre(genre)}
                                     >
                                         {isSelected && <Check className="h-3 w-3 mr-1" />}
@@ -142,7 +142,7 @@ export function InterestSelection({ open, onClose, onComplete }: InterestSelecti
                                     <Badge
                                         key={tag}
                                         variant={isSelected ? 'secondary' : 'outline'}
-                                        className="cursor-pointer px-3 py-2 text-sm hover:scale-105 transition-transform"
+                                        className="cursor-pointer px-3 py-2 text-sm"
                                         onClick={() => toggleTag(tag)}
                                     >
                                         {isSelected && <Check className="h-3 w-3 mr-1" />}

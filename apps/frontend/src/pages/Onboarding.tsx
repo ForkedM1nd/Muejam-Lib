@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -9,6 +8,8 @@ import { InterestSelection } from '@/components/onboarding/InterestSelection';
 import { AuthorRecommendations } from '@/components/onboarding/AuthorRecommendations';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { toast } from '@/hooks/use-toast';
+import SurfacePanel from '@/components/shared/SurfacePanel';
+import PageHeader from '@/components/shared/PageHeader';
 
 type OnboardingStep = 'profile' | 'interests' | 'authors';
 
@@ -126,15 +127,13 @@ export default function Onboarding() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
-            <Card className="w-full max-w-4xl">
-                <CardContent className="p-6">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h1 className="text-2xl font-bold">Welcome to MueJam</h1>
-                            <p className="text-muted-foreground">Let's get you started</p>
-                        </div>
+        <div className="min-h-screen bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--secondary)/0.65)_24%,hsl(var(--background))_76%)] p-4 sm:p-6">
+            <div className="mx-auto max-w-5xl space-y-5">
+                <PageHeader
+                    title="Welcome to MueJam"
+                    eyebrow="Onboarding"
+                    description="Let's personalize your space in a few quick steps."
+                    action={(
                         <Button
                             variant="ghost"
                             size="icon"
@@ -143,7 +142,10 @@ export default function Onboarding() {
                         >
                             <X className="h-5 w-5" />
                         </Button>
-                    </div>
+                    )}
+                />
+
+                <SurfacePanel className="p-5 sm:p-6">
 
                     {/* Progress Bar */}
                     <div className="mb-8">
@@ -167,17 +169,17 @@ export default function Onboarding() {
                             >
                                 <div
                                     className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-colors ${index === currentStepIndex
-                                        ? 'border-primary bg-primary/5'
+                                        ? 'border-primary bg-secondary/75'
                                         : completedSteps.has(step.id)
-                                            ? 'border-green-500 bg-green-50 dark:bg-green-950'
-                                            : 'border-muted bg-muted/30'
+                                            ? 'border-primary/35 bg-primary/10'
+                                            : 'border-border bg-background'
                                         }`}
                                 >
                                     <div
                                         className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${index === currentStepIndex
                                             ? 'bg-primary text-primary-foreground'
                                             : completedSteps.has(step.id)
-                                                ? 'bg-green-500 text-white'
+                                                ? 'bg-primary/80 text-primary-foreground'
                                                 : 'bg-muted text-muted-foreground'
                                             }`}
                                     >
@@ -235,8 +237,8 @@ export default function Onboarding() {
                             Skip for now
                         </Button>
                     </div>
-                </CardContent>
-            </Card>
+                </SurfacePanel>
+            </div>
         </div>
     );
 }

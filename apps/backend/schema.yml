@@ -5609,6 +5609,86 @@ paths:
           web:
             value: web
             summary: Web browser
+  /v1/highlights/:
+    get:
+      operationId: highlights_retrieve
+      description: |-
+        List all highlights for the authenticated user with story/chapter metadata.
+
+        GET /v1/highlights?story_id=<id>&start_date=<YYYY-MM-DD>&end_date=<YYYY-MM-DD>&cursor=<id>&page_size=20
+      tags:
+      - highlights
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+          headers:
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-API-Version:
+              $ref: '#/components/headers/X-API-Version'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/Last-Modified'
+            Cache-Control:
+              $ref: '#/components/headers/Cache-Control'
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+      parameters:
+      - name: X-Client-Type
+        in: header
+        required: false
+        schema:
+          type: string
+          enum:
+          - web
+          - mobile-ios
+          - mobile-android
+          default: web
+        description: Client type identifier for optimized responses. Mobile clients
+          receive deep links, optimized payloads, and mobile-specific features. Defaults
+          to "web" if not specified.
+        examples:
+          ios:
+            value: mobile-ios
+            summary: iOS mobile app
+          android:
+            value: mobile-android
+            summary: Android mobile app
+          web:
+            value: web
+            summary: Web browser
+      - name: fields
+        in: query
+        required: false
+        schema:
+          type: string
+        description: 'Comma-separated list of fields to include in the response. Useful
+          for mobile clients to reduce payload size. Example: "id,title,author" returns
+          only those fields.'
+        examples:
+          minimal:
+            value: id,title
+            summary: Minimal fields
+          standard:
+            value: id,title,author,created_at
+            summary: Standard fields
   /v1/highlights/{highlight_id}:
     delete:
       operationId: highlights_destroy
@@ -7168,6 +7248,61 @@ paths:
       - cookieAuth: []
       - basicAuth: []
       - {}
+      responses:
+        '200':
+          description: No response body
+          headers:
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-API-Version:
+              $ref: '#/components/headers/X-API-Version'
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+      parameters:
+      - name: X-Client-Type
+        in: header
+        required: false
+        schema:
+          type: string
+          enum:
+          - web
+          - mobile-ios
+          - mobile-android
+          default: web
+        description: Client type identifier for optimized responses. Mobile clients
+          receive deep links, optimized payloads, and mobile-specific features. Defaults
+          to "web" if not specified.
+        examples:
+          ios:
+            value: mobile-ios
+            summary: iOS mobile app
+          android:
+            value: mobile-android
+            summary: Android mobile app
+          web:
+            value: web
+            summary: Web browser
+  /v1/onboarding/complete/:
+    post:
+      operationId: onboarding_complete_create
+      description: Mark onboarding as complete
+      tags:
+      - onboarding
+      security:
+      - cookieAuth: []
+      - basicAuth: []
       responses:
         '200':
           description: No response body
@@ -8837,6 +8972,83 @@ paths:
               $ref: '#/components/headers/X-RateLimit-Remaining'
             X-RateLimit-Reset:
               $ref: '#/components/headers/X-RateLimit-Reset'
+  /v1/search/:
+    get:
+      operationId: search_retrieve
+      description: Backward-compatible search endpoint for /v1/search/.
+      tags:
+      - search
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+          headers:
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-API-Version:
+              $ref: '#/components/headers/X-API-Version'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/Last-Modified'
+            Cache-Control:
+              $ref: '#/components/headers/Cache-Control'
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+      parameters:
+      - name: X-Client-Type
+        in: header
+        required: false
+        schema:
+          type: string
+          enum:
+          - web
+          - mobile-ios
+          - mobile-android
+          default: web
+        description: Client type identifier for optimized responses. Mobile clients
+          receive deep links, optimized payloads, and mobile-specific features. Defaults
+          to "web" if not specified.
+        examples:
+          ios:
+            value: mobile-ios
+            summary: iOS mobile app
+          android:
+            value: mobile-android
+            summary: Android mobile app
+          web:
+            value: web
+            summary: Web browser
+      - name: fields
+        in: query
+        required: false
+        schema:
+          type: string
+        description: 'Comma-separated list of fields to include in the response. Useful
+          for mobile clients to reduce payload size. Example: "id,title,author" returns
+          only those fields.'
+        examples:
+          minimal:
+            value: id,title
+            summary: Minimal fields
+          standard:
+            value: id,title,author,created_at
+            summary: Standard fields
   /v1/search/authors:
     get:
       operationId: search_authors_retrieve
@@ -9114,6 +9326,83 @@ paths:
         - page: Page number (default: 1)
 
         Requirements: 35.3, 35.4, 35.5, 35.8
+      tags:
+      - search
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+          headers:
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+            X-API-Version:
+              $ref: '#/components/headers/X-API-Version'
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Last-Modified:
+              $ref: '#/components/headers/Last-Modified'
+            Cache-Control:
+              $ref: '#/components/headers/Cache-Control'
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+      parameters:
+      - name: X-Client-Type
+        in: header
+        required: false
+        schema:
+          type: string
+          enum:
+          - web
+          - mobile-ios
+          - mobile-android
+          default: web
+        description: Client type identifier for optimized responses. Mobile clients
+          receive deep links, optimized payloads, and mobile-specific features. Defaults
+          to "web" if not specified.
+        examples:
+          ios:
+            value: mobile-ios
+            summary: iOS mobile app
+          android:
+            value: mobile-android
+            summary: Android mobile app
+          web:
+            value: web
+            summary: Web browser
+      - name: fields
+        in: query
+        required: false
+        schema:
+          type: string
+        description: 'Comma-separated list of fields to include in the response. Useful
+          for mobile clients to reduce payload size. Example: "id,title,author" returns
+          only those fields.'
+        examples:
+          minimal:
+            value: id,title
+            summary: Minimal fields
+          standard:
+            value: id,title,author,created_at
+            summary: Standard fields
+  /v1/search/suggest:
+    get:
+      operationId: search_suggest_retrieve
+      description: Backward-compatible suggest endpoint for /v1/search/suggest.
       tags:
       - search
       security:
@@ -11346,6 +11635,7 @@ paths:
       security:
       - cookieAuth: []
       - basicAuth: []
+      - {}
       responses:
         '200':
           description: No response body
@@ -11411,6 +11701,7 @@ paths:
       security:
       - cookieAuth: []
       - basicAuth: []
+      - {}
       responses:
         '200':
           description: No response body
@@ -11478,6 +11769,7 @@ paths:
       security:
       - cookieAuth: []
       - basicAuth: []
+      - {}
       responses:
         '200':
           description: No response body
@@ -11547,6 +11839,7 @@ paths:
       security:
       - cookieAuth: []
       - basicAuth: []
+      - {}
       responses:
         '200':
           description: No response body
@@ -11618,6 +11911,7 @@ paths:
       security:
       - cookieAuth: []
       - basicAuth: []
+      - {}
       responses:
         '200':
           description: No response body

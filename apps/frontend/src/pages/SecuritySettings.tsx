@@ -10,6 +10,8 @@ import { Shield, Smartphone, AlertTriangle } from "lucide-react";
 import { Enable2FA } from "@/components/security/Enable2FA";
 import { Disable2FA } from "@/components/security/Disable2FA";
 import { RegenerateBackupCodes } from "@/components/security/RegenerateBackupCodes";
+import PageHeader from "@/components/shared/PageHeader";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 
 export default function SecuritySettings() {
     const [twoFactorStatus, setTwoFactorStatus] = useState<TwoFactorStatus | null>(null);
@@ -90,53 +92,43 @@ export default function SecuritySettings() {
 
     if (loading) {
         return (
-            <div className="container max-w-4xl py-8">
-                <div className="space-y-6">
-                    <div>
-                        <Skeleton className="h-8 w-64 mb-2" />
-                        <Skeleton className="h-4 w-96" />
-                    </div>
-                    <Card>
-                        <CardHeader>
-                            <Skeleton className="h-6 w-48" />
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Skeleton className="h-20 w-full" />
-                        </CardContent>
-                    </Card>
-                </div>
+            <div className="mx-auto max-w-4xl space-y-5">
+                <SurfacePanel className="p-6">
+                    <Skeleton className="mb-2 h-8 w-64" />
+                    <Skeleton className="h-4 w-96" />
+                </SurfacePanel>
+                <SurfacePanel className="p-6">
+                    <Skeleton className="h-20 w-full" />
+                </SurfacePanel>
             </div>
         );
     }
 
     if (!twoFactorStatus) {
         return (
-            <div className="container max-w-4xl py-8">
-                <Alert variant="destructive">
-                    <AlertDescription>
-                        Failed to load security settings. Please refresh the page.
-                    </AlertDescription>
-                </Alert>
+            <div className="mx-auto max-w-4xl">
+                <SurfacePanel className="p-6">
+                    <Alert variant="destructive">
+                        <AlertDescription>
+                            Failed to load security settings. Please refresh the page.
+                        </AlertDescription>
+                    </Alert>
+                </SurfacePanel>
             </div>
         );
     }
 
     return (
-        <div className="container max-w-4xl py-8">
-            <div className="space-y-6">
-                {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-                        <Shield className="h-8 w-8" />
-                        Security Settings
-                    </h1>
-                    <p className="text-muted-foreground mt-2">
-                        Manage your account security and two-factor authentication.
-                    </p>
-                </div>
+        <div className="mx-auto max-w-4xl space-y-5">
+            <PageHeader
+                title="Security Settings"
+                eyebrow="Settings"
+                description="Manage your account security and two-factor authentication."
+                action={<Shield className="h-5 w-5 text-primary" />}
+            />
 
                 {/* Two-Factor Authentication */}
-                <Card>
+                <Card className="border-border shadow-none">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Smartphone className="h-5 w-5" />
@@ -219,7 +211,7 @@ export default function SecuritySettings() {
                 </Card>
 
                 {/* Trusted Devices */}
-                <Card>
+                <Card className="border-border shadow-none">
                     <CardHeader>
                         <CardTitle>Trusted Devices</CardTitle>
                         <CardDescription>
@@ -271,7 +263,6 @@ export default function SecuritySettings() {
                         Keep your account secure by enabling two-factor authentication and regularly reviewing your trusted devices.
                     </AlertDescription>
                 </Alert>
-            </div>
 
             {/* Enable 2FA Dialog */}
             <Enable2FA

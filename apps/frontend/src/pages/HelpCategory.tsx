@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
+import PageHeader from '@/components/shared/PageHeader';
+import SurfacePanel from '@/components/shared/SurfacePanel';
 
 interface HelpArticle {
     id: string;
@@ -13,12 +14,12 @@ interface HelpArticle {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-    'getting_started': 'Getting Started',
-    'reading_stories': 'Reading Stories',
-    'writing_content': 'Writing Content',
-    'account_settings': 'Account Settings',
-    'privacy_safety': 'Privacy & Safety',
-    'troubleshooting': 'Troubleshooting',
+    getting_started: 'Getting Started',
+    reading_stories: 'Reading Stories',
+    writing_content: 'Writing Content',
+    account_settings: 'Account Settings',
+    privacy_safety: 'Privacy & Safety',
+    troubleshooting: 'Troubleshooting',
 };
 
 export function HelpCategory() {
@@ -53,50 +54,43 @@ export function HelpCategory() {
 
     if (loading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="text-center">Loading...</div>
+            <div className="mx-auto max-w-4xl">
+                <SurfacePanel className="p-8 text-center">Loading articles...</SurfacePanel>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-            <Link to="/help" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
+        <div className="mx-auto max-w-4xl space-y-5">
+            <Link to="/help" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Help Center
             </Link>
 
-            <h1 className="text-3xl font-bold mb-2">{categoryLabel}</h1>
-            <p className="text-muted-foreground mb-8">
-                {articles.length} {articles.length === 1 ? 'article' : 'articles'} in this category
-            </p>
+            <PageHeader
+                title={categoryLabel}
+                eyebrow="Help Category"
+                description={`${articles.length} ${articles.length === 1 ? 'article' : 'articles'} in this category.`}
+            />
 
             {articles.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {articles.map((article) => (
                         <Link key={article.id} to={`/help/articles/${article.slug}`}>
-                            <Card className="hover:shadow-md transition-shadow">
-                                <CardContent className="p-6">
-                                    <h3 className="text-xl font-semibold mb-2">{article.title}</h3>
-                                    {article.excerpt && (
-                                        <p className="text-muted-foreground mb-2">{article.excerpt}</p>
-                                    )}
-                                    <p className="text-xs text-muted-foreground">
-                                        {article.view_count} views
-                                    </p>
-                                </CardContent>
-                            </Card>
+                            <SurfacePanel className="p-5 transition-colors hover:bg-secondary/45">
+                                <h3 className="text-lg font-semibold">{article.title}</h3>
+                                {article.excerpt && (
+                                    <p className="mt-1 text-sm text-muted-foreground">{article.excerpt}</p>
+                                )}
+                                <p className="mt-2 text-xs text-muted-foreground">{article.view_count} views</p>
+                            </SurfacePanel>
                         </Link>
                     ))}
                 </div>
             ) : (
-                <Card>
-                    <CardContent className="p-8 text-center">
-                        <p className="text-muted-foreground">
-                            No articles available in this category yet.
-                        </p>
-                    </CardContent>
-                </Card>
+                <SurfacePanel className="p-8 text-center text-muted-foreground">
+                    No articles available in this category yet.
+                </SurfacePanel>
             )}
         </div>
     );

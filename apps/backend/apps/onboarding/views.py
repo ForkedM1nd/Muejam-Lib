@@ -47,8 +47,22 @@ class OnboardingSkipView(APIView):
     @async_api_view
     async def post(self, request):
         user_id = request.user_profile_id
-        
+
         progress = await OnboardingService.skip_onboarding(user_id)
         serializer = OnboardingProgressSerializer(progress)
-        
+
+        return Response(serializer.data)
+
+
+class OnboardingCompleteView(APIView):
+    """Mark onboarding as complete"""
+    permission_classes = [IsAuthenticated]
+
+    @async_api_view
+    async def post(self, request):
+        user_id = request.user_profile_id
+
+        progress = await OnboardingService.skip_onboarding(user_id)
+        serializer = OnboardingProgressSerializer(progress)
+
         return Response(serializer.data)

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, BookOpen, TrendingUp, Mail } from 'lucide-react';
+import { Search, BookOpen, TrendingUp, Mail, ArrowRight } from 'lucide-react';
+import PageHeader from '@/components/shared/PageHeader';
+import SurfacePanel from '@/components/shared/SurfacePanel';
 
 interface HelpCategory {
     value: string;
@@ -30,6 +31,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function HelpCenter() {
+    const navigate = useNavigate();
     const [categories, setCategories] = useState<HelpCategory[]>([]);
     const [mostViewed, setMostViewed] = useState<HelpArticle[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -43,7 +45,6 @@ export function HelpCenter() {
         try {
             setLoading(true);
 
-            // Fetch categories
             const categoriesRes = await fetch('/v1/help/categories/');
             if (categoriesRes.ok) {
                 const categoriesData = await categoriesRes.json();
@@ -53,7 +54,6 @@ export function HelpCenter() {
                 })));
             }
 
-            // Fetch most viewed articles
             const articlesRes = await fetch('/v1/help/articles/');
             if (articlesRes.ok) {
                 const articlesData = await articlesRes.json();
@@ -69,113 +69,102 @@ export function HelpCenter() {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchQuery.trim()) {
-            window.location.href = `/help/search?q=${encodeURIComponent(searchQuery)}`;
+            navigate(`/help/search?q=${encodeURIComponent(searchQuery)}`);
         }
     };
 
     if (loading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="text-center">Loading...</div>
+            <div className="mx-auto max-w-5xl">
+                <SurfacePanel className="p-8 text-center">Loading help center...</SurfacePanel>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold mb-4">How can we help you?</h1>
-                <p className="text-muted-foreground mb-6">
-                    Search our help center or browse by category
-                </p>
+        <div className="mx-auto max-w-5xl space-y-5">
+            <PageHeader
+                title="Help Center"
+                eyebrow="Support"
+                description="Search our help center or browse by category."
+            />
 
-                {/* Search */}
-                <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+            <SurfacePanel className="p-5 sm:p-6">
+                <form onSubmit={handleSearch}>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             type="text"
                             placeholder="Search for help..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-6 text-lg"
+                            className="h-11 border-border pl-10"
                         />
                     </div>
                 </form>
-            </div>
+            </SurfacePanel>
 
-            {/* Categories */}
-            <div className="mb-12">
-                <h2 className="text-2xl font-semibold mb-6">Browse by Category</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+                <h2 className="mb-3 text-xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
+                    Browse by Category
+                </h2>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {categories.map((category) => (
                         <Link key={category.value} to={`/help/category/${category.value.toLowerCase()}`}>
-                            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                                <CardHeader>
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-primary/10 rounded-lg">
-                                            {category.icon}
-                                        </div>
-                                        <CardTitle className="text-lg">{category.label}</CardTitle>
+                            <SurfacePanel className="h-full p-5 transition-colors hover:bg-secondary/55">
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-secondary p-2 text-primary">
+                                        {category.icon}
                                     </div>
-                                </CardHeader>
-                            </Card>
+                                    <h3 className="font-semibold">{category.label}</h3>
+                                    <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+                                </div>
+                            </SurfacePanel>
                         </Link>
                     ))}
                 </div>
             </div>
 
-            {/* Most Viewed Articles */}
             {mostViewed.length > 0 && (
-                <div className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-                        <TrendingUp className="h-6 w-6" />
+                <SurfacePanel className="p-5 sm:p-6">
+                    <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
+                        <TrendingUp className="h-5 w-5 text-primary" />
                         Most Viewed Articles
                     </h2>
-                    <Card>
-                        <CardContent className="p-0">
-                            <div className="divide-y">
-                                {mostViewed.map((article) => (
-                                    <Link
-                                        key={article.id}
-                                        to={`/help/articles/${article.slug}`}
-                                        className="block p-4 hover:bg-muted/50 transition-colors"
-                                    >
-                                        <h3 className="font-medium mb-1">{article.title}</h3>
-                                        {article.excerpt && (
-                                            <p className="text-sm text-muted-foreground line-clamp-2">
-                                                {article.excerpt}
-                                            </p>
-                                        )}
-                                        <p className="text-xs text-muted-foreground mt-2">
-                                            {article.view_count} views
-                                        </p>
-                                    </Link>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                    <div className="divide-y divide-border rounded-xl border border-border">
+                        {mostViewed.map((article) => (
+                            <Link
+                                key={article.id}
+                                to={`/help/articles/${article.slug}`}
+                                className="block px-4 py-4 transition-colors hover:bg-secondary/45"
+                            >
+                                <h3 className="font-medium">{article.title}</h3>
+                                {article.excerpt && (
+                                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                                        {article.excerpt}
+                                    </p>
+                                )}
+                                <p className="mt-2 text-xs text-muted-foreground">{article.view_count} views</p>
+                            </Link>
+                        ))}
+                    </div>
+                </SurfacePanel>
             )}
 
-            {/* Contact Support */}
-            <Card className="bg-primary/5">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Mail className="h-5 w-5" />
-                        Still need help?
-                    </CardTitle>
-                    <CardDescription>
-                        Can't find what you're looking for? Contact our support team.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
+            <SurfacePanel className="p-5 sm:p-6">
+                <h3 className="flex items-center gap-2 text-lg font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
+                    <Mail className="h-5 w-5 text-primary" />
+                    Still need help?
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                    Can't find what you're looking for? Contact our support team.
+                </p>
+                <div className="mt-4">
                     <Link to="/help/contact">
                         <Button>Contact Support</Button>
                     </Link>
-                </CardContent>
-            </Card>
+                </div>
+            </SurfacePanel>
         </div>
     );
 }

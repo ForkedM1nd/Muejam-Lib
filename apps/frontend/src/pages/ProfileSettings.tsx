@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload } from "lucide-react";
 import { PageSkeleton } from "@/components/shared/Skeletons";
+import PageHeader from "@/components/shared/PageHeader";
+import SurfacePanel from "@/components/shared/SurfacePanel";
 
 export default function ProfileSettings() {
     const navigate = useNavigate();
@@ -29,8 +30,7 @@ export default function ProfileSettings() {
         handle: profile?.handle || "",
     });
 
-    // Update form when profile loads
-    useState(() => {
+    useEffect(() => {
         if (profile) {
             setFormData({
                 display_name: profile.display_name,
@@ -38,7 +38,7 @@ export default function ProfileSettings() {
                 handle: profile.handle,
             });
         }
-    });
+    }, [profile]);
 
     const updateMutation = useMutation({
         mutationFn: async (data: typeof formData & { avatar_key?: string }) => {
@@ -129,121 +129,116 @@ export default function ProfileSettings() {
     if (isLoading) return <PageSkeleton />;
 
     return (
-        <div className="max-w-2xl mx-auto px-4 py-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Profile Settings</CardTitle>
-                    <CardDescription>Update your profile information</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Avatar */}
-                        <div className="space-y-2">
-                            <Label>Avatar</Label>
-                            <div className="flex items-center gap-4">
-                                {avatarPreview || profile?.avatar_url ? (
-                                    <img
-                                        src={avatarPreview || profile?.avatar_url}
-                                        alt="Avatar preview"
-                                        className="w-20 h-20 rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center text-2xl font-medium text-secondary-foreground">
-                                        {formData.display_name.charAt(0) || "?"}
-                                    </div>
-                                )}
-                                <div>
-                                    <Input
-                                        id="avatar"
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleAvatarChange}
-                                        className="hidden"
-                                    />
-                                    <Label htmlFor="avatar" className="cursor-pointer">
-                                        <Button type="button" variant="outline" size="sm" asChild>
-                                            <span>
-                                                <Upload className="h-4 w-4 mr-2" />
-                                                Upload Avatar
-                                            </span>
-                                        </Button>
-                                    </Label>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        Max 2MB. JPEG, PNG, WebP, or GIF
-                                    </p>
+        <div className="mx-auto max-w-3xl space-y-5">
+            <PageHeader
+                title="Profile Settings"
+                eyebrow="Settings"
+                description="Update your profile information and public identity."
+            />
+
+            <SurfacePanel className="p-5 sm:p-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                        <Label>Avatar</Label>
+                        <div className="flex items-center gap-4">
+                            {avatarPreview || profile?.avatar_url ? (
+                                <img
+                                    src={avatarPreview || profile?.avatar_url}
+                                    alt="Avatar preview"
+                                    className="h-20 w-20 rounded-full object-cover"
+                                />
+                            ) : (
+                                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-2xl font-medium text-secondary-foreground">
+                                    {formData.display_name.charAt(0) || "?"}
                                 </div>
+                            )}
+                            <div>
+                                <Input
+                                    id="avatar"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleAvatarChange}
+                                    className="hidden"
+                                />
+                                <Label htmlFor="avatar" className="cursor-pointer">
+                                    <Button type="button" variant="outline" size="sm" asChild>
+                                        <span>
+                                            <Upload className="mr-2 h-4 w-4" />
+                                            Upload Avatar
+                                        </span>
+                                    </Button>
+                                </Label>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Max 2MB. JPEG, PNG, WebP, or GIF.
+                                </p>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Display Name */}
-                        <div className="space-y-2">
-                            <Label htmlFor="display_name">Display Name</Label>
+                    <div className="space-y-2">
+                        <Label htmlFor="display_name">Display Name</Label>
+                        <Input
+                            id="display_name"
+                            value={formData.display_name}
+                            onChange={(e) =>
+                                setFormData({ ...formData, display_name: e.target.value })
+                            }
+                            placeholder="Your display name"
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="handle">Handle</Label>
+                        <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">@</span>
                             <Input
-                                id="display_name"
-                                value={formData.display_name}
+                                id="handle"
+                                value={formData.handle}
                                 onChange={(e) =>
-                                    setFormData({ ...formData, display_name: e.target.value })
+                                    setFormData({ ...formData, handle: e.target.value })
                                 }
-                                placeholder="Your display name"
+                                placeholder="username"
+                                pattern="[a-zA-Z0-9_]{3,30}"
                                 required
                             />
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                            3-30 characters. Letters, numbers, and underscores only.
+                        </p>
+                    </div>
 
-                        {/* Handle */}
-                        <div className="space-y-2">
-                            <Label htmlFor="handle">Handle</Label>
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">@</span>
-                                <Input
-                                    id="handle"
-                                    value={formData.handle}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, handle: e.target.value })
-                                    }
-                                    placeholder="username"
-                                    pattern="[a-zA-Z0-9_]{3,30}"
-                                    required
-                                />
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                3-30 characters. Letters, numbers, and underscores only.
-                            </p>
-                        </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="bio">Bio</Label>
+                        <Textarea
+                            id="bio"
+                            value={formData.bio}
+                            onChange={(e) =>
+                                setFormData({ ...formData, bio: e.target.value })
+                            }
+                            placeholder="Tell us about yourself"
+                            rows={4}
+                        />
+                    </div>
 
-                        {/* Bio */}
-                        <div className="space-y-2">
-                            <Label htmlFor="bio">Bio</Label>
-                            <Textarea
-                                id="bio"
-                                value={formData.bio}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, bio: e.target.value })
-                                }
-                                placeholder="Tell us about yourself"
-                                rows={4}
-                            />
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex gap-2 justify-end">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => navigate(-1)}
-                                disabled={updateMutation.isPending}
-                            >
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={updateMutation.isPending}>
-                                {updateMutation.isPending && (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                )}
-                                Save Changes
-                            </Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
+                    <div className="flex justify-end gap-2 border-t border-border pt-4">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => navigate(-1)}
+                            disabled={updateMutation.isPending}
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={updateMutation.isPending}>
+                            {updateMutation.isPending && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Save Changes
+                        </Button>
+                    </div>
+                </form>
+            </SurfacePanel>
         </div>
     );
 }

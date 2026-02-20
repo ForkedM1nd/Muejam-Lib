@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
+import PageHeader from '@/components/shared/PageHeader';
+import SurfacePanel from '@/components/shared/SurfacePanel';
 
 const SUPPORT_CATEGORIES = [
     { value: 'ACCOUNT', label: 'Account & Login Issues' },
@@ -36,7 +37,7 @@ export function ContactSupport() {
         setError('');
 
         if (!formData.name || !formData.email || !formData.category || !formData.subject || !formData.message) {
-            setError('Please fill in all fields');
+            setError('Please fill in all fields.');
             return;
         }
 
@@ -55,7 +56,7 @@ export function ContactSupport() {
                 setFormData({ name: '', email: '', category: '', subject: '', message: '' });
             } else {
                 const data = await response.json();
-                setError(data.error || 'Failed to submit support request');
+                setError(data.error || 'Failed to submit support request.');
             }
         } catch (err) {
             setError('Failed to submit support request. Please try again.');
@@ -66,131 +67,125 @@ export function ContactSupport() {
 
     if (submitted) {
         return (
-            <div className="container mx-auto px-4 py-8 max-w-2xl">
-                <Link to="/help" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
+            <div className="mx-auto max-w-2xl space-y-5">
+                <Link to="/help" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
                     <ArrowLeft className="h-4 w-4" />
                     Back to Help Center
                 </Link>
 
-                <Card>
-                    <CardContent className="p-8 text-center">
-                        <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-                        <h2 className="text-2xl font-semibold mb-2">Request Submitted</h2>
-                        <p className="text-muted-foreground mb-6">
-                            Thank you for contacting us. We'll get back to you as soon as possible.
-                        </p>
-                        <div className="flex gap-3 justify-center">
-                            <Link to="/help">
-                                <Button variant="outline">Back to Help Center</Button>
-                            </Link>
-                            <Button onClick={() => setSubmitted(false)}>
-                                Submit Another Request
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                <SurfacePanel className="p-8 text-center">
+                    <CheckCircle className="mx-auto mb-4 h-16 w-16 text-primary" />
+                    <h2 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
+                        Request Submitted
+                    </h2>
+                    <p className="mt-2 text-muted-foreground">
+                        Thank you for contacting us. We'll get back to you as soon as possible.
+                    </p>
+                    <div className="mt-6 flex justify-center gap-3">
+                        <Link to="/help">
+                            <Button variant="outline">Back to Help Center</Button>
+                        </Link>
+                        <Button onClick={() => setSubmitted(false)}>Submit Another Request</Button>
+                    </div>
+                </SurfacePanel>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
-            <Link to="/help" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
+        <div className="mx-auto max-w-3xl space-y-5">
+            <Link to="/help" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Help Center
             </Link>
 
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Mail className="h-6 w-6" />
-                        <CardTitle className="text-2xl">Contact Support</CardTitle>
+            <PageHeader
+                title="Contact Support"
+                eyebrow="Support"
+                description="Send us a message and our team will help you out."
+                action={<Mail className="h-5 w-5 text-primary" />}
+            />
+
+            <SurfacePanel className="p-5 sm:p-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input
+                            id="name"
+                            type="text"
+                            placeholder="Your name"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            required
+                        />
                     </div>
-                    <CardDescription>
-                        Can't find what you're looking for? Send us a message and we'll help you out.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Name</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                placeholder="Your name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                required
-                            />
+
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            placeholder="your.email@example.com"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="category">Category</Label>
+                        <Select
+                            value={formData.category}
+                            onValueChange={(value) => setFormData({ ...formData, category: value })}
+                        >
+                            <SelectTrigger id="category">
+                                <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {SUPPORT_CATEGORIES.map((category) => (
+                                    <SelectItem key={category.value} value={category.value}>
+                                        {category.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="subject">Subject</Label>
+                        <Input
+                            id="subject"
+                            type="text"
+                            placeholder="Brief description of your issue"
+                            value={formData.subject}
+                            onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="message">Message</Label>
+                        <Textarea
+                            id="message"
+                            placeholder="Please provide as much detail as possible..."
+                            value={formData.message}
+                            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                            rows={8}
+                            required
+                        />
+                    </div>
+
+                    {error && (
+                        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                            {error}
                         </div>
+                    )}
 
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="your.email@example.com"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                required
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="category">Category</Label>
-                            <Select
-                                value={formData.category}
-                                onValueChange={(value) => setFormData({ ...formData, category: value })}
-                            >
-                                <SelectTrigger id="category">
-                                    <SelectValue placeholder="Select a category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {SUPPORT_CATEGORIES.map((category) => (
-                                        <SelectItem key={category.value} value={category.value}>
-                                            {category.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="subject">Subject</Label>
-                            <Input
-                                id="subject"
-                                type="text"
-                                placeholder="Brief description of your issue"
-                                value={formData.subject}
-                                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                required
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="message">Message</Label>
-                            <Textarea
-                                id="message"
-                                placeholder="Please provide as much detail as possible..."
-                                value={formData.message}
-                                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                rows={8}
-                                required
-                            />
-                        </div>
-
-                        {error && (
-                            <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
-                                {error}
-                            </div>
-                        )}
-
-                        <Button type="submit" disabled={submitting} className="w-full">
-                            {submitting ? 'Submitting...' : 'Submit Request'}
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
+                    <Button type="submit" disabled={submitting} className="w-full">
+                        {submitting ? 'Submitting...' : 'Submit Request'}
+                    </Button>
+                </form>
+            </SurfacePanel>
         </div>
     );
 }

@@ -138,7 +138,7 @@ export function AuthorRecommendations({ open, onClose, onComplete, interests }: 
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto border-border bg-card">
                 <DialogHeader>
                     <DialogTitle>Follow Authors You'll Love</DialogTitle>
                     <DialogDescription>
@@ -160,7 +160,7 @@ export function AuthorRecommendations({ open, onClose, onComplete, interests }: 
                             {authors.map((author) => {
                                 const isFollowing = followedAuthors.has(author.id);
                                 return (
-                                    <Card key={author.id} className="hover:shadow-md transition-shadow">
+                                    <Card key={author.id} className="border-border shadow-none transition-colors hover:bg-secondary/45">
                                         <CardHeader className="pb-3">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex items-center gap-3">

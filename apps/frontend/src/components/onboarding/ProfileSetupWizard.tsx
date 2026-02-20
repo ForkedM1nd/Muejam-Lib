@@ -73,7 +73,7 @@ export function ProfileSetupWizard({ open, onClose, onComplete }: ProfileSetupWi
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] border-border bg-card">
                 <DialogHeader>
                     <DialogTitle>Set Up Your Profile</DialogTitle>
                     <DialogDescription>
@@ -130,6 +130,7 @@ export function ProfileSetupWizard({ open, onClose, onComplete }: ProfileSetupWi
                             onChange={(e) => setBio(e.target.value)}
                             rows={4}
                             maxLength={500}
+                            className="border-border"
                         />
                         <p className="text-xs text-muted-foreground text-right">
                             {bio.length}/500 characters
