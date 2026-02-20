@@ -1,187 +1,167 @@
 # MueJam Library
 
-A minimal digital library platform for serial stories with an integrated micro-posting system called "Whispers".
+MueJam Library is a production-focused monorepo for a serial fiction platform with integrated short-form social content (Whispers), moderation tooling, privacy controls, and mobile-ready API compatibility.
 
-## Project Structure
+It combines:
+- a Django + DRF backend API
+- a React + Vite frontend
+- centralized tests, docs, deployment scripts, and Terraform infrastructure
 
-This is a monorepo containing multiple applications, shared packages, documentation, and infrastructure:
+## At a Glance
 
-```
+- **Backend**: Django 5, DRF, PostgreSQL, Valkey, Celery
+- **Frontend**: React 18, TypeScript, Vite, TanStack Query, Tailwind/shadcn
+- **Infra/DevOps**: Docker Compose, Terraform, GitHub Actions
+- **Security**: Clerk auth, 2FA support, rate limiting, content sanitization
+- **Compatibility**: stable API under `/v1/...` with `/api/v1/...` compatibility routing
+
+## Repository Layout
+
+```text
 muejam-library/
-├── apps/              # Deployable applications
-│   ├── backend/       # Django REST API
-│   └── frontend/      # React application
-├── packages/          # Shared libraries (future use)
-├── docs/              # All documentation
-│   ├── architecture/  # System design
-│   ├── features/      # Feature documentation
-│   ├── development/   # Developer guides
-│   └── deployment/    # Deployment guides
-├── tests/             # Centralized test suites
-│   ├── backend/       # Backend integration tests
-│   └── frontend/      # Frontend integration tests
-├── scripts/           # Automation scripts
-│   ├── database/      # Database utilities
-│   ├── deployment/    # Deployment scripts
-│   └── verification/  # Verification scripts
-├── infra/             # Infrastructure as code
-│   ├── terraform/     # Terraform configurations
-│   └── iam-policies/  # IAM policies
-└── tools/             # Development tools
+|- apps/
+|  |- backend/            # Django API service
+|  |- frontend/           # React web app (Vite)
+|- docs/                  # Architecture, feature, dev, and ops docs
+|- infra/                 # Terraform, IAM policies, infra assets
+|- scripts/               # Deployment, database, verification automation
+|- tests/                 # Centralized backend/frontend test suites
+|- tools/                 # Engineering utilities
+|- docker-compose.yml
+`- pytest.ini
 ```
 
-For detailed structure documentation, see [Monorepo Structure](docs/architecture/monorepo-structure.md).
+For deeper structure details, see [docs/architecture/monorepo-structure.md](docs/architecture/monorepo-structure.md).
 
-## Quick Start
+## Quick Start (Recommended)
 
-### Prerequisites
+Use the dedicated run guide for the most reliable local setup:
 
-- Docker and Docker Compose V2
-- Git
+- [Run Guide](docs/getting-started/run-guide.md)
 
-### Running the Application
+In short, the recommended flow is:
+1. Copy env templates for backend and frontend.
+2. Start infra with Docker (`postgres`, `pgbouncer`, `valkey`).
+3. Run backend locally on port `8000`.
+4. Run frontend locally on port `8080`.
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd muejam-library
-   ```
-
-2. Start all services with Docker Compose:
-   ```bash
-   docker-compose up
-   ```
-
-3. Access the application:
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000/api
-   - API Documentation: http://localhost:8000/api/schema/swagger-ui/
-
-### Development Setup
-
-For detailed development setup instructions, see:
-- [Development Setup Guide](docs/development/setup.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
-
-## Features
-
-- **Serial Fiction Library**: Browse, read, and manage serial stories
-- **Whispers**: Micro-posting system for short updates and thoughts
-- **User Authentication**: Secure authentication with Clerk
-- **Content Moderation**: Automated and manual content moderation
-- **GDPR Compliance**: Data export, deletion, and privacy controls
-- **Two-Factor Authentication**: Enhanced security with TOTP
-- **Responsive Design**: Works on desktop and mobile devices
-- **RESTful API**: Clean API design with comprehensive documentation
-
-## Technology Stack
-
-### Backend
-- Django 5.0.1 with Django REST Framework
-- PostgreSQL 15 database
-- Prisma ORM
-- Valkey (Redis-compatible) for caching
-- Celery for background tasks
-- Clerk for authentication
-
-### Frontend
-- React 18 with TypeScript
-- Vite build tool
-- TanStack Query for data fetching
-- React Router for navigation
-- Tailwind CSS + shadcn/ui for styling
-
-### Infrastructure
-- Docker & Docker Compose
-- AWS (ECS, RDS, S3, CloudFront)
-- Terraform for IaC
-- GitHub Actions for CI/CD
-
-## Documentation
-
-### Getting Started
-- [Development Setup](docs/development/setup.md)
-- [Coding Conventions](docs/development/conventions.md)
-- [Testing Guide](docs/development/testing.md)
-- [Development Workflows](docs/development/workflows.md)
-- [Troubleshooting](docs/development/troubleshooting.md)
-
-### Architecture
-- [Monorepo Structure](docs/architecture/monorepo-structure.md)
-- [Infrastructure Architecture](docs/architecture/infrastructure.md)
-
-### Features
-- [Authentication](docs/features/authentication/)
-- [Moderation](docs/features/moderation/)
-- [GDPR Compliance](docs/features/gdpr/)
-- [Security Features](docs/features/security/)
-
-### Deployment
-- [Migration Guide](docs/deployment/migration-guide.md)
-- [Deployment Verification](docs/deployment/verification.md)
-- [CI/CD Pipeline](docs/deployment/ci-cd.md)
-
-## Development
-
-### Backend Development
-
-**Important: Generate a SECRET_KEY first!**
-
-Before running the backend, you must generate a secure SECRET_KEY:
+### Minimal command sequence
 
 ```bash
-# Generate SECRET_KEY
-python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+# from repo root
+cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/.env.example apps/frontend/.env.local
+docker compose up -d postgres pgbouncer valkey
 ```
 
-Copy the output and add it to your `.env` file.
+Then run backend and frontend in separate terminals:
 
 ```bash
+# terminal 1
 cd apps/backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+# activate venv, then:
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env and paste your generated SECRET_KEY
 python manage.py migrate
-python manage.py runserver
+python manage.py runserver 0.0.0.0:8000
 ```
 
-### Frontend Development
-
 ```bash
+# terminal 2
 cd apps/frontend
 npm install
-cp .env.example .env.local
-# Edit .env.local with your configuration
 npm run dev
 ```
 
-### Running Tests
+## Local Endpoints
 
-Backend tests:
+- **Frontend**: `http://localhost:8080`
+- **Backend health**: `http://localhost:8000/health/live`
+- **API docs (Swagger)**: `http://localhost:8000/v1/docs/`
+- **OpenAPI schema**: `http://localhost:8000/v1/schema/`
+
+API compatibility note:
+- canonical routes: `/v1/...`
+- compatibility routes: `/api/v1/...`
+
+## Common Development Commands
+
+### Backend
+
 ```bash
 cd apps/backend
-python -m pytest
+python manage.py check
+python manage.py collectstatic --noinput --dry-run
+python -m pytest ../../tests/backend -q
 ```
 
-Frontend tests:
+### Frontend
+
 ```bash
 cd apps/frontend
+npm run lint
 npm test
+npm run build
 ```
+
+### Infrastructure scripts
+
+```bash
+# examples
+scripts/deployment/smoke-tests.sh staging
+scripts/deployment/check-latency.sh production
+scripts/deployment/check-error-rate.sh production
+```
+
+## Documentation Map
+
+### Getting Started
+- [docs/getting-started/run-guide.md](docs/getting-started/run-guide.md)
+- [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md)
+- [docs/getting-started/development.md](docs/getting-started/development.md)
+
+### Engineering Workflow
+- [docs/development/setup.md](docs/development/setup.md)
+- [docs/development/workflows.md](docs/development/workflows.md)
+- [docs/development/testing.md](docs/development/testing.md)
+- [docs/development/troubleshooting.md](docs/development/troubleshooting.md)
+
+### Architecture and APIs
+- [docs/architecture/system-architecture.md](docs/architecture/system-architecture.md)
+- [docs/architecture/infrastructure.md](docs/architecture/infrastructure.md)
+- [docs/architecture/api.md](docs/architecture/api.md)
+- [docs/backend/mobile-api.md](docs/backend/mobile-api.md)
+
+### Feature Documentation
+- [Authentication](docs/features/authentication/two-factor-auth.md)
+- [Moderation](docs/features/moderation/dashboard.md)
+- [GDPR and Privacy](docs/features/gdpr/overview.md)
+- [Security](docs/features/security/content-sanitizer.md)
+- [Notifications](docs/features/notifications/overview.md)
+
+### Deployment and Operations
+- [docs/deployment/ci-cd.md](docs/deployment/ci-cd.md)
+- [docs/deployment/verification.md](docs/deployment/verification.md)
+- [docs/deployment/disaster-recovery.md](docs/deployment/disaster-recovery.md)
+- [docs/operations/PRODUCTION_READINESS_REVIEW.md](docs/operations/PRODUCTION_READINESS_REVIEW.md)
+
+## Quality and Production Readiness
+
+The repository includes:
+- deployment smoke tests and rollback automation in `scripts/deployment/`
+- verification scripts in `scripts/verification/`
+- infrastructure validation workflow in `.github/workflows/infra-devops.yml`
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 
-Key points:
-- Follow our [coding conventions](docs/development/conventions.md)
-- Write tests for new features
-- Update documentation as needed
-- Submit pull requests with clear descriptions
+Expectations:
+- keep changes scoped and atomic
+- add/update tests with behavioral changes
+- update docs when behavior, commands, or contracts change
 
 ## License
 
 This repository currently does not publish a standalone license file.
-Contact the maintainers for usage and distribution permissions.
+Contact maintainers for usage and distribution permissions.

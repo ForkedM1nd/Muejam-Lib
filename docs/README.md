@@ -5,6 +5,7 @@ Welcome to the MueJam Library documentation. This directory contains comprehensi
 ## Documentation Structure
 
 ### Getting Started
+- [Run Guide](getting-started/run-guide.md) - Recommended local run flow (infra + app servers)
 - [Quickstart Guide](getting-started/quickstart.md) - Get up and running quickly
 - [Development Guide](getting-started/development.md) - Detailed development setup and workflows
 
