@@ -12,6 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload } from 'lucide-react';
+import { api } from '@/lib/api';
+import { uploadFile } from '@/lib/upload';
+import { toast } from '@/hooks/use-toast';
 
 interface ProfileSetupWizardProps {
     open: boolean;
@@ -45,29 +48,24 @@ export function ProfileSetupWizard({ open, onClose, onComplete }: ProfileSetupWi
 
         setIsSubmitting(true);
         try {
-            // Call API to update profile
-            const formData = new FormData();
-            formData.append('display_name', displayName);
-            if (bio.trim()) {
-                formData.append('bio', bio);
-            }
+            let avatarKey: string | undefined;
             if (avatar) {
-                formData.append('avatar', avatar);
+                avatarKey = await uploadFile(avatar, 'avatar');
             }
 
-            const response = await fetch('/v1/users/me/', {
-                method: 'PATCH',
-                body: formData,
-                credentials: 'include',
+            await api.updateMe({
+                display_name: displayName.trim(),
+                bio: bio.trim() || undefined,
+                ...(avatarKey ? { avatar_key: avatarKey } : {}),
             });
 
-            if (response.ok) {
-                onComplete({ displayName, bio, avatar: avatar || undefined });
-            } else {
-                console.error('Failed to update profile');
-            }
+            onComplete({ displayName, bio, avatar: avatar || undefined });
         } catch (error) {
-            console.error('Failed to update profile:', error);
+            toast({
+                title: 'Failed to save profile',
+                description: 'Please try again.',
+                variant: 'destructive',
+            });
         } finally {
             setIsSubmitting(false);
         }

@@ -82,26 +82,7 @@ export function InterestSelection({ open, onClose, onComplete }: InterestSelecti
 
         setIsSubmitting(true);
         try {
-            // Save interests to user profile
-            const response = await fetch('/v1/users/me/', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    preferred_genres: selectedGenres,
-                    preferred_tags: selectedTags,
-                }),
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                onComplete([...selectedGenres, ...selectedTags]);
-            } else {
-                console.error('Failed to save interests');
-            }
-        } catch (error) {
-            console.error('Failed to save interests:', error);
+            onComplete([...selectedGenres, ...selectedTags]);
         } finally {
             setIsSubmitting(false);
         }
